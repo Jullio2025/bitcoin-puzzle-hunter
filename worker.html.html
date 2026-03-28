@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>🦘 Blind Search Worker</title>
+    <style>
+        body { font-family: monospace; background: #0d1117; color: #00ff88; padding: 20px; }
+        .status { background: #161b22; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .log { height: 250px; overflow-y: scroll; background: #0d1117; border: 1px solid #30363d; padding: 10px; font-size: 12px; }
+        .btn { background: #00ff88; color: #0d1117; padding: 12px 30px; border: none; font-weight: bold; cursor: pointer; border-radius: 6px; margin: 5px; }
+        .btn-stop { background: #f85149; color: #fff; }
+        .security-notice { background: #1f6feb22; border: 1px solid #1f6feb; padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 0.9em; }
+        .reward-notice { background: #d2992222; border: 1px solid #d29922; padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>🦘 Blind Search Worker</h1>
+    
+    <div class="security-notice">
+        🔒 <strong>Busca Cega:</strong> Você NÃO sabe qual endereço está buscando.
+        Isso protege contra roubo de chave. Sua contribuição é rastreada por device_id + IP.
+    </div>
+    
+    <div class="reward-notice">
+        💰 <strong>Quer receber prêmio?</strong> Registre seu BTC address em: 
+        <a href="/join" target="_blank" style="color: #00ff88;">/join</a>
+    </div>
+    
+    <div class="status">
+        <p>Device ID: <span id="device-id">-</span></p>
+        <p>Status: <span id="status">Parado</span></p>
+        <p>Speed: <span id="speed">0</span> steps/seg</p>
+        <p>Total Steps: <span id="total">0</span></p>
+        <p>Target Hash: <span id="target-hash">-</span></p>
+    </div>
+    
+    <button id="btn" class="btn" onclick="toggle()">START</button>
+    <button class="btn btn-stop" onclick="clearData()">CLEAR DATA</button>
+    
+    <div class="log" id="log"></div>
+    
+    <script>
+        const DEVICE_ID = new URLSearchParams(window.location.search).get('id') || 'web_' + Math.random().toString(36).substr(2, 9);
+        const SERVER = window.location.origin;
+        let running = false, totalSteps = 0, startTime = 0, currentRange = null;
+        
+        document.getElementById('device-id').innerText = DEVICE_ID;
+        
+        function log(msg) {
+            document.getElementById('log').innerHTML += `<div>${new Date().toLocaleTimeString()} - ${msg}</div>`;
+            document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
+        }
+        
+        function generateProof(privkey, deviceId) {
+            const message = `${privkey}:${deviceId}`;
+            return btoa(unescape(encodeURIComponent(message)));
+        }
+        
+        async function kangarooStep(low, high, targetHash) {
+            const range = high - low;
+            const m = BigInt(Math.floor(Math.sqrt(Number(range))));
+            let x = BigInt(Math.floor(Math.random() * Number(m)));
+            let jump = BigInt(Math.floor(Math.random() * 1000) + 1);
+            
+            x = (x + jump) % m;
+            totalSteps++;
+            
+            if (Number(x) % 32768 === 0) {
+                return { isDP: true, x: x.toString(16), hash: targetHash };
+            }
+            return { isDP: false };
+        }
+        
+        async function work() {
+            while (running) {
+                try {
+                    const res = await fetch(`${SERVER}/range?device_id=${DEVICE_ID}&puzzle=71`);
+                    const data = await res.json();
+                    
+                    if (data.status === 'complete') {
+                        log("✅ Todos os ranges concluídos!");
+                        break;
+                    }
+                    
+                    currentRange = data.range_id;
+                    const low = BigInt(data.range_low);
+                    const high = BigInt(data.range_high);
+                    const targetHash = data.target_hash;
+                    
+                    document.getElementById('target-hash').innerText = targetHash.substring(0, 16) + '...';
+                    log(`📍 Range ${data.range_id} iniciado`);
+                    
+                    startTime = Date.now();
+                    let localSteps = 0;
+                    
+                    for (let i = 0; i < 50000 && running; i++) {
+                        const result = await kangarooStep(low, high, targetHash);
+                        localSteps++;
+                        
+                        if (result.isDP) {
+                            log(`🎯 DP encontrado: ${result.x.substring(0, 16)}...`);
+                        }
+                        
+                        if (i % 10000 === 0) {
+                            const elapsed = (Date.now() - startTime) / 1000;
+                            const speed = Math.floor(localSteps / elapsed) || 0;
+                            document.getElementById('speed').innerText = speed.toLocaleString();
+                            document.getElementById('total').innerText = totalSteps.toLocaleString();
+                            
+                            fetch(`${SERVER}/report`, {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({
+                                    device_id: DEVICE_ID,
+                                    range_id: data.range_id,
+                                    checked: localSteps,
+                                    speed: speed
+                                })
+                            }).catch(e => console.error(e));
+                        }
+                    }
+                } catch (e) {
+                    log(`❌ Erro: ${e.message}`);
+                    await new Promise(r => setTimeout(r, 5000));
+                }
+            }
+        }
+        
+        function toggle() {
+            running = !running;
+            document.getElementById('btn').innerText = running ? 'STOP' : 'START';
+            document.getElementById('btn').classList.toggle('btn-stop');
+            document.getElementById('status').innerText = running ? '🟢 Trabalhando...' : '🔴 Parado';
+            if (running) {
+                work();
+                log("✅ Worker iniciado. Blind search active.");
+            } else {
+                log("⏸️ Worker pausado.");
+            }
+        }
+        
+        function clearData() {
+            localStorage.removeItem('hunter_id');
+            location.reload();
+        }
+    </script>
+</body>
+</html>
