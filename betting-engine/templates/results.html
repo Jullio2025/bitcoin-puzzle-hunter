@@ -71,8 +71,12 @@
 {% endfor %}
 
 {% if analyses %}
-<div class="card ticket" id="ticket">
-  <h2>Sua seleção</h2>
+<div class="card ticket collapsed" id="ticket">
+  <div class="ticket-head">
+    <h2>Sua seleção <span class="badge" id="t-count">0 mercados</span></h2>
+    <button type="button" class="mini" id="t-toggle">expandir ▴</button>
+  </div>
+  <div id="ticket-body">
   <p class="hint">Marque mercados nas tabelas acima. A múltipla mostra SEMPRE
   os três números juntos — nunca a odd combinada sozinha.</p>
   <div id="ticket-legs" class="hint">Nenhum mercado selecionado.</div>
@@ -90,9 +94,22 @@
     <button name="mode" value="multipla" class="primary">Registrar como múltipla</button>
     <button name="mode" value="simples">Registrar como simples (1 por linha)</button>
   </form>
+  </div>
 </div>
 
 <script>
+// Bilhete fica minimizado até o usuário marcar um mercado (ou expandir).
+const ticket = document.getElementById("ticket");
+const toggleBtn = document.getElementById("t-toggle");
+let prevCount = 0;
+
+function setCollapsed(c) {
+  ticket.classList.toggle("collapsed", c);
+  toggleBtn.textContent = c ? "expandir ▴" : "minimizar ▾";
+}
+toggleBtn.addEventListener("click", () =>
+  setCollapsed(!ticket.classList.contains("collapsed")));
+
 // Prévia do bilhete (a conta oficial é refeita no servidor ao registrar):
 // odd combinada = produto das odds; prob = produto dos p_model;
 // chance de perder = 1 - prob.
@@ -102,6 +119,12 @@ function refreshTicket() {
     odd: parseFloat(cb.dataset.odd), p: parseFloat(cb.dataset.p)
   }));
   document.getElementById("legs-json").value = JSON.stringify(legs);
+  document.getElementById("t-count").textContent =
+    legs.length + (legs.length === 1 ? " mercado" : " mercados");
+  if (prevCount === 0 && legs.length > 0) setCollapsed(false);
+  if (legs.length === 0) setCollapsed(true);
+  prevCount = legs.length;
+
   const box = document.getElementById("ticket-legs");
   if (!legs.length) {
     box.textContent = "Nenhum mercado selecionado.";
