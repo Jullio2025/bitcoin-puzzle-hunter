@@ -9,7 +9,22 @@
 > na sua própria casa. Defaults são sugestões — nunca travas — e **nada é
 > filtrado silenciosamente**.
 
-## Instalação (VPS, Python 3.11+)
+## Instalação rápida (VPS Ubuntu/Debian — um comando)
+
+Cole no terminal do VPS; o instalador baixa tudo, instala, pede sua chave
+da API-Football e roda o teste de conexão:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Jullio2025/bitcoin-puzzle-hunter/claude/sports-betting-recommender-q9cveu/betting-engine/setup.sh -o setup.sh && bash setup.sh
+```
+
+Depois disso, para abrir o motor a qualquer momento:
+
+```bash
+~/bitcoin-puzzle-hunter/betting-engine/run.sh
+```
+
+## Instalação manual (qualquer máquina, Python 3.11+)
 
 ```bash
 cd betting-engine
