@@ -86,12 +86,14 @@ h1 { font-size: 1.4rem; } h2 { font-size: 1.05rem; margin-top: 0; }
 /* --------------------------------------------------------------- forms */
 label { display: block; margin: 10px 0; font-weight: 600; }
 label.inline { display: inline-block; margin-right: 16px; font-weight: 500; }
+select,
 input[type="number"], input[type="date"], input[type="text"],
 input:not([type]) {
   width: 100%; max-width: 320px; padding: 10px 12px; margin-top: 4px;
   background: #0b1122; border: 1px solid var(--line); color: var(--text);
   border-radius: 10px; display: block; font-weight: 500;
 }
+select:focus,
 input:focus {
   outline: none; border-color: var(--neon);
   box-shadow: 0 0 0 3px rgba(61, 255, 139, .15);

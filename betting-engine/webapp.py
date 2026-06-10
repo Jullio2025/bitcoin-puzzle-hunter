@@ -57,10 +57,34 @@ def render(request: Request, template: str, **ctx) -> HTMLResponse:
 
 
 # ------------------------------------------------------------------ páginas
+# Campeonatos fixados no topo da lista (id na API-Football)
+FAVORITE_LEAGUE_IDS = [71, 72, 73, 13, 11, 2, 3, 39, 140, 135, 78, 61]
+
+
+def _leagues_for_select() -> tuple[list, list, str | None]:
+    """(populares, todas A-Z por país, erro) para o seletor de campeonato."""
+    try:
+        leagues = ApiFootballClient().leagues_with_stats_coverage()
+    except Exception as e:  # sem chave/sem rede: o seletor degrada p/ "todos"
+        return [], [], str(e)
+    leagues.sort(key=lambda l: (l.get("country") or "", l.get("name") or ""))
+    favs = [l for l in leagues if l["league_id"] in FAVORITE_LEAGUE_IDS]
+    favs.sort(key=lambda l: FAVORITE_LEAGUE_IDS.index(l["league_id"]))
+    return favs, leagues, None
+
+
+def _home(request: Request, **extra) -> HTMLResponse:
+    favorites, leagues, leagues_error = _leagues_for_select()
+    return render(request, "index.html",
+                  today=extra.pop("today", date.today().isoformat()),
+                  rule_names=rules.all_rule_names(),
+                  favorites=favorites, leagues=leagues,
+                  leagues_error=leagues_error, **extra)
+
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, _: str = Depends(auth)):
-    return render(request, "index.html", today=date.today().isoformat(),
-                  rule_names=rules.all_rule_names())
+    return _home(request)
 
 
 @app.post("/fixtures", response_class=HTMLResponse)
@@ -78,8 +102,7 @@ def list_fixtures(request: Request, _: str = Depends(auth),
         upcoming = [fx for fx in fixtures
                     if fx["fixture"]["status"]["short"] in ("NS", "TBD")]
     except ApiError as e:
-        return render(request, "index.html", today=match_date,
-                      rule_names=rules.all_rule_names(), error=str(e))
+        return _home(request, today=match_date, error=str(e))
     return render(request, "fixtures.html", fixtures=upcoming,
                   match_date=match_date, rule_names=rules.all_rule_names())
 
@@ -89,9 +112,7 @@ async def analyze(request: Request, _: str = Depends(auth)):
     form = await request.form()
     fixture_ids = [int(x) for x in form.getlist("fixture_id")]
     if not fixture_ids:
-        return render(request, "index.html", today=date.today().isoformat(),
-                      rule_names=rules.all_rule_names(),
-                      error="Selecione pelo menos um jogo.")
+        return _home(request, error="Selecione pelo menos um jogo.")
 
     params = UserParams(
         odd_min=float(form.get("odd_min")),

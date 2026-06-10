@@ -81,6 +81,12 @@ if ! grep -q "PANEL_PASSWORD=." .env 2>/dev/null; then
     echo "      Senha do painel gravada (usuário: admin)."
 fi
 
+# se o ChapaFut já roda como serviço 24h, aplica a versão nova
+if systemctl is-active --quiet chapafut 2>/dev/null; then
+    systemctl restart chapafut
+    echo "      Serviço chapafut reiniciado com a versão nova."
+fi
+
 # 5. teste de conexão ----------------------------------------------------------
 echo "[5/5] Testando a conexão com a API (listando ligas com cobertura)..."
 echo
