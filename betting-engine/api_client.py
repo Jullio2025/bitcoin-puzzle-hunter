@@ -179,3 +179,24 @@ class ApiFootballClient:
              "bookmaker": bookmaker_id or config.DEFAULT_BOOKMAKER_ID},
             ttl=config.CACHE_TTL["odds"],
         )
+
+    def odds_by_date(self, date: str, bookmaker_id: int | None = None,
+                     max_pages: int = 30) -> list:
+        """Odds de TODOS os jogos de uma data (paginado) — base do scanner.
+
+        Muito mais barato que 1 chamada por jogo: cada página traz dezenas
+        de jogos. Para quando vier página vazia ou atingir max_pages.
+        """
+        out: list = []
+        for page in range(1, max_pages + 1):
+            rows = self._get(
+                "odds",
+                {"date": date,
+                 "bookmaker": bookmaker_id or config.DEFAULT_BOOKMAKER_ID,
+                 "page": page},
+                ttl=config.CACHE_TTL["odds"],
+            )
+            if not rows:
+                break
+            out.extend(rows)
+        return out

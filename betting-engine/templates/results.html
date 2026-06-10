@@ -71,70 +71,7 @@
 {% endfor %}
 
 {% if analyses %}
-<div class="card ticket" id="ticket">
-  <h2>Sua seleção <span class="badge" id="t-count">0 mercados</span></h2>
-  <p class="hint">Marque mercados nas tabelas acima. A múltipla mostra SEMPRE
-  os três números juntos — nunca a odd combinada sozinha.</p>
-  <div id="ticket-legs" class="hint">Nenhum mercado selecionado.</div>
-  <div class="trio">
-    <div><span>Odd combinada</span><strong id="t-odd">—</strong></div>
-    <div><span>Probabilidade combinada</span><strong id="t-prob">—</strong></div>
-    <div><span>Chance de PERDER o bilhete</span><strong id="t-lose">—</strong></div>
-  </div>
-  <p class="hint">A probabilidade combinada assume <strong>independência</strong>
-  entre as pernas — é uma aproximação; pernas do mesmo jogo são correlacionadas.</p>
-
-  <form method="post" action="/ticket/register" class="form-inline">
-    <input type="hidden" name="legs_json" id="legs-json" value="[]">
-    <label>Stake (unidades) <input type="number" step="any" name="stake" value="1.0"></label>
-    <button name="mode" value="multipla" class="primary">Registrar como múltipla</button>
-    <button name="mode" value="simples">Registrar como simples (1 por linha)</button>
-  </form>
-</div>
-
-<button type="button" id="ticket-fab" hidden>🎫 <span id="fab-text"></span></button>
-
-<script>
-// O bilhete é um cartão normal no fim da página (não cobre nada).
-// Ao marcar mercados, um botão flutuante leva até ele.
-const fab = document.getElementById("ticket-fab");
-fab.addEventListener("click", () =>
-  document.getElementById("ticket").scrollIntoView({ behavior: "smooth" }));
-
-// Prévia do bilhete (a conta oficial é refeita no servidor ao registrar):
-// odd combinada = produto das odds; prob = produto dos p_model;
-// chance de perder = 1 - prob.
-function refreshTicket() {
-  const legs = [...document.querySelectorAll(".leg:checked")].map(cb => ({
-    fixture: cb.dataset.fixture, market: cb.dataset.market,
-    odd: parseFloat(cb.dataset.odd), p: parseFloat(cb.dataset.p)
-  }));
-  document.getElementById("legs-json").value = JSON.stringify(legs);
-  document.getElementById("t-count").textContent =
-    legs.length + (legs.length === 1 ? " mercado" : " mercados");
-  fab.hidden = legs.length === 0;
-
-  const box = document.getElementById("ticket-legs");
-  if (!legs.length) {
-    box.textContent = "Nenhum mercado selecionado.";
-    ["t-odd","t-prob","t-lose"].forEach(id =>
-      document.getElementById(id).textContent = "—");
-    return;
-  }
-  box.innerHTML = legs.map(l =>
-    `• ${l.fixture} — ${l.market} (odd ${l.odd.toFixed(2)}, p ${(l.p*100).toFixed(1)}%)`
-  ).join("<br>");
-  const odd = legs.reduce((a, l) => a * l.odd, 1);
-  const prob = legs.reduce((a, l) => a * l.p, 1);
-  document.getElementById("t-odd").textContent = odd.toFixed(2);
-  document.getElementById("t-prob").textContent = (prob*100).toFixed(1) + "%";
-  document.getElementById("t-lose").textContent = ((1-prob)*100).toFixed(1) + "%";
-  document.getElementById("fab-text").textContent =
-    `${legs.length} ✓ odd ${odd.toFixed(2)} — ver bilhete`;
-}
-document.querySelectorAll(".leg").forEach(cb =>
-  cb.addEventListener("change", refreshTicket));
-</script>
+{% include "_ticket.html" %}
 {% endif %}
 
 <p class="hint">Chamadas reais à API nesta análise: {{ api_calls }}.</p>

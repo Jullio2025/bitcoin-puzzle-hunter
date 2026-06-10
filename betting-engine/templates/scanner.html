@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="hero">
+  <h1>SCAN<span>NER</span></h1>
+  <p class="tagline">Monte o molde do bilhete primeiro — o ChapaFut garimpa os
+  jogos do dia que entregam as peças.<br>
+  Ex.: <em>gols com odd até 1.4</em> + <em>mais de 6 escanteios com odd a
+  partir de 1.3</em>.</p>
+</div>
+
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+<form method="post" action="/scan">
+  <div class="card form-grid">
+    <h2>Onde procurar</h2>
+    <label>Data dos jogos
+      <input type="date" name="match_date" value="{{ today }}" required></label>
+    <label>ID do bookmaker <span class="hint">(8 = Bet365)</span>
+      <input type="number" name="bookmaker" value="{{ bookmaker_default }}"></label>
+    <label>Últimos N jogos por mando
+      <input type="number" name="last_n" value="{{ defaults.last_n }}"></label>
+    <label>Máx. de jogos analisados a fundo
+      <span class="hint">(protege sua cota da API; o resultado avisa se sobraram candidatos)</span>
+      <input type="number" name="deep_limit" value="20"></label>
+    <label class="inline"><input type="checkbox" name="match_all">
+      Só jogos onde TODOS os critérios batem juntos
+      <span class="hint">(múltipla no mesmo jogo — atenção: pernas do mesmo
+      jogo são correlacionadas)</span></label>
+  </div>
+
+  <div class="card">
+    <h2>As peças do seu bilhete
+      <span class="hint">(ative só as que quiser; qualquer valor é aceito)</span></h2>
+
+    {% for m in [("goals", "⚽ Gols"), ("corners", "🚩 Escanteios"), ("cards", "🟨 Cartões")] %}
+    <fieldset>
+      <legend>{{ m[1] }}</legend>
+      <label class="inline"><input type="checkbox" name="{{ m[0] }}_on"
+        {{ "checked" if m[0] in preset_on }}> ativar</label>
+      <div class="crit-row">
+        <label>Lado
+          <select name="{{ m[0] }}_side">
+            <option value="over">Mais de</option>
+            <option value="under">Menos de</option>
+          </select></label>
+        <label>Linha <span class="hint">(vazio = qualquer)</span>
+          <input type="number" step="any" name="{{ m[0] }}_line" placeholder="ex.: 6"></label>
+        <label>Odd mínima
+          <input type="number" step="any" name="{{ m[0] }}_odd_min" value="1.20"></label>
+        <label>Odd máxima
+          <input type="number" step="any" name="{{ m[0] }}_odd_max" value="2.00"></label>
+        <label>Probabilidade mínima (0–1)
+          <input type="number" step="any" name="{{ m[0] }}_p_min" value="0.60"></label>
+      </div>
+    </fieldset>
+    {% endfor %}
+
+    <fieldset>
+      <legend>🏆 Resultado (1X2)</legend>
+      <label class="inline"><input type="checkbox" name="1x2_on"> ativar</label>
+      <div class="crit-row">
+        <label>Lado
+          <select name="1x2_side">
+            <option value="any">Qualquer</option>
+            <option value="home">Vitória mandante</option>
+            <option value="draw">Empate</option>
+            <option value="away">Vitória visitante</option>
+          </select></label>
+        <label>Odd mínima
+          <input type="number" step="any" name="1x2_odd_min" value="1.20"></label>
+        <label>Odd máxima
+          <input type="number" step="any" name="1x2_odd_max" value="2.50"></label>
+        <label>Probabilidade mínima (0–1)
+          <input type="number" step="any" name="1x2_p_min" value="0.50"></label>
+      </div>
+    </fieldset>
+
+    <button type="submit" class="primary">Garimpar jogos ⛏️</button>
+    <p class="hint">A varredura pré-filtra pelas odds do dia inteiro (barato)
+    e roda o modelo completo só nos candidatos. Primeira vez do dia pode
+    levar alguns minutos; depois o cache acelera.</p>
+  </div>
+</form>
+{% endblock %}

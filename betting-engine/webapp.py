@@ -23,6 +23,7 @@ from fastapi.templating import Jinja2Templates
 
 import config
 import rules
+import scanner
 from api_client import ApiError, ApiFootballClient
 from features import build_match_context
 from odds_parser import parse_odds
@@ -176,6 +177,60 @@ async def analyze(request: Request, _: str = Depends(auth)):
 
     return render(request, "results.html", analyses=analyses, errors=errors,
                   params=params, api_calls=client.calls_made)
+
+
+# ------------------------------------------------------------------ scanner
+@app.get("/scanner", response_class=HTMLResponse)
+def scanner_page(request: Request, _: str = Depends(auth)):
+    return render(request, "scanner.html", today=date.today().isoformat(),
+                  preset_on=["goals", "corners"])
+
+
+def _parse_criteria(form) -> list[scanner.Criterion]:
+    criteria = []
+    for market in ("goals", "corners", "cards", "1x2"):
+        if form.get(f"{market}_on") != "on":
+            continue
+        raw_line = (form.get(f"{market}_line") or "").strip()
+        criteria.append(scanner.Criterion(
+            market=market,
+            side=form.get(f"{market}_side") or
+                 ("any" if market == "1x2" else "over"),
+            line=float(raw_line) if raw_line else None,
+            odd_min=float(form.get(f"{market}_odd_min") or 1.01),
+            odd_max=float(form.get(f"{market}_odd_max") or 100),
+            p_min=float(form.get(f"{market}_p_min") or 0),
+        ))
+    return criteria
+
+
+@app.post("/scan", response_class=HTMLResponse)
+async def scan(request: Request, _: str = Depends(auth)):
+    form = await request.form()
+    criteria = _parse_criteria(form)
+    if not criteria:
+        return render(request, "scanner.html",
+                      today=form.get("match_date", date.today().isoformat()),
+                      preset_on=[],
+                      error="Ative pelo menos um mercado para garimpar.")
+    match_date = form.get("match_date") or date.today().isoformat()
+    try:
+        client = ApiFootballClient()
+        result = scanner.scan_day(
+            client, match_date, criteria,
+            bookmaker=int(form.get("bookmaker")
+                          or config.DEFAULT_BOOKMAKER_ID),
+            last_n=int(form.get("last_n") or config.USER_DEFAULTS["last_n"]),
+            match_all=form.get("match_all") == "on",
+            deep_limit=int(form.get("deep_limit") or 20),
+        )
+    except ApiError as e:
+        return render(request, "scanner.html", today=match_date,
+                      preset_on=[], error=str(e))
+    return render(request, "scanner_results.html", result=result,
+                  criteria=criteria, match_date=match_date,
+                  match_all=form.get("match_all") == "on",
+                  api_calls=client.calls_made)
 
 
 # ------------------------------------------------------------------ tracker
