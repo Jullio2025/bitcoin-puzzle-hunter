@@ -151,20 +151,17 @@ details { margin: 10px 0; }
 summary { cursor: pointer; color: var(--violet); font-weight: 600; }
 
 /* ------------------------------------------------------------- bilhete */
-.ticket {
-  position: sticky; bottom: 8px; padding: 10px 16px;
-  border: 1px solid var(--violet);
-  box-shadow: 0 -6px 40px rgba(157, 107, 255, .25), 0 8px 30px rgba(0,0,0,.5);
+/* cartão normal no fim da página — nunca cobre as tabelas */
+.ticket { border: 1px solid var(--violet); }
+#ticket-fab {
+  position: fixed; bottom: 16px; right: 16px; z-index: 100;
+  border: none; border-radius: 999px; padding: 12px 20px;
+  background: linear-gradient(90deg, var(--neon), #2bd9a3);
+  color: #03240f; font-weight: 800; font-size: .9rem; cursor: pointer;
+  box-shadow: 0 0 24px rgba(61, 255, 139, .5), 0 6px 20px rgba(0,0,0,.5);
 }
-.ticket-head {
-  display: flex; justify-content: space-between; align-items: center;
-}
-.ticket-head h2 { margin: 0; }
-.ticket.collapsed #ticket-body { display: none; }
-button.mini {
-  padding: 4px 14px; font-size: .8rem; margin: 0;
-}
-#ticket-legs { max-height: 84px; overflow-y: auto; margin: 8px 0; }
+#ticket-fab:hover { transform: translateY(-1px); }
+#ticket-legs { max-height: 120px; overflow-y: auto; margin: 8px 0; }
 .trio { display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0; }
 .trio > div {
   flex: 1; min-width: 170px; background: #0b1122; border-radius: 12px;

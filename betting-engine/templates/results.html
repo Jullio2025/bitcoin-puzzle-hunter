@@ -71,12 +71,8 @@
 {% endfor %}
 
 {% if analyses %}
-<div class="card ticket collapsed" id="ticket">
-  <div class="ticket-head">
-    <h2>Sua seleção <span class="badge" id="t-count">0 mercados</span></h2>
-    <button type="button" class="mini" id="t-toggle">expandir ▴</button>
-  </div>
-  <div id="ticket-body">
+<div class="card ticket" id="ticket">
+  <h2>Sua seleção <span class="badge" id="t-count">0 mercados</span></h2>
   <p class="hint">Marque mercados nas tabelas acima. A múltipla mostra SEMPRE
   os três números juntos — nunca a odd combinada sozinha.</p>
   <div id="ticket-legs" class="hint">Nenhum mercado selecionado.</div>
@@ -94,21 +90,16 @@
     <button name="mode" value="multipla" class="primary">Registrar como múltipla</button>
     <button name="mode" value="simples">Registrar como simples (1 por linha)</button>
   </form>
-  </div>
 </div>
 
-<script>
-// Bilhete fica minimizado até o usuário marcar um mercado (ou expandir).
-const ticket = document.getElementById("ticket");
-const toggleBtn = document.getElementById("t-toggle");
-let prevCount = 0;
+<button type="button" id="ticket-fab" hidden>🎫 <span id="fab-text"></span></button>
 
-function setCollapsed(c) {
-  ticket.classList.toggle("collapsed", c);
-  toggleBtn.textContent = c ? "expandir ▴" : "minimizar ▾";
-}
-toggleBtn.addEventListener("click", () =>
-  setCollapsed(!ticket.classList.contains("collapsed")));
+<script>
+// O bilhete é um cartão normal no fim da página (não cobre nada).
+// Ao marcar mercados, um botão flutuante leva até ele.
+const fab = document.getElementById("ticket-fab");
+fab.addEventListener("click", () =>
+  document.getElementById("ticket").scrollIntoView({ behavior: "smooth" }));
 
 // Prévia do bilhete (a conta oficial é refeita no servidor ao registrar):
 // odd combinada = produto das odds; prob = produto dos p_model;
@@ -121,9 +112,7 @@ function refreshTicket() {
   document.getElementById("legs-json").value = JSON.stringify(legs);
   document.getElementById("t-count").textContent =
     legs.length + (legs.length === 1 ? " mercado" : " mercados");
-  if (prevCount === 0 && legs.length > 0) setCollapsed(false);
-  if (legs.length === 0) setCollapsed(true);
-  prevCount = legs.length;
+  fab.hidden = legs.length === 0;
 
   const box = document.getElementById("ticket-legs");
   if (!legs.length) {
@@ -140,6 +129,8 @@ function refreshTicket() {
   document.getElementById("t-odd").textContent = odd.toFixed(2);
   document.getElementById("t-prob").textContent = (prob*100).toFixed(1) + "%";
   document.getElementById("t-lose").textContent = ((1-prob)*100).toFixed(1) + "%";
+  document.getElementById("fab-text").textContent =
+    `${legs.length} ✓ odd ${odd.toFixed(2)} — ver bilhete`;
 }
 document.querySelectorAll(".leg").forEach(cb =>
   cb.addEventListener("change", refreshTicket));
