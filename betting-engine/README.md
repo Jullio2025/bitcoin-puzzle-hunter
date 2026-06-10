@@ -46,6 +46,13 @@ preencher filtros → tabela completa por mercado, com lambdas e regras
 explicados, montagem de múltipla (sempre com odd combinada + probabilidade
 combinada + chance de perder, juntos) e tracker integrado.
 
+**Deixar online 24h (serviço do sistema):**
+
+```bash
+bash install-service.sh    # liga no boot e reinicia sozinho se cair
+journalctl -u chapafut -f  # logs ao vivo
+```
+
 **Terminal:**
 
 ```bash
