@@ -17,13 +17,11 @@ echo " Instalador do motor de apostas (calculadora)"
 echo "==============================================="
 
 # 1. dependências do sistema -------------------------------------------------
-if ! command -v git >/dev/null 2>&1 || ! command -v python3 >/dev/null 2>&1; then
-    echo "[1/5] Instalando git e python3..."
-    apt-get update -y -qq
-    apt-get install -y -qq git python3 python3-venv python3-pip
-else
-    echo "[1/5] git e python3 já instalados. OK"
-fi
+# instala sempre (é idempotente): o python3 do sistema pode existir sem o
+# módulo venv, o que quebra o passo 3
+echo "[1/5] Instalando/verificando git, python3, venv e pip..."
+apt-get update -y -qq
+apt-get install -y -qq git python3 python3-venv python3-pip
 
 # 2. código ------------------------------------------------------------------
 if [ -d "$DIR/.git" ]; then
@@ -40,7 +38,9 @@ cd "$DIR/betting-engine"
 
 # 3. ambiente python ----------------------------------------------------------
 echo "[3/5] Instalando dependências Python..."
-if [ ! -d .venv ]; then
+# recria o ambiente se estiver quebrado (sem pip) por uma tentativa anterior
+if [ ! -x .venv/bin/pip ]; then
+    rm -rf .venv
     python3 -m venv .venv
 fi
 .venv/bin/pip install -q --upgrade pip
