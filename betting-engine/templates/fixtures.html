@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Jogos de {{ match_date }}</h1>
+
+{% if not fixtures %}
+  <div class="error">Nenhum jogo (ainda não iniciado) encontrado nesse recorte.
+  Se você usa o plano Free da API, os jogos do dia atual podem não estar
+  disponíveis.</div>
+  <a class="button" href="/">← Voltar</a>
+{% else %}
+<form method="post" action="/analyze">
+  <div class="card">
+    <h2>1. Marque os jogos <span class="hint">(cada jogo analisado consome
+    chamadas da API — comece com poucos)</span></h2>
+    {% for fx in fixtures %}
+    <label class="fixture-row">
+      <input type="checkbox" name="fixture_id" value="{{ fx.fixture.id }}">
+      <span class="teams">{{ fx.teams.home.name }} × {{ fx.teams.away.name }}</span>
+      <span class="meta">{{ fx.league.name }} ({{ fx.league.country }}) —
+        {{ fx.fixture.date[11:16] }}</span>
+    </label>
+    {% endfor %}
+  </div>
+
+  <div class="card form-grid">
+    <h2>2. Seus filtros <span class="hint">(sugestões preenchidas — qualquer
+    valor é aceito; nada será escondido, mercados fora do filtro aparecem
+    marcados)</span></h2>
+    <label>Odd mínima <input type="number" step="any" name="odd_min" value="{{ defaults.odd_min }}"></label>
+    <label>Odd máxima <input type="number" step="any" name="odd_max" value="{{ defaults.odd_max }}"></label>
+    <label>Probabilidade mínima (0–1) <input type="number" step="any" name="p_min" value="{{ defaults.p_min }}"></label>
+    <label>EV mínimo <input type="number" step="any" name="ev_min" value="{{ defaults.ev_min }}"></label>
+    <label>Últimos N jogos por mando <input type="number" name="last_n" value="{{ defaults.last_n }}"></label>
+    <label>ID do bookmaker <span class="hint">(8 = Bet365)</span>
+      <input type="number" name="bookmaker" value="{{ bookmaker_default }}"></label>
+
+    <fieldset><legend>Mercados</legend>
+      <label class="inline"><input type="checkbox" name="markets" value="goals" checked> Gols</label>
+      <label class="inline"><input type="checkbox" name="markets" value="corners" checked> Escanteios</label>
+      <label class="inline"><input type="checkbox" name="markets" value="cards" checked> Cartões</label>
+      <label class="inline"><input type="checkbox" name="markets" value="1x2" checked> 1X2</label>
+    </fieldset>
+
+    <fieldset><legend>Regras de análise ativas</legend>
+      {% for r in rule_names %}
+      <label class="inline"><input type="checkbox" name="rules" value="{{ r }}" checked> {{ r }}</label>
+      {% endfor %}
+    </fieldset>
+
+    <label class="inline"><input type="checkbox" name="final"> Jogo decisivo (final)</label>
+    <button type="submit" class="primary">Analisar selecionados</button>
+    <p class="hint">A análise leva alguns segundos por jogo (pausa entre
+    chamadas para respeitar o rate limit da API).</p>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

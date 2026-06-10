@@ -53,6 +53,7 @@ cd "$(dirname "$0")"
 exec .venv/bin/python main.py "$@"
 EOF
 chmod +x run.sh
+[ -f run-web.sh ] && chmod +x run-web.sh
 
 # 4. chave da API -------------------------------------------------------------
 if [ -f .env ] && grep -q "APISPORTS_KEY=." .env; then
@@ -69,6 +70,17 @@ else
     echo "      Gravada em $PWD/.env"
 fi
 
+# senha do painel web (acesso pelo navegador)
+if ! grep -q "PANEL_PASSWORD=." .env 2>/dev/null; then
+    echo "      Agora crie uma SENHA para o painel web (acesso pelo navegador)."
+    read -r -p "      Digite a senha do painel e aperte Enter: " PANELPWD
+    {
+        echo "PANEL_USER=admin"
+        echo "PANEL_PASSWORD=$PANELPWD"
+    } >> .env
+    echo "      Senha do painel gravada (usuário: admin)."
+fi
+
 # 5. teste de conexão ----------------------------------------------------------
 echo "[5/5] Testando a conexão com a API (listando ligas com cobertura)..."
 echo
@@ -77,6 +89,8 @@ echo
 echo
 echo "==============================================="
 echo " Instalação concluída!"
-echo " Para usar o motor a partir de agora, rode:"
-echo "   ~/bitcoin-puzzle-hunter/betting-engine/run.sh"
+echo " Modo terminal:  ~/bitcoin-puzzle-hunter/betting-engine/run.sh"
+echo " Painel web:     ~/bitcoin-puzzle-hunter/betting-engine/run-web.sh"
+echo "   depois acesse no navegador:  http://IP_DO_SEU_VPS:8000"
+echo "   (login: admin + a senha do painel que você criou)"
 echo "==============================================="

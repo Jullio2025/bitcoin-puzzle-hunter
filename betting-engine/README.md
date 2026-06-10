@@ -34,6 +34,20 @@ cp .env.example .env       # preencha APISPORTS_KEY (plano Pro da API-Sports)
 
 ## Uso
 
+**Painel web (navegador, PC ou celular):**
+
+```bash
+./run-web.sh               # sobe em http://IP_DO_VPS:8000
+```
+
+Acesso protegido por senha (`PANEL_USER`/`PANEL_PASSWORD` no `.env`; o
+instalador pergunta e grava). Fluxo: escolher data/liga → marcar jogos →
+preencher filtros → tabela completa por mercado, com lambdas e regras
+explicados, montagem de múltipla (sempre com odd combinada + probabilidade
+combinada + chance de perder, juntos) e tracker integrado.
+
+**Terminal:**
+
 ```bash
 python main.py             # menu interativo amigável
 python main.py ligas       # teste de conexão + ligas com cobertura

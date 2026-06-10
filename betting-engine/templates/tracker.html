@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Tracker — seus resultados reais</h1>
+{% if msg %}<div class="success">{{ msg }}</div>{% endif %}
+
+<div class="card">
+  <h2>Relatório</h2>
+  <div class="trio">
+    <div><span>Hit rate real</span>
+      <strong>{{ "%.1f"|format(report.hit_rate * 100) ~ "%" if report.hit_rate is not none else "—" }}</strong></div>
+    <div><span>p_model médio (calibração)</span>
+      <strong>{{ "%.1f"|format(report.p_model_medio * 100) ~ "%" if report.p_model_medio is not none else "—" }}</strong></div>
+    <div><span>ROI</span>
+      <strong>{{ "%+.1f"|format(report.roi * 100) ~ "%" if report.roi is not none else "—" }}</strong></div>
+  </div>
+  <p>Registradas: {{ report.total_registradas }} (pendentes:
+    {{ report.pendentes }}) — liquidadas: {{ report.liquidadas }},
+    acertos: {{ report.acertos }}.
+    Apostado: {{ "%.2f"|format(report.total_apostado) }} u,
+    lucro: {{ "%+.2f"|format(report.lucro) }} u.</p>
+  {% if report.warning %}<div class="error">{{ report.warning }}</div>{% endif %}
+</div>
+
+<div class="card">
+  <h2>Apostas</h2>
+  {% if not bets %}<p class="hint">Nenhuma aposta registrada ainda.</p>{% endif %}
+  <table class="markets">
+    <thead><tr><th>#</th><th>Jogo</th><th>Mercado</th><th>Odd</th>
+      <th>Stake</th><th>p_model</th><th>Resultado</th><th></th></tr></thead>
+    <tbody>
+    {% for b in bets %}
+      <tr>
+        <td>{{ b.id }}</td><td>{{ b.fixture }}</td><td>{{ b.market }}</td>
+        <td>{{ "%.2f"|format(b.odd) }}</td><td>{{ "%.2f"|format(b.stake) }}</td>
+        <td>{{ "%.1f"|format(b.p_model * 100) }}%</td>
+        <td><span class="badge {{ 'ok' if b.result == 'ganhou' else ('warn' if b.result == 'perdeu' else '') }}">{{ b.result }}</span></td>
+        <td>
+          {% if b.result == "pendente" %}
+          <form method="post" action="/tracker/settle" class="form-inline">
+            <input type="hidden" name="bet_id" value="{{ b.id }}">
+            <button name="result" value="ganhou">ganhou</button>
+            <button name="result" value="perdeu">perdeu</button>
+            <button name="result" value="devolvida">devolvida</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card form-grid">
+  <h2>Registrar aposta manualmente</h2>
+  <form method="post" action="/tracker/add" class="form-grid">
+    <label>Jogo <input name="fixture" required placeholder="Time A x Time B (2026-06-11)"></label>
+    <label>Mercado <input name="market" required placeholder="Cartões: Mais de 4.5"></label>
+    <label>Odd <input type="number" step="any" name="odd" required></label>
+    <label>Stake <input type="number" step="any" name="stake" value="1.0"></label>
+    <label>p_model (0–1) <input type="number" step="any" name="p_model" required></label>
+    <button type="submit" class="primary">Registrar</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Resultado da análise</h1>
+{% for e in errors %}<div class="error">{{ e }}</div>{% endfor %}
+
+{% for fa in analyses %}
+<div class="card">
+  <h2>{{ fa.ctx.label }}</h2>
+  <p class="meta">{{ fa.ctx.fixture.fixture.date[:16] }} —
+    árbitro: {{ fa.ctx.fixture.fixture.referee or "?" }} —
+    {{ fa.ctx.fixture.league.name }}</p>
+
+  <details>
+    <summary>De onde saíram os lambdas (modelo Poisson)</summary>
+    <ul>
+    {% for key, text in fa.lambda_explanations.items() %}
+      <li><strong>{{ key }}</strong>: {{ text }} → ajustado pelas regras:
+        <strong>{{ "%.2f"|format(fa.lambdas[key]) }}</strong></li>
+    {% endfor %}
+    </ul>
+  </details>
+
+  <details>
+    <summary>Regras aplicadas ({{ fa.rule_results|length }})</summary>
+    <ul>
+    {% for res in fa.rule_results %}
+      <li><strong>{{ res.rule }}</strong>
+        {%- if res.multipliers %} — ajuste:
+          {% for k, v in res.multipliers.items() %}{{ k }} ×{{ "%.3f"|format(v) }}{{ ", " if not loop.last }}{% endfor %}
+        {%- endif %}<br>
+        <span class="hint">{{ res.explanation }}</span></li>
+    {% endfor %}
+    </ul>
+  </details>
+
+  <table class="markets">
+    <thead><tr>
+      <th></th><th>Mercado</th><th>p_model</th><th>Odd</th><th>1/odd</th>
+      <th>Edge</th><th>EV</th><th>Vit. p/ recuperar 1 derrota</th><th>Seus filtros</th>
+    </tr></thead>
+    <tbody>
+    {% for m in fa.markets %}
+      <tr class="{{ 'pass' if m.passes_filters else 'fail' }}">
+        <td>
+          {% if m.metrics.odd %}
+          <input type="checkbox" class="leg"
+                 data-fixture="{{ fa.ctx.label }}"
+                 data-market="{{ m.label }}"
+                 data-odd="{{ m.metrics.odd }}"
+                 data-p="{{ m.metrics.p_model }}">
+          {% endif %}
+        </td>
+        <td>{{ m.label }}</td>
+        <td>{{ "%.1f"|format(m.metrics.p_model * 100) }}%</td>
+        <td>{{ "%.2f"|format(m.metrics.odd) if m.metrics.odd else "—" }}</td>
+        <td>{{ "%.1f"|format(m.metrics.implied * 100) ~ "%" if m.metrics.implied else "—" }}</td>
+        <td>{{ "%+.3f"|format(m.metrics.edge) if m.metrics.edge is not none else "—" }}</td>
+        <td>{{ "%+.3f"|format(m.metrics.ev) if m.metrics.ev is not none else "—" }}</td>
+        <td>{{ "%.1f"|format(m.metrics.wins_to_recover) if m.metrics.wins_to_recover else "—" }}</td>
+        <td>{% if m.passes_filters %}<span class="badge ok">dentro</span>
+            {% else %}<span class="badge warn">{{ m.failed_filters|join("; ") }}</span>{% endif %}
+        </td>
+      </tr>
+      {% for note in m.metrics.notes %}
+      <tr class="note-row"><td></td><td colspan="8" class="hint">{{ note }}</td></tr>
+      {% endfor %}
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endfor %}
+
+{% if analyses %}
+<div class="card ticket" id="ticket">
+  <h2>Sua seleção</h2>
+  <p class="hint">Marque mercados nas tabelas acima. A múltipla mostra SEMPRE
+  os três números juntos — nunca a odd combinada sozinha.</p>
+  <div id="ticket-legs" class="hint">Nenhum mercado selecionado.</div>
+  <div class="trio">
+    <div><span>Odd combinada</span><strong id="t-odd">—</strong></div>
+    <div><span>Probabilidade combinada</span><strong id="t-prob">—</strong></div>
+    <div><span>Chance de PERDER o bilhete</span><strong id="t-lose">—</strong></div>
+  </div>
+  <p class="hint">A probabilidade combinada assume <strong>independência</strong>
+  entre as pernas — é uma aproximação; pernas do mesmo jogo são correlacionadas.</p>
+
+  <form method="post" action="/ticket/register" class="form-inline">
+    <input type="hidden" name="legs_json" id="legs-json" value="[]">
+    <label>Stake (unidades) <input type="number" step="any" name="stake" value="1.0"></label>
+    <button name="mode" value="multipla" class="primary">Registrar como múltipla</button>
+    <button name="mode" value="simples">Registrar como simples (1 por linha)</button>
+  </form>
+</div>
+
+<script>
+// Prévia do bilhete (a conta oficial é refeita no servidor ao registrar):
+// odd combinada = produto das odds; prob = produto dos p_model;
+// chance de perder = 1 - prob.
+function refreshTicket() {
+  const legs = [...document.querySelectorAll(".leg:checked")].map(cb => ({
+    fixture: cb.dataset.fixture, market: cb.dataset.market,
+    odd: parseFloat(cb.dataset.odd), p: parseFloat(cb.dataset.p)
+  }));
+  document.getElementById("legs-json").value = JSON.stringify(legs);
+  const box = document.getElementById("ticket-legs");
+  if (!legs.length) {
+    box.textContent = "Nenhum mercado selecionado.";
+    ["t-odd","t-prob","t-lose"].forEach(id =>
+      document.getElementById(id).textContent = "—");
+    return;
+  }
+  box.innerHTML = legs.map(l =>
+    `• ${l.fixture} — ${l.market} (odd ${l.odd.toFixed(2)}, p ${(l.p*100).toFixed(1)}%)`
+  ).join("<br>");
+  const odd = legs.reduce((a, l) => a * l.odd, 1);
+  const prob = legs.reduce((a, l) => a * l.p, 1);
+  document.getElementById("t-odd").textContent = odd.toFixed(2);
+  document.getElementById("t-prob").textContent = (prob*100).toFixed(1) + "%";
+  document.getElementById("t-lose").textContent = ((1-prob)*100).toFixed(1) + "%";
+}
+document.querySelectorAll(".leg").forEach(cb =>
+  cb.addEventListener("change", refreshTicket));
+</script>
+{% endif %}
+
+<p class="hint">Chamadas reais à API nesta análise: {{ api_calls }}.</p>
+<a class="button" href="/">← Nova análise</a>
+{% endblock %}
