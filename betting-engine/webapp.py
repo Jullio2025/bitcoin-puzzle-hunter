@@ -73,6 +73,15 @@ def render(request: Request, template: str, **ctx) -> HTMLResponse:
     return templates.TemplateResponse(request, template, ctx)
 
 
+def _bookmakers() -> list:
+    """Casas disponíveis para o seletor; lista vazia vira campo numérico."""
+    try:
+        return sorted(ApiFootballClient().bookmakers(),
+                      key=lambda b: (b.get("name") or "").lower())
+    except Exception:
+        return []
+
+
 # ------------------------------------------------------------------ páginas
 # Campeonatos fixados no topo da lista (id na API-Football)
 FAVORITE_LEAGUE_IDS = [71, 72, 73, 13, 11, 2, 3, 39, 140, 135, 78, 61]
@@ -133,7 +142,8 @@ def list_fixtures(request: Request, _: str = Depends(auth),
     except ApiError as e:
         return _home(request, today=match_date, error=str(e))
     return render(request, "fixtures.html", fixtures=upcoming,
-                  match_date=match_date, rule_names=rules.all_rule_names())
+                  match_date=match_date, rule_names=rules.all_rule_names(),
+                  bookmakers=_bookmakers())
 
 
 @app.post("/analyze", response_class=HTMLResponse)
@@ -183,7 +193,7 @@ async def analyze(request: Request, _: str = Depends(auth)):
 @app.get("/scanner", response_class=HTMLResponse)
 def scanner_page(request: Request, _: str = Depends(auth)):
     return render(request, "scanner.html", today=date.today().isoformat(),
-                  preset_on=["goals", "corners"])
+                  preset_on=["goals", "corners"], bookmakers=_bookmakers())
 
 
 def _parse_criteria(form) -> list[scanner.Criterion]:

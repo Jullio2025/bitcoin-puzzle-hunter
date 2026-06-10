@@ -40,7 +40,10 @@ class Criterion:
         base = MARKET_LABELS.get(self.market, self.market)
         side = ("qualquer resultado" if self.side == "any"
                 else SIDE_LABELS.get(self.side, self.side))
-        line = f" {self.line:g}" if self.line is not None else ""
+        line = (f" {self.line:g}" if self.line is not None
+                else " (qualquer linha)")
+        if self.market == "1x2":
+            line = ""
         return (f"{base}: {side}{line} | odd {self.odd_min:g}–"
                 f"{self.odd_max:g} | p ≥ {self.p_min:.0%}")
 

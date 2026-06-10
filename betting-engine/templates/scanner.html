@@ -15,8 +15,7 @@
     <h2>Onde procurar</h2>
     <label>Data dos jogos
       <input type="date" name="match_date" value="{{ today }}" required></label>
-    <label>ID do bookmaker <span class="hint">(8 = Bet365)</span>
-      <input type="number" name="bookmaker" value="{{ bookmaker_default }}"></label>
+    {% include "_bookmaker_field.html" %}
     <label>Últimos N jogos por mando
       <input type="number" name="last_n" value="{{ defaults.last_n }}"></label>
     <label>Máx. de jogos analisados a fundo

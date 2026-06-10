@@ -1,0 +1,15 @@
+<label>Casa de apostas (referência das odds)
+  {% if bookmakers %}
+  <select name="bookmaker">
+    {% for b in bookmakers %}
+    <option value="{{ b.id }}" {{ "selected" if b.id == bookmaker_default }}>{{ b.name }}</option>
+    {% endfor %}
+  </select>
+  {% else %}
+  <span class="hint">(lista indisponível — use o ID; 8 = Bet365)</span>
+  <input type="number" name="bookmaker" value="{{ bookmaker_default }}">
+  {% endif %}
+</label>
+<p class="hint">As odds mostradas vêm desta casa, como referência. Sua casa
+pode pagar diferente: se pagar MAIS que a odd da tabela, o valor pra você é
+ainda melhor; se pagar menos, refaça a conta antes de decidir.</p>

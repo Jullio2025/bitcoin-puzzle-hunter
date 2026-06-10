@@ -31,8 +31,7 @@
     <label>Probabilidade mínima (0–1) <input type="number" step="any" name="p_min" value="{{ defaults.p_min }}"></label>
     <label>EV mínimo <input type="number" step="any" name="ev_min" value="{{ defaults.ev_min }}"></label>
     <label>Últimos N jogos por mando <input type="number" name="last_n" value="{{ defaults.last_n }}"></label>
-    <label>ID do bookmaker <span class="hint">(8 = Bet365)</span>
-      <input type="number" name="bookmaker" value="{{ bookmaker_default }}"></label>
+    {% include "_bookmaker_field.html" %}
 
     <fieldset><legend>Mercados</legend>
       <label class="inline"><input type="checkbox" name="markets" value="goals" checked> Gols</label>

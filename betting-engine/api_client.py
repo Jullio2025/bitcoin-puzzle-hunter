@@ -172,6 +172,10 @@ class ApiFootballClient:
         return self._get("fixtures/lineups", {"fixture": fixture_id},
                          ttl=config.CACHE_TTL["lineups"])
 
+    def bookmakers(self) -> list:
+        """Casas de apostas disponíveis na API (id + nome)."""
+        return self._get("odds/bookmakers", ttl=config.CACHE_TTL["leagues"])
+
     def odds(self, fixture_id: int, bookmaker_id: int | None = None) -> list:
         return self._get(
             "odds",
