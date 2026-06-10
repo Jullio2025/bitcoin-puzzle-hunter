@@ -13,6 +13,7 @@ cada acerto sai com o pacote completo de métricas.
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 import config
@@ -98,6 +99,55 @@ def _prob_for_key(key: tuple, lambdas: dict) -> float:
             else scoring.prob_under(lam, line))
 
 
+_UNITS = {"goals": "gol(s)", "corners": "escanteio(s)", "cards": "cartão(ões)"}
+_1X2_EVENTS = {"home": "vitória do time da casa", "draw": "empate",
+               "away": "vitória do visitante"}
+
+
+def plain_explanation(ma) -> str:
+    """Traduz o resultado para português claro — o que precisa acontecer,
+    o que o modelo acha, o que a casa cobra e o que isso significa."""
+    mt = ma.metrics
+    # 1) o que precisa acontecer no jogo
+    if ma.market == "1x2":
+        event = _1X2_EVENTS.get(ma.side, ma.side)
+        text = (f"Para ganhar, precisa dar {event}. "
+                f"O ChapaFut calcula {mt.p_model:.0%} de chance disso.")
+    else:
+        unit = _UNITS.get(ma.market, "")
+        line = ma.line
+        is_int = float(line).is_integer()
+        if ma.side == "over":
+            need = int(line) + 1 if is_int else math.floor(line) + 1
+            event = f"saírem {need} ou mais {unit} no jogo"
+        else:
+            cap = int(line) - 1 if is_int else math.floor(line)
+            event = f"saírem no máximo {cap} {unit} no jogo"
+        push = (f" (se der exatamente {int(line)}, a aposta é devolvida)"
+                if is_int else "")
+        text = (f"Para ganhar, precisam {event}{push}. "
+                f"O ChapaFut calcula {mt.p_model:.0%} de chance disso.")
+    if mt.odd is None or mt.implied is None:
+        return text
+    # 2) o que a casa cobra e a comparação
+    text += (f" A casa paga odd {mt.odd:.2f} — preço que equivale a "
+             f"{mt.implied:.0%} de chance.")
+    edge_pts = mt.edge * 100
+    if mt.edge >= 0:
+        text += (f" O modelo vê {edge_pts:.0f} ponto(s) a MAIS de chance do "
+                 f"que o preço cobra: valor a seu favor (se o modelo "
+                 f"estiver certo).")
+    else:
+        text += (f" O modelo vê {abs(edge_pts):.0f} ponto(s) a MENOS do que "
+                 f"o preço cobra: você estaria pagando caro.")
+    # 3) consequência prática
+    verb = "rende" if mt.ev >= 0 else "perde"
+    text += (f" No longo prazo, cada 1 apostado {verb} "
+             f"{abs(mt.ev):.2f} em média, e 1 derrota nessa odd consome o "
+             f"lucro de {mt.wins_to_recover:.1f} vitória(s) iguais.")
+    return text
+
+
 def _lambda_for_key(key: tuple, lambdas: dict) -> float | None:
     market = key[0]
     if market == "1x2":
@@ -163,6 +213,7 @@ def scan_day(client: ApiFootballClient, date: str,
                     market=key[0], side=key[1], line=key[2],
                     lambda_used=_lambda_for_key(key, lambdas),
                     metrics=metrics, passes_filters=True)
+                ma.plain = plain_explanation(ma)
                 hits_by_crit.setdefault(i, []).append(ma)
 
         if not hits_by_crit:

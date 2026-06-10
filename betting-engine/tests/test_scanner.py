@@ -105,5 +105,56 @@ class TestScanDay(unittest.TestCase):
         self.assertIn("1.3", c.label)
 
 
+class TestPlainExplanation(unittest.TestCase):
+    def _ma(self, market, side, line, p, odd):
+        import scoring
+        from recommender import MarketAnalysis
+        return MarketAnalysis(market=market, side=side, line=line,
+                              lambda_used=None,
+                              metrics=scoring.market_metrics(p, odd),
+                              passes_filters=True)
+
+    def test_over_half_line_counts_correctly(self):
+        # "Mais de 1.5 gols" = 2 ou mais
+        text = scanner.plain_explanation(self._ma("goals", "over", 1.5,
+                                                  0.78, 1.52))
+        self.assertIn("2 ou mais gol", text)
+        self.assertIn("78%", text)
+        self.assertIn("1.52", text)
+        self.assertIn("a MAIS", text)  # edge positivo (0.78 > 1/1.52)
+
+    def test_under_half_line(self):
+        # "Menos de 10.5 escanteios" = no máximo 10
+        text = scanner.plain_explanation(self._ma("corners", "under", 10.5,
+                                                  0.65, 1.73))
+        self.assertIn("no máximo 10 escanteio", text)
+
+    def test_integer_line_mentions_push(self):
+        text = scanner.plain_explanation(self._ma("cards", "over", 5.0,
+                                                  0.5, 1.9))
+        self.assertIn("6 ou mais", text)
+        self.assertIn("devolvida", text)
+
+    def test_negative_edge_warns_paying_too_much(self):
+        text = scanner.plain_explanation(self._ma("goals", "over", 2.5,
+                                                  0.40, 1.90))
+        self.assertIn("a MENOS", text)
+        self.assertIn("perde", text)
+
+    def test_1x2(self):
+        text = scanner.plain_explanation(self._ma("1x2", "home", None,
+                                                  0.55, 2.10))
+        self.assertIn("vitória do time da casa", text)
+
+    def test_scan_attaches_plain_text(self):
+        c = scanner.Criterion("cards", "over", None, 1.5, 2.0, 0.0)
+        with patch.object(scanner, "build_match_context",
+                          lambda client, fx, last_n=None: fake_ctx()):
+            res = scanner.scan_day(FakeScanClient(), "2026-06-11", [c],
+                                   bookmaker=8)
+        _, ma = res.groups[0].hits[0]
+        self.assertIn("Para ganhar", ma.plain)
+
+
 if __name__ == "__main__":
     unittest.main()

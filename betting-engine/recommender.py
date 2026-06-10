@@ -47,6 +47,7 @@ class MarketAnalysis:
     metrics: scoring.MarketMetrics
     passes_filters: bool
     failed_filters: list[str] = field(default_factory=list)
+    plain: str = ""                # explicação em português claro (scanner)
 
     @property
     def label(self) -> str:
