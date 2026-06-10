@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Calculadora de Apostas</title>
+  <title>ChapaFut ⚡ números na mesa</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">⚽ Calculadora Transparente</div>
+    <a class="brand" href="/">⚡ CHAPA<span>FUT</span></a>
     <nav>
       <a href="/">Analisar</a>
       <a href="/tracker">Tracker</a>
@@ -16,13 +16,15 @@
   </header>
 
   <div class="disclaimer">
-    Este painel só <strong>calcula e mostra números</strong>. Ele não recomenda
-    estratégia nem decide nada — toda decisão de risco e de aposta é
+    O ChapaFut só <strong>calcula e mostra números</strong> — não recomenda
+    estratégia nem decide nada. Toda decisão de risco e de aposta é
     <strong>sua</strong>, na sua casa de apostas. Modelo: Poisson auditável. 18+
   </div>
 
   <main>
     {% block content %}{% endblock %}
   </main>
+
+  <footer class="foot">ChapaFut — os números na mesa, a decisão é sua.</footer>
 </body>
 </html>

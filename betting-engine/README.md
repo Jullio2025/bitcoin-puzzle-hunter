@@ -1,4 +1,4 @@
-# Motor de Análise de Apostas — Calculadora Transparente (futebol)
+# ChapaFut ⚡ — Calculadora Transparente de Apostas (futebol)
 
 > **O que isto é:** uma calculadora que estima probabilidades com um modelo
 > auditável (Poisson), cruza com as odds da sua casa de apostas e **mostra

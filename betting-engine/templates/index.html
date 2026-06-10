@@ -1,16 +1,22 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Escolher jogos</h1>
+<div class="hero">
+  <h1>CHAPA<span>FUT</span></h1>
+  <p class="tagline">Probabilidade, edge e EV de cada mercado, sem caixa-preta.<br>
+  Os números na mesa — <strong>a decisão é sua</strong>.</p>
+</div>
+
 {% if error %}<div class="error">{{ error }}</div>{% endif %}
 
 <form method="post" action="/fixtures" class="card form-grid">
+  <h2>Bora analisar</h2>
   <label>Data dos jogos
     <input type="date" name="match_date" value="{{ today }}" required>
   </label>
   <label>ID da liga <span class="hint">(0 = todas com cobertura de estatísticas)</span>
     <input type="number" name="league_id" value="0">
   </label>
-  <button type="submit" class="primary">Buscar jogos do dia</button>
+  <button type="submit" class="primary">Buscar jogos do dia ⚡</button>
   <p class="hint">A primeira busca do dia pode demorar um pouco (consulta a API
   e guarda em cache). Buscar por uma liga específica gasta bem menos chamadas.</p>
 </form>

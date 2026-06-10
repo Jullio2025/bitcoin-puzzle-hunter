@@ -280,7 +280,7 @@ def cmd_tracker_report() -> None:
 # --------------------------------------------------------------------- menu
 DISCLAIMER = """
 ==============================================================================
- CALCULADORA TRANSPARENTE DE APOSTAS (futebol)
+ ChapaFut — calculadora transparente de apostas (futebol)
  Este programa só CALCULA e MOSTRA números. Ele não recomenda estratégia,
  não opera casa de apostas e não decide nada por você. Toda decisão de
  risco e de aposta é SUA, na SUA casa de apostas. Modelo: Poisson auditável.

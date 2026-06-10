@@ -29,7 +29,7 @@ from recommender import UserParams, analyze_fixture
 from tracker import Tracker
 
 BASE = config.BASE_DIR
-app = FastAPI(title="Calculadora Transparente de Apostas")
+app = FastAPI(title="ChapaFut — calculadora transparente de apostas")
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 templates = Jinja2Templates(directory=BASE / "templates")
 security = HTTPBasic()
