@@ -141,7 +141,14 @@ def cmd_analisar(client: ApiFootballClient) -> None:
     league = ask("ID da liga (0 = todas com cobertura)", 0, int)
 
     if league:
-        fixtures = client.fixtures_by_date(when, league_id=league)
+        # a API exige a temporada quando se filtra por liga
+        season = next((lg["season"]
+                       for lg in client.leagues_with_stats_coverage()
+                       if lg["league_id"] == league), None)
+        if season is None:
+            season = ask("Temporada (ano, ex.: 2026)", cast=int)
+        fixtures = client.fixtures_by_date(when, league_id=league,
+                                           season=season)
     else:
         covered = {lg["league_id"] for lg in
                    client.leagues_with_stats_coverage()}

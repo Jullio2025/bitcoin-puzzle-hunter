@@ -19,14 +19,14 @@
       {% if favorites %}
       <optgroup label="⭐ Populares">
         {% for l in favorites %}
-        <option value="{{ l.league_id }}">{{ l.name }} — {{ l.country }}</option>
+        <option value="{{ l.league_id }}:{{ l.season }}">{{ l.name }} — {{ l.country }}</option>
         {% endfor %}
       </optgroup>
       {% endif %}
       {% if leagues %}
       <optgroup label="Todos os campeonatos (por país)">
         {% for l in leagues %}
-        <option value="{{ l.league_id }}">{{ l.country }} — {{ l.name }}</option>
+        <option value="{{ l.league_id }}:{{ l.season }}">{{ l.country }} — {{ l.name }}</option>
         {% endfor %}
       </optgroup>
       {% endif %}

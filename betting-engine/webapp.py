@@ -89,11 +89,23 @@ def home(request: Request, _: str = Depends(auth)):
 
 @app.post("/fixtures", response_class=HTMLResponse)
 def list_fixtures(request: Request, _: str = Depends(auth),
-                  match_date: str = Form(...), league_id: int = Form(0)):
+                  match_date: str = Form(...), league_id: str = Form("0")):
+    # o seletor envia "id:temporada" (a API exige season junto com league)
+    league, season = 0, None
+    if ":" in league_id:
+        league, season = (int(x) for x in league_id.split(":", 1))
+    elif league_id.strip():
+        league = int(league_id)
     try:
         client = ApiFootballClient()
-        if league_id:
-            fixtures = client.fixtures_by_date(match_date, league_id=league_id)
+        if league:
+            if season is None:
+                season = next(
+                    (lg["season"]
+                     for lg in client.leagues_with_stats_coverage()
+                     if lg["league_id"] == league), None)
+            fixtures = client.fixtures_by_date(match_date, league_id=league,
+                                               season=season)
         else:
             covered = {lg["league_id"]
                        for lg in client.leagues_with_stats_coverage()}
