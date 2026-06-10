@@ -1,0 +1,80 @@
+"""
+Configuração central do motor.
+
+IMPORTANTE: tudo aqui é SUGESTÃO/default. Nenhum valor é trava.
+O usuário pode sobrescrever qualquer parâmetro na interface (main.py)
+ou via argumentos de linha de comando.
+"""
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
+
+# --- Credenciais -----------------------------------------------------------
+APISPORTS_KEY = os.getenv("APISPORTS_KEY", "")
+API_BASE_URL = "https://v3.football.api-sports.io"
+
+# --- Rate limit / cache ----------------------------------------------------
+# Pausa (segundos) entre chamadas à API. Plano Pro aguenta bem 0.2s;
+# aumente se receber erro de rate limit.
+REQUEST_PAUSE = float(os.getenv("REQUEST_PAUSE", "0.25"))
+
+CACHE_DIR = BASE_DIR / "cache"
+DATA_DIR = BASE_DIR / "data"
+
+# TTL do cache em segundos, por tipo de dado
+CACHE_TTL = {
+    "leagues": 7 * 24 * 3600,        # lista de ligas muda raramente
+    "fixtures_day": 1 * 3600,        # jogos do dia
+    "team_fixtures": 6 * 3600,       # últimos jogos de um time
+    "fixture_stats": 30 * 24 * 3600, # estatísticas de jogo encerrado não mudam
+    "league_fixtures": 24 * 3600,    # temporada da liga (p/ varrer árbitro)
+    "lineups": 15 * 60,              # escalações mudam até a bola rolar
+    "odds": 30 * 60,
+    "referee": 24 * 3600,
+}
+
+# --- Defaults do usuário (SUGESTÕES, nunca travas) -------------------------
+USER_DEFAULTS = {
+    "odd_min": 1.50,        # faixa de odd sugerida
+    "odd_max": 3.00,
+    "p_min": 0.50,          # probabilidade mínima do modelo sugerida
+    "ev_min": 0.0,          # EV mínimo sugerido
+    "mode": "simples",      # "simples" ou "multipla"
+    "last_n": 5,            # últimos N jogos por time (separado casa/fora)
+    "referee_games": 10,    # quantos jogos varrer para média do árbitro
+}
+
+# --- Odds ------------------------------------------------------------------
+# Bookmaker padrão na API-Football (8 = Bet365). Configurável na interface.
+DEFAULT_BOOKMAKER_ID = int(os.getenv("BOOKMAKER_ID", "8"))
+
+# Nomes dos mercados (bets) na API-Football -> mercado interno.
+# A API varia o nome conforme o bookmaker, por isso lista de candidatos.
+MARKET_BET_NAMES = {
+    "goals": ["Goals Over/Under", "Over/Under"],
+    "corners": ["Corners Over Under", "Total Corners", "Corners Over/Under"],
+    "cards": ["Cards Over/Under", "Total Cards"],
+    "1x2": ["Match Winner"],
+}
+
+# --- Modelo ----------------------------------------------------------------
+MODEL = {
+    # Soma da grade de gols no Poisson do 1X2 (0..N gols por time)
+    "max_goals_grid": 10,
+    # Baseline de cartões por jogo usado pela regra do árbitro
+    # (média típica de ligas europeias ~4.5-5.0)
+    "referee_baseline_cards": 4.8,
+    # Peso do árbitro no ajuste do lambda de cartões (0 = ignora árbitro)
+    "referee_weight": 0.5,
+    # Cartão vermelho conta como N cartões no total (1 = conta simples)
+    "red_card_weight": 1,
+}
+
+# --- Tracker ---------------------------------------------------------------
+TRACKER_FILE = DATA_DIR / "bets.json"
+# Abaixo desta amostra, hit rate e ROI não permitem concluir nada (variância)
+TRACKER_MIN_SAMPLE = 100
