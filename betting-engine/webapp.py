@@ -10,6 +10,7 @@ Rodar no VPS:  ./run-web.sh   (e acesse http://IP_DO_VPS:8000)
 from __future__ import annotations
 
 import json
+import logging
 import os
 import secrets
 from datetime import date
@@ -48,6 +49,21 @@ def auth(creds: HTTPBasicCredentials = Depends(security)) -> str:
         raise HTTPException(status_code=401, detail="Login inválido",
                             headers={"WWW-Authenticate": "Basic"})
     return creds.username
+
+
+@app.exception_handler(Exception)
+async def unhandled_error(request: Request, exc: Exception) -> HTMLResponse:
+    """Nada de 'Internal Server Error' seco: mostra o que quebrou."""
+    logging.exception("Erro não tratado em %s", request.url.path)
+    detail = f"{type(exc).__name__}: {exc}"
+    html = (f"<html><body style='font-family:sans-serif;background:#0a0e1a;"
+            f"color:#eef3fb;padding:40px'><h2>⚡ ChapaFut — algo quebrou</h2>"
+            f"<p>Erro em <code>{request.url.path}</code>:</p>"
+            f"<pre style='background:#131c33;padding:16px;border-radius:8px;"
+            f"white-space:pre-wrap'>{detail}</pre>"
+            f"<p>Detalhes completos: <code>journalctl -u chapafut -n 50</code>"
+            f"</p><a href='/' style='color:#3dff8b'>← Voltar</a></body></html>")
+    return HTMLResponse(html, status_code=500)
 
 
 def render(request: Request, template: str, **ctx) -> HTMLResponse:
@@ -153,6 +169,10 @@ async def analyze(request: Request, _: str = Depends(auth)):
             analyses.append(analyze_fixture(ctx, odds_map, params))
         except ApiError as e:
             errors.append(f"Jogo {fid}: {e}")
+        except Exception as e:  # um jogo com dado inesperado não derruba o resto
+            logging.exception("Falha analisando o jogo %s", fid)
+            errors.append(f"Jogo {fid}: erro inesperado "
+                          f"({type(e).__name__}: {e})")
 
     return render(request, "results.html", analyses=analyses, errors=errors,
                   params=params, api_calls=client.calls_made)

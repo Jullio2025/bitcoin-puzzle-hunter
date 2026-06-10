@@ -159,6 +159,12 @@ def market_metrics(p_model: float, odd: float | None) -> MarketMetrics:
     if odd is None:
         m.notes.append("Sem odd disponível neste bookmaker para este mercado.")
         return m
+    if odd <= 1.0:
+        # casas às vezes publicam 1.00 em mercado suspenso/decidido
+        m.notes.append(f"Odd {odd:.2f} ≤ 1.00 (mercado suspenso?) — "
+                       "métricas não calculáveis.")
+        m.odd = None
+        return m
     m.implied = implied_prob(odd)
     m.edge = edge(p_model, odd)
     m.ev = ev_per_unit(p_model, odd)
