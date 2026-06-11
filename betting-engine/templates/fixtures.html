@@ -10,14 +10,25 @@
 {% else %}
 <form method="post" action="/analyze">
   <div class="card">
-    <h2>1. Marque os jogos <span class="hint">(cada jogo analisado consome
-    chamadas da API — comece com poucos)</span></h2>
+    <h2>1. Marque os jogos <span class="hint">(odds 1X2 da casa de
+    referência já na lista; cada jogo analisado consome chamadas da API)</span></h2>
     {% for fx in fixtures %}
-    <label class="fixture-row">
+    {% set o = lobby_odds.get(fx.fixture.id) %}
+    <label class="match-row">
       <input type="checkbox" name="fixture_id" value="{{ fx.fixture.id }}">
-      <span class="teams">{{ fx.teams.home.name }} × {{ fx.teams.away.name }}</span>
-      <span class="meta">{{ fx.league.name }} ({{ fx.league.country }}) —
-        {{ fx.fixture.date[11:16] }}</span>
+      <span class="match-when">
+        <strong>{{ fx.fixture.date[11:16] }}</strong>
+        <small>{{ fx.league.name }}</small>
+      </span>
+      <span class="match-teams">
+        <span>{{ fx.teams.home.name }}</span>
+        <span>{{ fx.teams.away.name }}</span>
+      </span>
+      <span class="odd-pills">
+        <span class="pill"><small>1</small>{{ "%.2f"|format(o.home) if o and o.home else "—" }}</span>
+        <span class="pill"><small>X</small>{{ "%.2f"|format(o.draw) if o and o.draw else "—" }}</span>
+        <span class="pill"><small>2</small>{{ "%.2f"|format(o.away) if o and o.away else "—" }}</span>
+      </span>
     </label>
     {% endfor %}
   </div>

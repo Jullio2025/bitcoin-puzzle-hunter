@@ -270,11 +270,15 @@ def scan_day(client: ApiFootballClient, date: str,
             continue
         if match_all and len(hits_by_crit) < len(criteria):
             continue
+        hits = [(criteria[i], ma) for i in sorted(hits_by_crit)
+                for ma in hits_by_crit[i]]
+        # o que compensa mais primeiro (EV decrescente)
+        hits.sort(key=lambda h: -(h[1].metrics.ev
+                                  if h[1].metrics.ev is not None else -999))
         groups.append(ScanGroup(
             ctx=ctx, lambdas=lambdas, lambda_explanations=expl,
             rule_results=rule_results, charts=count_charts(lambdas),
-            hits=[(criteria[i], ma) for i in sorted(hits_by_crit)
-                  for ma in hits_by_crit[i]]))
+            hits=hits))
 
     return ScanResult(
         groups=groups,

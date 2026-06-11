@@ -281,6 +281,62 @@ button.primary:hover {
   transform: translateY(-2px) scale(1.02);
 }
 
+/* ----------------------------------- lobby estilo casa de apostas */
+.match-row {
+  display: grid; grid-template-columns: 24px 110px 1fr auto;
+  gap: 14px; align-items: center; padding: 12px 10px; margin: 6px 0;
+  border: 1px solid var(--line-soft); border-radius: 14px;
+  background: rgba(255, 255, 255, .025); cursor: pointer;
+  transition: all .25s var(--ease);
+}
+.match-row:hover {
+  border-color: rgba(34, 211, 238, .45);
+  background: rgba(34, 211, 238, .05); transform: translateX(4px);
+}
+.match-row:has(input:checked) {
+  border-color: var(--good);
+  background: rgba(52, 211, 153, .08);
+  box-shadow: 0 0 18px rgba(52, 211, 153, .12);
+}
+.match-when { display: flex; flex-direction: column; }
+.match-when strong { font-size: 1.05rem; }
+.match-when small { color: var(--muted); font-size: .72rem; }
+.match-teams { display: flex; flex-direction: column; gap: 2px; font-weight: 700; }
+.odd-pills { display: flex; gap: 6px; }
+.pill {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 58px; padding: 6px 10px; border-radius: 10px;
+  background: linear-gradient(180deg, rgba(52, 211, 153, .16),
+                              rgba(52, 211, 153, .07));
+  border: 1px solid rgba(52, 211, 153, .35);
+  color: var(--good); font-weight: 800; font-size: .95rem;
+  transition: all .2s var(--ease);
+}
+.pill small {
+  color: var(--muted); font-weight: 600; font-size: .68rem;
+  text-transform: uppercase;
+}
+.pill:hover {
+  box-shadow: 0 0 14px rgba(52, 211, 153, .35); transform: translateY(-1px);
+}
+
+/* destaque "compensa mais" no topo de cada jogo analisado */
+.top-picks {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  background: rgba(52, 211, 153, .07);
+  border: 1px solid rgba(52, 211, 153, .3);
+  border-radius: 14px; padding: 10px 14px; margin: 12px 0;
+}
+.top-picks-title { font-weight: 800; }
+.pick-chip {
+  display: inline-flex; gap: 8px; align-items: baseline;
+  background: rgba(6, 10, 24, .55); border: 1px solid var(--line);
+  border-radius: 999px; padding: 6px 14px; font-weight: 600;
+  font-size: .86rem;
+}
+.pick-chip b { color: var(--good); }
+.pick-chip em { color: var(--cyan); font-style: normal; }
+
 /* ---------------------------------------------------------------- jogos */
 .fixture-row {
   display: flex; gap: 12px; align-items: center; padding: 12px 10px;

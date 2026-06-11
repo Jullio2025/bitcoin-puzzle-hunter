@@ -141,9 +141,23 @@ def list_fixtures(request: Request, _: str = Depends(auth),
                     if fx["fixture"]["status"]["short"] in ("NS", "TBD")]
     except ApiError as e:
         return _home(request, today=match_date, error=str(e))
+
+    # odds 1X2 do dia inteiro para o lobby (1 lote paginado, cacheado)
+    lobby_odds: dict[int, dict] = {}
+    try:
+        for item in ApiFootballClient().odds_by_date(match_date):
+            fid = item.get("fixture", {}).get("id")
+            omap = parse_odds([item])
+            o = {s: omap.get(("1x2", s, None)) for s in ("home", "draw", "away")}
+            if any(o.values()):
+                lobby_odds[fid] = o
+    except Exception:
+        lobby_odds = {}
+
+    upcoming.sort(key=lambda fx: fx["fixture"]["date"])
     return render(request, "fixtures.html", fixtures=upcoming,
                   match_date=match_date, rule_names=rules.all_rule_names(),
-                  bookmakers=_bookmakers())
+                  bookmakers=_bookmakers(), lobby_odds=lobby_odds)
 
 
 @app.post("/analyze", response_class=HTMLResponse)
@@ -177,7 +191,13 @@ async def analyze(request: Request, _: str = Depends(auth)):
                                       user_flags=flags)
             odds_map = parse_odds(client.odds(fid, bookmaker),
                                   bookmaker_id=bookmaker)
-            analyses.append(analyze_fixture(ctx, odds_map, params))
+            fa = analyze_fixture(ctx, odds_map, params)
+            # "o que compensa mais": dentro dos critérios primeiro,
+            # ordenado por EV decrescente (sem odd vai pro fim)
+            fa.markets.sort(key=lambda m: (
+                not m.passes_filters,
+                -(m.metrics.ev if m.metrics.ev is not None else -999)))
+            analyses.append(fa)
         except ApiError as e:
             errors.append(f"Jogo {fid}: {e}")
         except Exception as e:  # um jogo com dado inesperado não derruba o resto

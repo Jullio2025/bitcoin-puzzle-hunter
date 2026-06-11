@@ -11,6 +11,19 @@
     {{ fa.ctx.fixture.league.name }}{% if fa.ctx.weather %} —
     🌦 {{ fa.ctx.weather.summary }}{% endif %}</p>
 
+  {% set picks = fa.markets|selectattr("passes_filters")|list %}
+  {% if picks %}
+  <div class="top-picks">
+    <span class="top-picks-title">⭐ Maior EV dentro dos SEUS critérios
+      <span class="hint">(ranking matemático do modelo — a decisão é sua)</span></span>
+    {% for m in picks[:3] %}
+    <span class="pick-chip">{{ m.label }}
+      <b>odd {{ "%.2f"|format(m.metrics.odd) }}</b>
+      <em>EV {{ "%+.2f"|format(m.metrics.ev) }}</em></span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   {% if fa.charts %}
   {% with charts = fa.charts, xctx = fa.ctx %}{% include "_charts.html" %}{% endwith %}
   {% endif %}
