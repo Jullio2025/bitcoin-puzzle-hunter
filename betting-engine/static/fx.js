@@ -1,0 +1,70 @@
+/* ChapaFut — microinterações premium (JS puro, sem dependências).
+   Respeita prefers-reduced-motion e dispositivos sem mouse. */
+(() => {
+  "use strict";
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const hasHover = matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+  /* ---------------- revelação no scroll (fade + movimento) ----------- */
+  if (!reduced && "IntersectionObserver" in window) {
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          e.target.classList.add("in");
+          io.unobserve(e.target);
+        }
+      }
+    }, { threshold: 0.08, rootMargin: "0px 0px -40px 0px" });
+    document.querySelectorAll(".card, .hero").forEach((el, i) => {
+      el.classList.add("reveal");
+      el.style.transitionDelay = `${Math.min(i * 60, 240)}ms`;
+      io.observe(el);
+    });
+  }
+
+  /* ---------------- parallax dos orbes de fundo ---------------------- */
+  const orbs = [...document.querySelectorAll(".orb")];
+  if (!reduced && orbs.length) {
+    const speeds = [0.12, -0.08, 0.18];
+    let ticking = false;
+    addEventListener("scroll", () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = scrollY;
+        orbs.forEach((o, i) =>
+          o.style.transform = `translateY(${y * (speeds[i] || 0.1)}px)`);
+        ticking = false;
+      });
+    }, { passive: true });
+  }
+
+  /* ------- tilt 3D leve + holofote que segue o cursor nos cards ------ */
+  if (!reduced && hasHover) {
+    const MAX_TILT = 2.4; // graus — sutil de propósito
+    document.querySelectorAll(".card").forEach((card) => {
+      let raf = null;
+      card.addEventListener("mousemove", (ev) => {
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          const r = card.getBoundingClientRect();
+          const px = (ev.clientX - r.left) / r.width;   // 0..1
+          const py = (ev.clientY - r.top) / r.height;
+          card.style.setProperty("--mx", `${px * 100}%`);
+          card.style.setProperty("--my", `${py * 100}%`);
+          // só inclina cartões de tamanho razoável (tabelas grandes não)
+          if (r.height < 560) {
+            const rx = (0.5 - py) * MAX_TILT;
+            const ry = (px - 0.5) * MAX_TILT;
+            card.style.transform =
+              `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg)`;
+          }
+          raf = null;
+        });
+      });
+      card.addEventListener("mouseleave", () => {
+        card.style.transform = "";
+      });
+    });
+  }
+})();
