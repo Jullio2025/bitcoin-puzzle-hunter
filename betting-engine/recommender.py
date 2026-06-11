@@ -75,6 +75,8 @@ def count_charts(lambdas: dict[str, float]) -> dict:
     specs = {"goals": lambdas["goals_home"] + lambdas["goals_away"],
              "corners": lambdas["corners"], "cards": lambdas["cards"]}
     for market, lam in specs.items():
+        if lam <= 0.05:
+            continue  # sem estatísticas: gráfico mentiroso é pior que nenhum
         k_max = max(6, min(18, int(lam * 2 + 3)))
         points = [{"k": k, "p": scoring.poisson_pmf(k, lam)}
                   for k in range(k_max + 1)]
@@ -169,6 +171,9 @@ def analyze_fixture(ctx: MatchContext, odds_map: OddsMap,
             if market == "goals" else lambdas.get(market)
         if lam is None:
             continue
+        # médias zeradas = a API não devolveu estatísticas desses jogos;
+        # sem base, o modelo não pode fingir 0%/100% de certeza
+        no_data = lam <= 0.05
         lines = available_lines(odds_map, market)
         if not lines:
             # sem odds: mostra a linha "clássica" só com p_model
@@ -182,7 +187,15 @@ def analyze_fixture(ctx: MatchContext, odds_map: OddsMap,
                     metrics.notes.append(
                         f"Linha inteira: P(push/devolução) = "
                         f"{scoring.prob_push(lam, line):.1%}.")
-                ok, failed = _check_filters(metrics, params)
+                if no_data:
+                    metrics.notes.append(
+                        "SEM BASE: a API não trouxe estatísticas de "
+                        f"{MARKET_LABELS.get(market, market).lower()} dos "
+                        "últimos jogos destes times — desconsidere estes "
+                        "números.")
+                    ok, failed = False, ["sem dados do mercado"]
+                else:
+                    ok, failed = _check_filters(metrics, params)
                 markets.append(MarketAnalysis(
                     market=market, side=side, line=line, lambda_used=lam,
                     metrics=metrics, passes_filters=ok, failed_filters=failed))

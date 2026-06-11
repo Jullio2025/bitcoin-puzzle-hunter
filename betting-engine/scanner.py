@@ -209,6 +209,9 @@ def scan_day(client: ApiFootballClient, date: str,
         for i, keys in matched.items():
             c = criteria[i]
             for key in keys:
+                lam = _lambda_for_key(key, lambdas)
+                if lam is not None and lam <= 0.05:
+                    continue  # API sem estatísticas deste mercado: sem base
                 p = _prob_for_key(key, lambdas)
                 if p < c.p_min:
                     continue
