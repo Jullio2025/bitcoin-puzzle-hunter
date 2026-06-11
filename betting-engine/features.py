@@ -184,6 +184,7 @@ class MatchContext:
     season: int
     user_flags: dict = field(default_factory=dict)  # ex.: {"final": True}
     lineups: list = field(default_factory=list)
+    weather: dict | None = None  # previsão no horário do jogo (Open-Meteo)
 
     @property
     def label(self) -> str:
@@ -210,6 +211,11 @@ def build_match_context(client: ApiFootballClient, fixture: dict,
         lineups = client.fixture_lineups(fixture["fixture"]["id"])
     except Exception:
         lineups = []
+    import weather as weather_mod
+    wx = weather_mod.forecast_for(
+        (fixture["fixture"].get("venue") or {}).get("city"),
+        fixture["fixture"]["date"])
     return MatchContext(fixture=fixture, home=home, away=away, referee=ref,
                         league_id=league_id, season=season,
-                        user_flags=user_flags or {}, lineups=lineups)
+                        user_flags=user_flags or {}, lineups=lineups,
+                        weather=wx)

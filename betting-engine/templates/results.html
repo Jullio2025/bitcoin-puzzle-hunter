@@ -8,7 +8,8 @@
   <h2>{{ fa.ctx.label }}</h2>
   <p class="meta">{{ fa.ctx.fixture.fixture.date[:16] }} —
     árbitro: {{ fa.ctx.fixture.fixture.referee or "?" }} —
-    {{ fa.ctx.fixture.league.name }}</p>
+    {{ fa.ctx.fixture.league.name }}{% if fa.ctx.weather %} —
+    🌦 {{ fa.ctx.weather.summary }}{% endif %}</p>
 
   {% if fa.charts %}
   {% with charts = fa.charts, xctx = fa.ctx %}{% include "_charts.html" %}{% endwith %}

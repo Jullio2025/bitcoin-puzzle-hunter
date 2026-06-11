@@ -25,7 +25,8 @@ afrouxe a faixa de odd ou a probabilidade mínima e garimpe de novo.</div>
   <h2>{{ g.ctx.label }}</h2>
   <p class="meta">{{ g.ctx.fixture.fixture.date[:16] }} —
     {{ g.ctx.fixture.league.name }} ({{ g.ctx.fixture.league.country }}) —
-    árbitro: {{ g.ctx.fixture.fixture.referee or "?" }}</p>
+    árbitro: {{ g.ctx.fixture.fixture.referee or "?" }}{% if g.ctx.weather %} —
+    🌦 {{ g.ctx.weather.summary }}{% endif %}</p>
 
   {% if g.charts %}
   {% with charts = g.charts, xctx = g.ctx %}{% include "_charts.html" %}{% endwith %}
