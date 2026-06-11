@@ -13,8 +13,9 @@ import re
 
 import config
 
-# value da API: "Over 2.5", "Under 9.5", "Home", "Draw", "Away"
+# value da API: "Over 2.5", "Under 9.5", "Home", "Draw", "Away", "Home -1.5"
 _OU_RE = re.compile(r"^(over|under)\s+([\d.]+)$", re.IGNORECASE)
+_AH_RE = re.compile(r"^(home|away)\s+([+-]?[\d.]+)$", re.IGNORECASE)
 _1X2_MAP = {"home": "home", "draw": "draw", "away": "away",
             "1": "home", "x": "draw", "2": "away"}
 
@@ -70,6 +71,16 @@ def _parse_value_label(market: str,
     if market == "1x2":
         side = _1X2_MAP.get(label.lower())
         return (market, side, None) if side else None
+    if market == "handicap":
+        m = _AH_RE.match(label)
+        if not m:
+            return None
+        line = float(m.group(2))
+        # só linhas inteiras e meias; linhas de quarto (-0.75) têm regra de
+        # devolução parcial que o modelo não representa
+        if (line * 2) % 1 != 0:
+            return None
+        return (market, m.group(1).lower(), line)
     m = _OU_RE.match(label)
     if not m:
         return None

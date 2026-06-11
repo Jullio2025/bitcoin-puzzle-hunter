@@ -59,6 +59,9 @@ MARKET_BET_NAMES = {
     "corners": ["Corners Over Under", "Total Corners", "Corners Over/Under"],
     "cards": ["Cards Over/Under", "Total Cards"],
     "1x2": ["Match Winner"],
+    "team_goals_home": ["Total - Home"],
+    "team_goals_away": ["Total - Away"],
+    "handicap": ["Asian Handicap"],
 }
 
 # --- Modelo ----------------------------------------------------------------

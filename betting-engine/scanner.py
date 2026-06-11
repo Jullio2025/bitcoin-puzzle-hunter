@@ -74,8 +74,11 @@ def _odds_keys_matching(odds_map: OddsMap, c: Criterion) -> list:
     for (mkt, side, line), odd in odds_map.items():
         if mkt != c.market:
             continue
-        if c.market == "1x2":
+        if c.market in ("1x2", "handicap"):
             if c.side != "any" and side != c.side:
+                continue
+            if (c.market == "handicap" and c.line is not None
+                    and (line is None or abs(line - c.line) > 0.5)):
                 continue
         else:
             if side != c.side:
@@ -97,15 +100,48 @@ def _prob_for_key(key: tuple, lambdas: dict) -> float:
             lambdas["goals_home"], lambdas["goals_away"],
             max_goals=config.MODEL["max_goals_grid"])
         return {"home": ph, "draw": pd, "away": pa}[side]
-    lam = (lambdas["goals_home"] + lambdas["goals_away"]
-           if market == "goals" else lambdas[market])
+    if market == "handicap":
+        p_win, _push = scoring.handicap_prob(
+            lambdas["goals_home"], lambdas["goals_away"], side, line,
+            max_goals=config.MODEL["max_goals_grid"])
+        return p_win
+    if market == "team_goals_home":
+        lam = lambdas["goals_home"]
+    elif market == "team_goals_away":
+        lam = lambdas["goals_away"]
+    else:
+        lam = (lambdas["goals_home"] + lambdas["goals_away"]
+               if market == "goals" else lambdas[market])
     return (scoring.prob_over(lam, line) if side == "over"
             else scoring.prob_under(lam, line))
 
 
-_UNITS = {"goals": "gol(s)", "corners": "escanteio(s)", "cards": "cartão(ões)"}
+_UNITS = {"goals": "gol(s)", "corners": "escanteio(s)",
+          "cards": "cartão(ões)",
+          "team_goals_home": "gol(s) do time da casa",
+          "team_goals_away": "gol(s) do visitante"}
 _1X2_EVENTS = {"home": "vitória do time da casa", "draw": "empate",
                "away": "vitória do visitante"}
+
+
+def _handicap_event(side: str, line: float) -> str:
+    team = "o time da casa" if side == "home" else "o visitante"
+    is_int = float(line).is_integer()
+    if line > 0:
+        if is_int:
+            return (f"{team}, com {line:+g} de vantagem, não pode perder por "
+                    f"mais de {int(line)} gols (derrota por exatamente "
+                    f"{int(line)} devolve a aposta)")
+        return (f"{team}, com {line:+g} de vantagem, não pode perder por "
+                f"{math.floor(line) + 1} ou mais gols de diferença")
+    if line < 0:
+        if is_int:
+            return (f"{team}, dando {line:+g}, precisa vencer por mais de "
+                    f"{int(-line)} gols (vitória por exatamente "
+                    f"{int(-line)} devolve a aposta)")
+        return (f"{team}, dando {line:+g}, precisa vencer por "
+                f"{math.floor(-line) + 1} ou mais gols")
+    return f"{team} não pode perder (empate devolve a aposta)"
 
 
 def plain_explanation(ma) -> str:
@@ -116,6 +152,9 @@ def plain_explanation(ma) -> str:
     if ma.market == "1x2":
         event = _1X2_EVENTS.get(ma.side, ma.side)
         text = (f"Para ganhar, precisa dar {event}. "
+                f"O ChapaFut calcula {mt.p_model:.0%} de chance disso.")
+    elif ma.market == "handicap":
+        text = (f"Para ganhar, {_handicap_event(ma.side, ma.line)}. "
                 f"O ChapaFut calcula {mt.p_model:.0%} de chance disso.")
     else:
         unit = _UNITS.get(ma.market, "")
@@ -154,10 +193,14 @@ def plain_explanation(ma) -> str:
 
 def _lambda_for_key(key: tuple, lambdas: dict) -> float | None:
     market = key[0]
-    if market == "1x2":
+    if market in ("1x2", "handicap"):
         return None
     if market == "goals":
         return lambdas["goals_home"] + lambdas["goals_away"]
+    if market == "team_goals_home":
+        return lambdas["goals_home"]
+    if market == "team_goals_away":
+        return lambdas["goals_away"]
     return lambdas[market]
 
 

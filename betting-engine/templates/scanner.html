@@ -44,6 +44,12 @@
         o ChapaFut calcula (0.60 = 60%). Dica de ouro: usar
         <code>1 ÷ odd máxima</code> (ex.: odd máx 1.60 → 0.63) traz só
         mercados onde o modelo vê MAIS chance do que o preço cobra.</li>
+      <li><strong>Bilhete de odds baixas (muitas pernas "quase certas")</strong>:
+        em cada mercado, use odd mín <code>1.01</code>, odd máx
+        <code>1.20</code> e probabilidade mínima <code>0.90</code>. O
+        garimpo devolve as pernas; ao marcar, o bilhete mostra a odd
+        combinada E a chance real de perder — confira antes de copiar
+        pra casa de apostas.</li>
     </ul>
   </div>
 
@@ -51,7 +57,10 @@
     <h2>As peças do seu bilhete
       <span class="hint">(ative só as que quiser; qualquer valor é aceito)</span></h2>
 
-    {% for m in [("goals", "⚽ Gols"), ("corners", "🚩 Escanteios"), ("cards", "🟨 Cartões")] %}
+    {% for m in [("goals", "⚽ Gols (total do jogo)"),
+                 ("team_goals_home", "🏠 Gols do MANDANTE"),
+                 ("team_goals_away", "🛫 Gols do VISITANTE"),
+                 ("corners", "🚩 Escanteios"), ("cards", "🟨 Cartões")] %}
     <fieldset>
       <legend>{{ m[1] }}</legend>
       <label class="inline"><input type="checkbox" name="{{ m[0] }}_on"
@@ -73,6 +82,27 @@
       </div>
     </fieldset>
     {% endfor %}
+
+    <fieldset>
+      <legend>⚖️ Handicap (asiático)</legend>
+      <label class="inline"><input type="checkbox" name="handicap_on"> ativar</label>
+      <div class="crit-row">
+        <label>Time
+          <select name="handicap_side">
+            <option value="any">Qualquer</option>
+            <option value="home">Casa</option>
+            <option value="away">Fora</option>
+          </select></label>
+        <label>Linha <span class="hint">(ex.: 3 = time +3; -1.5 = favorito; vazio = qualquer)</span>
+          <input type="number" step="any" name="handicap_line" placeholder="ex.: 3"></label>
+        <label>Odd mínima
+          <input type="number" step="any" name="handicap_odd_min" value="1.01"></label>
+        <label>Odd máxima
+          <input type="number" step="any" name="handicap_odd_max" value="1.20"></label>
+        <label>Probabilidade mínima (0–1)
+          <input type="number" step="any" name="handicap_p_min" value="0.90"></label>
+      </div>
+    </fieldset>
 
     <fieldset>
       <legend>🏆 Resultado (1X2)</legend>

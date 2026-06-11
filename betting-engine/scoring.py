@@ -106,6 +106,30 @@ def match_outcome_probs(lam_home: float, lam_away: float,
     return p_home / total, p_draw / total, p_away / total
 
 
+def handicap_prob(lam_home: float, lam_away: float, side: str,
+                  line: float, max_goals: int = 10) -> tuple[float, float]:
+    """(P_ganhar, P_push) do handicap asiático para `side` com `line`.
+
+    Ex.: side='away', line=+3 -> visitante cobre se gols_fora + 3 >
+    gols_casa (push se empatar exatamente com a linha inteira).
+    Mesma grade de placares do 1X2 — totalmente auditável.
+    """
+    if side not in ("home", "away"):
+        raise ValueError("side deve ser 'home' ou 'away'")
+    p_win = p_push = total = 0.0
+    for h in range(max_goals + 1):
+        ph = poisson_pmf(h, lam_home)
+        for a in range(max_goals + 1):
+            p = ph * poisson_pmf(a, lam_away)
+            total += p
+            adj = (h + line - a) if side == "home" else (a + line - h)
+            if adj > 1e-9:
+                p_win += p
+            elif abs(adj) <= 1e-9:
+                p_push += p
+    return p_win / total, p_push / total
+
+
 # -------------------------------------------------------------- múltiplas
 @dataclass
 class CombinedTicket:

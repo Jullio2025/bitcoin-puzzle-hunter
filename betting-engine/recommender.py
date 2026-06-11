@@ -19,7 +19,10 @@ from odds_parser import OddsMap, available_lines
 from rules import RuleResult, get_rules
 
 MARKET_LABELS = {"goals": "Gols", "corners": "Escanteios", "cards": "Cartões",
-                 "1x2": "Resultado (1X2)"}
+                 "1x2": "Resultado (1X2)",
+                 "team_goals_home": "Gols do mandante",
+                 "team_goals_away": "Gols do visitante",
+                 "handicap": "Handicap"}
 SIDE_LABELS = {"over": "Mais de", "under": "Menos de",
                "home": "Vitória mandante", "draw": "Empate",
                "away": "Vitória visitante"}
@@ -52,6 +55,9 @@ class MarketAnalysis:
     @property
     def label(self) -> str:
         base = MARKET_LABELS.get(self.market, self.market)
+        if self.market == "handicap":
+            team = "Casa" if self.side == "home" else "Fora"
+            return f"{base}: {team} {self.line:+g}"
         side = SIDE_LABELS.get(self.side, self.side)
         if self.line is not None:
             return f"{base}: {side} {self.line}"
@@ -176,8 +182,16 @@ def analyze_fixture(ctx: MatchContext, odds_map: OddsMap,
         if market == "1x2":
             markets.extend(_analyze_1x2(lambdas, odds_map, params))
             continue
-        lam = lambdas["goals_home"] + lambdas["goals_away"] \
-            if market == "goals" else lambdas.get(market)
+        if market == "handicap":
+            markets.extend(_analyze_handicap(lambdas, odds_map, params))
+            continue
+        if market == "team_goals_home":
+            lam = lambdas["goals_home"]
+        elif market == "team_goals_away":
+            lam = lambdas["goals_away"]
+        else:
+            lam = lambdas["goals_home"] + lambdas["goals_away"] \
+                if market == "goals" else lambdas.get(market)
         if lam is None:
             continue
         # médias zeradas = a API não devolveu estatísticas desses jogos;
@@ -186,7 +200,8 @@ def analyze_fixture(ctx: MatchContext, odds_map: OddsMap,
         lines = available_lines(odds_map, market)
         if not lines:
             # sem odds: mostra a linha "clássica" só com p_model
-            lines = {"goals": [2.5], "corners": [9.5], "cards": [4.5]}[market]
+            lines = {"goals": [2.5], "corners": [9.5], "cards": [4.5],
+                     "team_goals_home": [1.5], "team_goals_away": [1.5]}[market]
         for line in lines:
             for side, p in (("over", scoring.prob_over(lam, line)),
                             ("under", scoring.prob_under(lam, line))):
@@ -213,6 +228,28 @@ def analyze_fixture(ctx: MatchContext, odds_map: OddsMap,
                            lambda_explanations=expl,
                            rule_results=rule_results, markets=markets,
                            charts=count_charts(lambdas))
+
+
+def _analyze_handicap(lambdas: dict[str, float], odds_map: OddsMap,
+                      params: UserParams) -> list[MarketAnalysis]:
+    """Handicap asiático: só as linhas que a casa publicou (sem inventar)."""
+    out = []
+    for (mkt, side, line), odd in sorted(odds_map.items(),
+                                         key=lambda kv: str(kv[0])):
+        if mkt != "handicap":
+            continue
+        p_win, p_push = scoring.handicap_prob(
+            lambdas["goals_home"], lambdas["goals_away"], side, line,
+            max_goals=config.MODEL["max_goals_grid"])
+        metrics = scoring.market_metrics(p_win, odd)
+        if p_push > 0:
+            metrics.notes.append(
+                f"Linha inteira: P(push/devolução) = {p_push:.1%}.")
+        ok, failed = _check_filters(metrics, params)
+        out.append(MarketAnalysis(market="handicap", side=side, line=line,
+                                  lambda_used=None, metrics=metrics,
+                                  passes_filters=ok, failed_filters=failed))
+    return out
 
 
 def _analyze_1x2(lambdas: dict[str, float], odds_map: OddsMap,
