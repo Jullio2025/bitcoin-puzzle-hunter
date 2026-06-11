@@ -1,0 +1,70 @@
+{# Raio-X do jogo: gráficos gerados dos dados do modelo.
+   Espera as variáveis `charts` e `xctx` no contexto. #}
+<div class="xray">
+  <div class="xray-head">📊 Raio-X do jogo
+    <span class="hint">— distribuição de probabilidade do modelo
+    (passe o mouse nas barras)</span></div>
+
+  <div class="formline">
+    <span class="teamname">{{ xctx.home.team_name }} <small>casa</small></span>
+    <span class="dots">
+    {%- for c in xctx.home.form -%}
+      <i class="dot {{ {'V':'w','E':'d','D':'l'}[c] }}"
+         title="{{ {'V':'vitória','E':'empate','D':'derrota'}[c] }}"></i>
+    {%- endfor -%}
+    </span>
+    <span class="hint">{{ xctx.home.points }} pts nos últimos {{ xctx.home.games }}</span>
+  </div>
+  <div class="formline">
+    <span class="teamname">{{ xctx.away.team_name }} <small>fora</small></span>
+    <span class="dots">
+    {%- for c in xctx.away.form -%}
+      <i class="dot {{ {'V':'w','E':'d','D':'l'}[c] }}"
+         title="{{ {'V':'vitória','E':'empate','D':'derrota'}[c] }}"></i>
+    {%- endfor -%}
+    </span>
+    <span class="hint">{{ xctx.away.points }} pts nos últimos {{ xctx.away.games }}</span>
+  </div>
+
+  <div class="charts">
+    {% for key, label in [("goals", "⚽ Gols"), ("corners", "🚩 Escanteios"), ("cards", "🟨 Cartões")] %}
+    {% if key in charts %}
+    <div class="chart">
+      <div class="chart-title">{{ label }}
+        <span class="hint">esperado: {{ "%.1f"|format(charts[key].lam) }}</span></div>
+      <div class="bars">
+        {% for pt in charts[key].points %}
+        <div class="barcol"
+             title="{{ pt.k }} {{ label[2:]|lower }}: {{ "%.1f"|format(pt.p * 100) }}% de chance">
+          <div class="bar" style="height: {{ pt.h }}%"></div>
+          <span class="k">{{ pt.k }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+
+  {% if charts.p1x2 %}
+  <div class="stack-wrap">
+    <div class="chart-title">🏆 Quem vence? <span class="hint">probabilidade do modelo</span></div>
+    <div class="stack">
+      <div class="seg home" style="width: {{ charts.p1x2.home * 100 }}%"
+           title="{{ xctx.home.team_name }}: {{ '%.1f'|format(charts.p1x2.home * 100) }}%">
+        {{ "%.0f"|format(charts.p1x2.home * 100) }}%</div>
+      <div class="seg draw" style="width: {{ charts.p1x2.draw * 100 }}%"
+           title="Empate: {{ '%.1f'|format(charts.p1x2.draw * 100) }}%">
+        {{ "%.0f"|format(charts.p1x2.draw * 100) }}%</div>
+      <div class="seg away" style="width: {{ charts.p1x2.away * 100 }}%"
+           title="{{ xctx.away.team_name }}: {{ '%.1f'|format(charts.p1x2.away * 100) }}%">
+        {{ "%.0f"|format(charts.p1x2.away * 100) }}%</div>
+    </div>
+    <div class="stack-legend">
+      <span><i class="sw home"></i>{{ xctx.home.team_name }}</span>
+      <span><i class="sw draw"></i>Empate</span>
+      <span><i class="sw away"></i>{{ xctx.away.team_name }}</span>
+    </div>
+  </div>
+  {% endif %}
+</div>

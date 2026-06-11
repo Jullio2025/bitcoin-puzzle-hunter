@@ -65,6 +65,28 @@ class FixtureAnalysis:
     lambda_explanations: dict[str, str]
     rule_results: list[RuleResult]
     markets: list[MarketAnalysis]
+    charts: dict = field(default_factory=dict)
+
+
+def count_charts(lambdas: dict[str, float]) -> dict:
+    """Dados dos gráficos da interface: distribuição de Poisson por mercado
+    (P de cada contagem exata) e probabilidades do 1X2."""
+    charts: dict = {}
+    specs = {"goals": lambdas["goals_home"] + lambdas["goals_away"],
+             "corners": lambdas["corners"], "cards": lambdas["cards"]}
+    for market, lam in specs.items():
+        k_max = max(6, min(18, int(lam * 2 + 3)))
+        points = [{"k": k, "p": scoring.poisson_pmf(k, lam)}
+                  for k in range(k_max + 1)]
+        p_max = max(pt["p"] for pt in points) or 1.0
+        for pt in points:
+            pt["h"] = round(100 * pt["p"] / p_max, 1)  # altura da barra (%)
+        charts[market] = {"lam": lam, "points": points}
+    ph, pd, pa = scoring.match_outcome_probs(
+        lambdas["goals_home"], lambdas["goals_away"],
+        max_goals=config.MODEL["max_goals_grid"])
+    charts["p1x2"] = {"home": ph, "draw": pd, "away": pa}
+    return charts
 
 
 # ------------------------------------------------------------ lambdas base
@@ -167,7 +189,8 @@ def analyze_fixture(ctx: MatchContext, odds_map: OddsMap,
 
     return FixtureAnalysis(ctx=ctx, lambdas=lambdas,
                            lambda_explanations=expl,
-                           rule_results=rule_results, markets=markets)
+                           rule_results=rule_results, markets=markets,
+                           charts=count_charts(lambdas))
 
 
 def _analyze_1x2(lambdas: dict[str, float], odds_map: OddsMap,

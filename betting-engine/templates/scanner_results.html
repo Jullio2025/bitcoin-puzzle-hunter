@@ -27,6 +27,10 @@ afrouxe a faixa de odd ou a probabilidade mínima e garimpe de novo.</div>
     {{ g.ctx.fixture.league.name }} ({{ g.ctx.fixture.league.country }}) —
     árbitro: {{ g.ctx.fixture.fixture.referee or "?" }}</p>
 
+  {% if g.charts %}
+  {% with charts = g.charts, xctx = g.ctx %}{% include "_charts.html" %}{% endwith %}
+  {% endif %}
+
   <details>
     <summary>De onde saíram os lambdas (modelo Poisson)</summary>
     <ul>
@@ -65,7 +69,15 @@ afrouxe a faixa de odd ou a probabilidade mínima e garimpe de novo.</div>
                    data-p="{{ m.metrics.p_model }}"></td>
         <td>{{ m.label }}</td>
         <td><span class="hint">{{ crit.label }}</span></td>
-        <td>{{ "%.1f"|format(m.metrics.p_model * 100) }}%</td>
+        <td>
+          <div class="pwrap">{{ "%.1f"|format(m.metrics.p_model * 100) }}%
+            <span class="pbar"
+                  title="Barra: chance do modelo. Risco branco: chance embutida na odd (1/odd).">
+              <i style="width: {{ m.metrics.p_model * 100 }}%"></i>
+              {% if m.metrics.implied %}<b style="left: {{ m.metrics.implied * 100 }}%"></b>{% endif %}
+            </span>
+          </div>
+        </td>
         <td>{{ "%.2f"|format(m.metrics.odd) }}</td>
         <td>{{ "%.1f"|format(m.metrics.implied * 100) }}%</td>
         <td>{{ "%+.3f"|format(m.metrics.edge) }}</td>

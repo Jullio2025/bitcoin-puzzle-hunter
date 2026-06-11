@@ -15,25 +15,27 @@
         }
       }
     }, { threshold: 0.08, rootMargin: "0px 0px -40px 0px" });
-    document.querySelectorAll(".card, .hero").forEach((el, i) => {
+    document.querySelectorAll(".card, .hero, .xray").forEach((el, i) => {
       el.classList.add("reveal");
       el.style.transitionDelay = `${Math.min(i * 60, 240)}ms`;
       io.observe(el);
     });
   }
 
-  /* ---------------- parallax dos orbes de fundo ---------------------- */
-  const orbs = [...document.querySelectorAll(".orb")];
-  if (!reduced && orbs.length) {
-    const speeds = [0.12, -0.08, 0.18];
+  /* ------- parallax do cenário + barra de progresso de leitura ------- */
+  const scene = document.querySelector(".bg-scene");
+  const progress = document.getElementById("progress");
+  if (!reduced && (scene || progress)) {
     let ticking = false;
     addEventListener("scroll", () => {
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => {
-        const y = scrollY;
-        orbs.forEach((o, i) =>
-          o.style.transform = `translateY(${y * (speeds[i] || 0.1)}px)`);
+        if (scene) scene.style.transform = `translateY(${scrollY * -0.06}px)`;
+        if (progress) {
+          const max = document.documentElement.scrollHeight - innerHeight;
+          progress.style.width = `${max > 0 ? (scrollY / max) * 100 : 0}%`;
+        }
         ticking = false;
       });
     }, { passive: true });

@@ -22,7 +22,7 @@ from api_client import ApiFootballClient
 from features import MatchContext, build_match_context
 from odds_parser import OddsMap, parse_odds
 from recommender import (MARKET_LABELS, SIDE_LABELS, MarketAnalysis,
-                         apply_rules, base_lambdas)
+                         apply_rules, base_lambdas, count_charts)
 
 
 @dataclass
@@ -56,6 +56,7 @@ class ScanGroup:
     lambda_explanations: dict
     rule_results: list
     hits: list[tuple[Criterion, MarketAnalysis]] = field(default_factory=list)
+    charts: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -225,7 +226,7 @@ def scan_day(client: ApiFootballClient, date: str,
             continue
         groups.append(ScanGroup(
             ctx=ctx, lambdas=lambdas, lambda_explanations=expl,
-            rule_results=rule_results,
+            rule_results=rule_results, charts=count_charts(lambdas),
             hits=[(criteria[i], ma) for i in sorted(hits_by_crit)
                   for ma in hits_by_crit[i]]))
 
