@@ -33,10 +33,13 @@ afrouxe a faixa de odd ou a probabilidade mínima e garimpe de novo.</div>
   {% endif %}
 
   <details>
-    <summary>De onde saíram os lambdas (modelo Poisson)</summary>
+    <summary>🧮 Como o modelo chegou nesses números</summary>
+    <p class="hint">Cada média abaixo vem dos últimos jogos reais dos times
+    (separados por casa/fora) e alimenta a distribuição de Poisson — a conta
+    inteira está à mostra:</p>
     <ul>
     {% for key, text in g.lambda_explanations.items() %}
-      <li><strong>{{ key }}</strong>: {{ text }} → ajustado pelas regras:
+      <li>{{ text }} → depois dos ajustes das regras:
         <strong>{{ "%.2f"|format(g.lambdas[key]) }}</strong></li>
     {% endfor %}
     </ul>
@@ -44,10 +47,12 @@ afrouxe a faixa de odd ou a probabilidade mínima e garimpe de novo.</div>
   <details>
     <summary>Regras aplicadas ({{ g.rule_results|length }})</summary>
     <ul>
+    {% set kmap = {"goals_home": "gols do mandante", "goals_away": "gols do visitante",
+                   "cards": "cartões", "corners": "escanteios"} %}
     {% for res in g.rule_results %}
       <li><strong>{{ res.rule }}</strong>
         {%- if res.multipliers %} — ajuste:
-          {% for k, v in res.multipliers.items() %}{{ k }} ×{{ "%.3f"|format(v) }}{{ ", " if not loop.last }}{% endfor %}
+          {% for k, v in res.multipliers.items() %}{{ kmap.get(k, k) }} ×{{ "%.3f"|format(v) }}{{ ", " if not loop.last }}{% endfor %}
         {%- endif %}<br>
         <span class="hint">{{ res.explanation }}</span></li>
     {% endfor %}

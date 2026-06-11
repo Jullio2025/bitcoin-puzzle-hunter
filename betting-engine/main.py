@@ -108,9 +108,9 @@ def print_fixture_analysis(fa: recommender.FixtureAnalysis) -> None:
           f"  |  árbitro: {ctx.fixture['fixture'].get('referee') or '?'}")
     print(LINE)
 
-    print("Lambdas do modelo (Poisson) e de onde saíram:")
+    print("Como o modelo chegou nos números (médias do Poisson):")
     for key, text in fa.lambda_explanations.items():
-        print(f"  - {key}: {text} -> ajustado: {fa.lambdas[key]:.2f}")
+        print(f"  - {text} -> depois das regras: {fa.lambdas[key]:.2f}")
 
     print("\nRegras aplicadas (cada ajuste explicado):")
     for res in fa.rule_results:

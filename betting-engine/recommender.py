@@ -104,19 +104,28 @@ def base_lambdas(ctx: MatchContext) -> tuple[dict[str, float], dict[str, str]]:
     lambdas = {"goals_home": goals_home, "goals_away": goals_away,
                "corners": corners, "cards": cards}
     expl = {
-        "goals_home": (f"média({h.team_name} marca em casa {h.goals_for:.2f}, "
-                       f"{a.team_name} sofre fora {a.goals_against:.2f}) "
-                       f"= {goals_home:.2f}"),
-        "goals_away": (f"média({a.team_name} marca fora {a.goals_for:.2f}, "
-                       f"{h.team_name} sofre em casa {h.goals_against:.2f}) "
-                       f"= {goals_away:.2f}"),
-        "corners": (f"média cruzada casa ({h.corners_for:.2f} a favor x "
-                    f"{a.corners_against:.2f} cedidos) + fora "
-                    f"({a.corners_for:.2f} x {h.corners_against:.2f}) "
-                    f"= {corners:.2f}"),
-        "cards": (f"{h.team_name} recebe {h.cards:.2f}/jogo em casa + "
-                  f"{a.team_name} recebe {a.cards:.2f}/jogo fora "
-                  f"= {cards:.2f}"),
+        "goals_home": (
+            f"⚽ Gols esperados do {h.team_name} (mandante): nos últimos "
+            f"jogos EM CASA ele marcou {h.goals_for:.2f} gols por jogo, e o "
+            f"{a.team_name} sofreu {a.goals_against:.2f} por jogo FORA. A "
+            f"média dos dois dá {goals_home:.2f} gols esperados"),
+        "goals_away": (
+            f"⚽ Gols esperados do {a.team_name} (visitante): FORA de casa "
+            f"ele marcou {a.goals_for:.2f} gols por jogo, e o {h.team_name} "
+            f"sofreu {h.goals_against:.2f} por jogo EM CASA. A média dá "
+            f"{goals_away:.2f} gols esperados"),
+        "corners": (
+            f"🚩 Escanteios esperados no jogo: o {h.team_name} força "
+            f"{h.corners_for:.2f} por jogo em casa (e o {a.team_name} cede "
+            f"{a.corners_against:.2f} fora), enquanto o {a.team_name} força "
+            f"{a.corners_for:.2f} fora (e o {h.team_name} cede "
+            f"{h.corners_against:.2f} em casa). Somando os dois lados: "
+            f"{corners:.2f} escanteios esperados"),
+        "cards": (
+            f"🟨 Cartões esperados no jogo: o {h.team_name} recebe "
+            f"{h.cards:.2f} por jogo em casa e o {a.team_name} recebe "
+            f"{a.cards:.2f} por jogo fora — juntos, {cards:.2f} cartões "
+            f"esperados"),
     }
     return lambdas, expl
 
