@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Garimpo de {{ match_date }}</h1>
+{% if preset_saved %}
+<div class="success">💾 Critérios salvos como padrão — o garimpo automático
+diário vai usá-los e avisar no Telegram (se configurado).</div>
+{% endif %}
 
 <p class="hint">Jogos do dia (não iniciados, com cobertura):
 {{ result.fixtures_today }} — com odds dentro dos seus critérios:
@@ -72,7 +76,11 @@ afrouxe a faixa de odd ou a probabilidade mínima e garimpe de novo.</div>
                    data-fixture="{{ g.ctx.label }}"
                    data-market="{{ m.label }}"
                    data-odd="{{ m.metrics.odd }}"
-                   data-p="{{ m.metrics.p_model }}"></td>
+                   data-p="{{ m.metrics.p_model }}"
+                   data-fid="{{ g.ctx.fixture.fixture.id }}"
+                   data-mkt="{{ m.market }}"
+                   data-side="{{ m.side }}"
+                   data-line="{{ m.line if m.line is not none else '' }}"></td>
         <td>{{ m.label }}</td>
         <td><span class="hint">{{ crit.label }}</span></td>
         <td>

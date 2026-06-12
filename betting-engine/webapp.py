@@ -245,22 +245,30 @@ async def scan(request: Request, _: str = Depends(auth)):
                       preset_on=[],
                       error="Ative pelo menos um mercado para garimpar.")
     match_date = form.get("match_date") or date.today().isoformat()
+    bookmaker = int(form.get("bookmaker") or config.DEFAULT_BOOKMAKER_ID)
+    last_n = int(form.get("last_n") or config.USER_DEFAULTS["last_n"])
+    match_all = form.get("match_all") == "on"
+    deep_limit = int(form.get("deep_limit") or 20)
+
+    preset_saved = False
+    if form.get("save_preset") == "on":
+        import daily_scan
+        daily_scan.save_preset(criteria, bookmaker, last_n, match_all,
+                               deep_limit)
+        preset_saved = True
+
     try:
         client = ApiFootballClient()
         result = scanner.scan_day(
-            client, match_date, criteria,
-            bookmaker=int(form.get("bookmaker")
-                          or config.DEFAULT_BOOKMAKER_ID),
-            last_n=int(form.get("last_n") or config.USER_DEFAULTS["last_n"]),
-            match_all=form.get("match_all") == "on",
-            deep_limit=int(form.get("deep_limit") or 20),
+            client, match_date, criteria, bookmaker=bookmaker,
+            last_n=last_n, match_all=match_all, deep_limit=deep_limit,
         )
     except ApiError as e:
         return render(request, "scanner.html", today=match_date,
                       preset_on=[], error=str(e))
     return render(request, "scanner_results.html", result=result,
                   criteria=criteria, match_date=match_date,
-                  match_all=form.get("match_all") == "on",
+                  match_all=match_all, preset_saved=preset_saved,
                   api_calls=client.calls_made)
 
 
@@ -279,6 +287,20 @@ def tracker_add(_: str = Depends(auth), fixture: str = Form(...),
     bet = Tracker().add(fixture, market, odd, stake, p_model)
     return RedirectResponse(f"/tracker?msg=Aposta+%23{bet.id}+registrada",
                             status_code=303)
+
+
+@app.post("/tracker/autosettle")
+def tracker_autosettle(_: str = Depends(auth)):
+    import settle
+    s = settle.auto_settle(Tracker(), ApiFootballClient())
+    msg = (f"Auto:+{s['ganhou']}+ganhas,+{s['perdeu']}+perdidas,"
+           f"+{s['devolvida']}+devolvidas;+{s['pendentes']}+aguardando+jogo,"
+           f"+{s['manuais']}+manuais")
+    if s["avisos"]:
+        msg += f"+({len(s['avisos'])}+aviso(s)+no+log)"
+        for a in s["avisos"]:
+            logging.warning("auto_settle: %s", a)
+    return RedirectResponse(f"/tracker?msg={msg}", status_code=303)
 
 
 @app.post("/tracker/settle")
@@ -300,11 +322,22 @@ def ticket_register(_: str = Depends(auth), legs_json: str = Form(...),
     if not legs:
         return RedirectResponse("/tracker?msg=Nenhuma+sele%C3%A7%C3%A3o",
                                 status_code=303)
+
+    def machine_legs(selection: list) -> list | None:
+        out = []
+        for l in selection:
+            if not l.get("fid") or not l.get("mkt"):
+                return None  # sem dados estruturados: liquidação manual
+            out.append({"fid": int(l["fid"]), "market": l["mkt"],
+                        "side": l["side"], "line": l.get("line"),
+                        "label": f"{l['fixture']} — {l['market']}"})
+        return out
+
     t = Tracker()
     if mode == "simples":
         for leg in legs:
             t.add(leg["fixture"], leg["market"], float(leg["odd"]),
-                  stake, float(leg["p"]))
+                  stake, float(leg["p"]), legs=machine_legs([leg]))
         return RedirectResponse(
             f"/tracker?msg={len(legs)}+aposta(s)+simples+registrada(s)",
             status_code=303)
@@ -315,6 +348,6 @@ def ticket_register(_: str = Depends(auth), legs_json: str = Form(...),
     t.add(fixture=" + ".join(l["fixture"] for l in legs),
           market=" + ".join(l["market"] for l in legs),
           odd=ticket.combined_odd, stake=stake,
-          p_model=ticket.combined_prob)
+          p_model=ticket.combined_prob, legs=machine_legs(legs))
     return RedirectResponse("/tracker?msg=M%C3%BAltipla+registrada",
                             status_code=303)

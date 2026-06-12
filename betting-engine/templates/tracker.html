@@ -23,6 +23,12 @@
 
 <div class="card">
   <h2>Apostas</h2>
+  <form method="post" action="/tracker/autosettle">
+    <button type="submit" class="primary">🔄 Liquidar automaticamente
+      (confere os resultados na API)</button>
+    <span class="hint">Funciona para apostas registradas pelo painel;
+    registros manuais continuam manuais.</span>
+  </form>
   {% if not bets %}<p class="hint">Nenhuma aposta registrada ainda.</p>{% endif %}
   <table class="markets">
     <thead><tr><th>#</th><th>Jogo</th><th>Mercado</th><th>Odd</th>

@@ -70,7 +70,11 @@
                  data-fixture="{{ fa.ctx.label }}"
                  data-market="{{ m.label }}"
                  data-odd="{{ m.metrics.odd }}"
-                 data-p="{{ m.metrics.p_model }}">
+                 data-p="{{ m.metrics.p_model }}"
+                 data-fid="{{ fa.ctx.fixture.fixture.id }}"
+                 data-mkt="{{ m.market }}"
+                 data-side="{{ m.side }}"
+                 data-line="{{ m.line if m.line is not none else '' }}">
           {% endif %}
         </td>
         <td>{{ m.label }}</td>

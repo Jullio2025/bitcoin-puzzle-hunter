@@ -34,7 +34,11 @@ fab.addEventListener("click", () =>
 function refreshTicket() {
   const legs = [...document.querySelectorAll(".leg:checked")].map(cb => ({
     fixture: cb.dataset.fixture, market: cb.dataset.market,
-    odd: parseFloat(cb.dataset.odd), p: parseFloat(cb.dataset.p)
+    odd: parseFloat(cb.dataset.odd), p: parseFloat(cb.dataset.p),
+    // dados estruturados p/ liquidação automática do tracker
+    fid: parseInt(cb.dataset.fid), mkt: cb.dataset.mkt,
+    side: cb.dataset.side,
+    line: cb.dataset.line === "" ? null : parseFloat(cb.dataset.line)
   }));
   document.getElementById("legs-json").value = JSON.stringify(legs);
   document.getElementById("t-count").textContent =

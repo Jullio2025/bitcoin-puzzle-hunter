@@ -26,6 +26,10 @@ class Bet:
     p_model: float
     result: str = "pendente"   # "pendente" | "ganhou" | "perdeu" | "devolvida"
     created_at: float = field(default_factory=time.time)
+    # pernas estruturadas p/ liquidação automática (apostas vindas do painel):
+    # [{"fid": 123, "market": "goals", "side": "over", "line": 2.5,
+    #   "label": "..."}]; None = registro manual (liquidação manual)
+    legs: list | None = None
 
 
 class Tracker:
@@ -46,10 +50,10 @@ class Tracker:
                        ensure_ascii=False, indent=2))
 
     def add(self, fixture: str, market: str, odd: float, stake: float,
-            p_model: float) -> Bet:
+            p_model: float, legs: list | None = None) -> Bet:
         bet = Bet(id=(max((b.id for b in self.bets), default=0) + 1),
                   fixture=fixture, market=market, odd=odd, stake=stake,
-                  p_model=p_model)
+                  p_model=p_model, legs=legs)
         self.bets.append(bet)
         self._save()
         return bet

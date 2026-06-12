@@ -54,6 +54,8 @@ exec .venv/bin/python main.py "$@"
 EOF
 chmod +x run.sh
 [ -f run-web.sh ] && chmod +x run-web.sh
+[ -f install-service.sh ] && chmod +x install-service.sh
+[ -f install-alert.sh ] && chmod +x install-alert.sh
 
 # 4. chave da API -------------------------------------------------------------
 if [ -f .env ] && grep -q "APISPORTS_KEY=." .env; then
