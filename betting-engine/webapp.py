@@ -231,6 +231,7 @@ def _parse_criteria(form) -> list[scanner.Criterion]:
             odd_min=float(form.get(f"{market}_odd_min") or 1.01),
             odd_max=float(form.get(f"{market}_odd_max") or 100),
             p_min=float(form.get(f"{market}_p_min") or 0),
+            ev_min=float(form.get(f"{market}_ev_min") or -100),
         ))
     return criteria
 

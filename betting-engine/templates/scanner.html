@@ -79,6 +79,8 @@
           <input type="number" step="any" name="{{ m[0] }}_odd_max" value="2.00"></label>
         <label>Probabilidade mínima (0–1)
           <input type="number" step="any" name="{{ m[0] }}_p_min" value="0.60"></label>
+        <label>EV mínimo <span class="hint">(0 = só valor positivo)</span>
+          <input type="number" step="any" name="{{ m[0] }}_ev_min" value="0.00"></label>
       </div>
     </fieldset>
     {% endfor %}
@@ -101,6 +103,8 @@
           <input type="number" step="any" name="handicap_odd_max" value="1.20"></label>
         <label>Probabilidade mínima (0–1)
           <input type="number" step="any" name="handicap_p_min" value="0.90"></label>
+        <label>EV mínimo <span class="hint">(0 = só valor positivo)</span>
+          <input type="number" step="any" name="handicap_ev_min" value="0.00"></label>
       </div>
     </fieldset>
 
@@ -121,6 +125,8 @@
           <input type="number" step="any" name="1x2_odd_max" value="2.50"></label>
         <label>Probabilidade mínima (0–1)
           <input type="number" step="any" name="1x2_p_min" value="0.50"></label>
+        <label>EV mínimo <span class="hint">(0 = só valor positivo)</span>
+          <input type="number" step="any" name="1x2_ev_min" value="0.00"></label>
       </div>
     </fieldset>
 

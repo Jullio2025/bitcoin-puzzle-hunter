@@ -28,12 +28,13 @@ from recommender import (MARKET_LABELS, SIDE_LABELS, MarketAnalysis,
 @dataclass
 class Criterion:
     """Uma 'peça' que o usuário quer para o bilhete."""
-    market: str                 # goals | corners | cards | 1x2
+    market: str                 # goals | corners | cards | 1x2 | handicap...
     side: str                   # over/under ou home/draw/away/any
     line: float | None          # None = qualquer linha disponível
     odd_min: float = 1.01
     odd_max: float = 100.0
     p_min: float = 0.0
+    ev_min: float = -100.0      # -100 = sem filtro de EV
 
     @property
     def label(self) -> str:
@@ -44,8 +45,11 @@ class Criterion:
                 else " (qualquer linha)")
         if self.market == "1x2":
             line = ""
-        return (f"{base}: {side}{line} | odd {self.odd_min:g}–"
+        text = (f"{base}: {side}{line} | odd {self.odd_min:g}–"
                 f"{self.odd_max:g} | p ≥ {self.p_min:.0%}")
+        if self.ev_min > -100:
+            text += f" | EV ≥ {self.ev_min:+.2f}"
+        return text
 
 
 @dataclass
@@ -259,6 +263,8 @@ def scan_day(client: ApiFootballClient, date: str,
                 if p < c.p_min:
                     continue
                 metrics = scoring.market_metrics(p, odds_map[key])
+                if metrics.ev is not None and metrics.ev < c.ev_min:
+                    continue
                 ma = MarketAnalysis(
                     market=key[0], side=key[1], line=key[2],
                     lambda_used=_lambda_for_key(key, lambdas),
