@@ -397,6 +397,15 @@ summary:hover { color: var(--cyan); }
   padding: 1px 8px; border-radius: 7px; color: var(--cyan);
 }
 
+/* bilhete compartilhado (página pública) */
+.share-leg {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; flex-wrap: wrap;
+  padding: 12px 4px; border-bottom: 1px dashed var(--line);
+}
+.share-leg-right { display: flex; align-items: center; gap: 10px; }
+.share-leg .button { margin: 0; padding: 7px 14px; font-size: .82rem; }
+
 /* ------------------------------------------------------------- bilhete */
 .ticket { border-color: rgba(139, 92, 246, .45); }
 #ticket-fab {

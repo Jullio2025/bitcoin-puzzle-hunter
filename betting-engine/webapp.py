@@ -273,7 +273,60 @@ async def scan(request: Request, _: str = Depends(auth)):
                   api_calls=client.calls_made)
 
 
-# ------------------------------------------------------------------ tracker
+# ------------------------------------------------- bilhete compartilhável
+SHARED_FILE = config.DATA_DIR / "shared_tickets.json"
+
+
+def _load_shared() -> dict:
+    if SHARED_FILE.exists():
+        return json.loads(SHARED_FILE.read_text())
+    return {}
+
+
+def _save_shared(data: dict) -> None:
+    SHARED_FILE.parent.mkdir(parents=True, exist_ok=True)
+    SHARED_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+
+
+@app.post("/ticket/share")
+def ticket_share(request: Request, _: str = Depends(auth),
+                 legs_json: str = Form(...)):
+    """Cria a página pública do bilhete e leva pro link curto."""
+    legs = json.loads(legs_json)
+    if not legs:
+        return RedirectResponse("/tracker?msg=Nenhuma+sele%C3%A7%C3%A3o",
+                                status_code=303)
+    import scoring
+    ticket = scoring.combine_legs([(float(l["odd"]), float(l["p"]))
+                                   for l in legs])
+    shared = _load_shared()
+    code = secrets.token_urlsafe(4).replace("_", "a").replace("-", "b")[:6]
+    while code in shared:
+        code = secrets.token_urlsafe(4).replace("_", "a").replace("-", "b")[:6]
+    shared[code] = {
+        "created": date.today().isoformat(),
+        "legs": [{"fixture": l["fixture"], "market": l["market"],
+                  "odd": float(l["odd"]), "p": float(l["p"])} for l in legs],
+        "combined_odd": ticket.combined_odd,
+        "combined_prob": ticket.combined_prob,
+        "lose_prob": ticket.lose_prob,
+    }
+    _save_shared(shared)
+    return RedirectResponse(f"/b/{code}", status_code=303)
+
+
+@app.get("/b/{code}", response_class=HTMLResponse)
+def shared_ticket(request: Request, code: str):
+    """Página PÚBLICA (sem login) do bilhete compartilhado."""
+    ticket = _load_shared().get(code)
+    if not ticket:
+        return HTMLResponse(
+            "<html><body style='font-family:sans-serif;background:#060a18;"
+            "color:#eef3fb;padding:40px'><h2>⚡ ChapaFut</h2>"
+            "<p>Bilhete não encontrado (link errado ou removido).</p>"
+            "</body></html>", status_code=404)
+    return render(request, "share.html", ticket=ticket, code=code,
+                  share_url=str(request.base_url).rstrip("/") + f"/b/{code}")
 @app.get("/tracker", response_class=HTMLResponse)
 def tracker_page(request: Request, _: str = Depends(auth), msg: str = ""):
     t = Tracker()

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bilhete ChapaFut ⚡</title>
+  <link rel="stylesheet" href="/static/style.css?v=7">
+</head>
+<body>
+  <div class="bg-scene">
+    <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
+  </div>
+
+  <header class="topbar">
+    <span class="brand">⚡ CHAPA<span>FUT</span></span>
+    <span class="hint">bilhete compartilhado</span>
+  </header>
+
+  <div class="disclaimer">
+    O ChapaFut só <strong>calcula e mostra números</strong> — não recomenda
+    estratégia nem decide nada. Toda decisão de risco e de aposta é
+    <strong>sua</strong>, na sua casa de apostas. 18+
+  </div>
+
+  <main>
+    <div class="card ticket">
+      <h2>🎫 Bilhete com {{ ticket.legs|length }} seleção(ões)
+        <span class="badge">{{ ticket.created }}</span></h2>
+
+      {% for leg in ticket.legs %}
+      <div class="share-leg">
+        <div>
+          <strong>{{ leg.fixture }}</strong><br>
+          <span>{{ leg.market }}</span>
+          <span class="hint">— chance calculada:
+            {{ "%.0f"|format(leg.p * 100) }}%</span>
+        </div>
+        <div class="share-leg-right">
+          <span class="pill"><small>odd</small>{{ "%.2f"|format(leg.odd) }}</span>
+          <a class="button" target="_blank" rel="noopener"
+             href="https://www.google.com/search?q=Betano+{{ leg.fixture|urlencode }}">
+            🔎 achar na casa</a>
+        </div>
+      </div>
+      {% endfor %}
+
+      <div class="trio">
+        <div><span>Odd combinada</span>
+          <strong>{{ "%.2f"|format(ticket.combined_odd) }}</strong></div>
+        <div><span>Probabilidade combinada</span>
+          <strong>{{ "%.1f"|format(ticket.combined_prob * 100) }}%</strong></div>
+        <div><span>Chance de PERDER o bilhete</span>
+          <strong>{{ "%.1f"|format(ticket.lose_prob * 100) }}%</strong></div>
+      </div>
+
+      <p class="hint">A probabilidade combinada assume
+      <strong>independência</strong> entre as pernas (aproximação). Odds
+      capturadas em {{ ticket.created }} — <strong>confira na sua casa de
+      apostas, podem ter mudado</strong>. Cada pessoa aposta na própria
+      conta; o ChapaFut não registra apostas em casa nenhuma.</p>
+
+      <button class="primary" id="copy-link">📋 Copiar link deste bilhete</button>
+      <span class="hint" id="copied" hidden>copiado!</span>
+    </div>
+  </main>
+
+  <footer class="foot">ChapaFut — os números na mesa, a decisão é sua.</footer>
+  <script>
+    document.getElementById("copy-link").addEventListener("click", () => {
+      navigator.clipboard.writeText({{ share_url|tojson }}).then(() => {
+        document.getElementById("copied").hidden = false;
+      });
+    });
+  </script>
+</body>
+</html>
