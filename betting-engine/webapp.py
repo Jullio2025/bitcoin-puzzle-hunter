@@ -274,20 +274,6 @@ async def scan(request: Request, _: str = Depends(auth)):
 
 
 # ------------------------------------------------- bilhete compartilhável
-SHARED_FILE = config.DATA_DIR / "shared_tickets.json"
-
-
-def _load_shared() -> dict:
-    if SHARED_FILE.exists():
-        return json.loads(SHARED_FILE.read_text())
-    return {}
-
-
-def _save_shared(data: dict) -> None:
-    SHARED_FILE.parent.mkdir(parents=True, exist_ok=True)
-    SHARED_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2))
-
-
 @app.post("/ticket/share")
 def ticket_share(request: Request, _: str = Depends(auth),
                  legs_json: str = Form(...)):
@@ -297,28 +283,19 @@ def ticket_share(request: Request, _: str = Depends(auth),
         return RedirectResponse("/tracker?msg=Nenhuma+sele%C3%A7%C3%A3o",
                                 status_code=303)
     import scoring
+    import share_store
     ticket = scoring.combine_legs([(float(l["odd"]), float(l["p"]))
                                    for l in legs])
-    shared = _load_shared()
-    code = secrets.token_urlsafe(4).replace("_", "a").replace("-", "b")[:6]
-    while code in shared:
-        code = secrets.token_urlsafe(4).replace("_", "a").replace("-", "b")[:6]
-    shared[code] = {
-        "created": date.today().isoformat(),
-        "legs": [{"fixture": l["fixture"], "market": l["market"],
-                  "odd": float(l["odd"]), "p": float(l["p"])} for l in legs],
-        "combined_odd": ticket.combined_odd,
-        "combined_prob": ticket.combined_prob,
-        "lose_prob": ticket.lose_prob,
-    }
-    _save_shared(shared)
+    code = share_store.create(legs, ticket.combined_odd,
+                              ticket.combined_prob, ticket.lose_prob)
     return RedirectResponse(f"/b/{code}", status_code=303)
 
 
 @app.get("/b/{code}", response_class=HTMLResponse)
 def shared_ticket(request: Request, code: str):
     """Página PÚBLICA (sem login) do bilhete compartilhado."""
-    ticket = _load_shared().get(code)
+    import share_store
+    ticket = share_store.get(code)
     if not ticket:
         return HTMLResponse(
             "<html><body style='font-family:sans-serif;background:#060a18;"

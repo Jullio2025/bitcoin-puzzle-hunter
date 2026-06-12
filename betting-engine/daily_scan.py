@@ -13,10 +13,14 @@ Pré-requisitos:
 from __future__ import annotations
 
 import json
+import os
+import socket
 from datetime import date
 
 import config
+import scoring
 import settle
+import share_store
 from api_client import ApiFootballClient
 from notify import send_telegram, telegram_configured
 from scanner import Criterion, scan_day
@@ -24,6 +28,7 @@ from tracker import Tracker
 
 PRESET_FILE = config.DATA_DIR / "scan_preset.json"
 MAX_HITS_IN_MESSAGE = 10
+TICKET_MAX_LEGS = 10  # bilhete automático: até N pernas (1 por jogo)
 
 
 def load_preset() -> dict | None:
@@ -42,8 +47,48 @@ def save_preset(criteria: list[Criterion], bookmaker: int, last_n: int,
     }, ensure_ascii=False, indent=2))
 
 
+def panel_url() -> str:
+    """URL pública do painel: PANEL_URL do .env, senão IP detectado:8000."""
+    url = os.getenv("PANEL_URL", "").rstrip("/")
+    if url:
+        return url
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return f"http://{ip}:8000"
+    except OSError:
+        return "http://SEU_IP:8000"
+
+
+def build_auto_ticket(result, max_legs: int = TICKET_MAX_LEGS) -> str | None:
+    """Monta o bilhete do garimpo e devolve o código do link público.
+
+    Montagem MECÂNICA a partir dos critérios do usuário: 1 perna por jogo
+    (a de maior EV — os hits já vêm ordenados) até max_legs, ranqueadas
+    por EV. Nenhuma escolha editorial; a decisão continua sendo do usuário.
+    """
+    legs = []
+    for g in result.groups:
+        if not g.hits:
+            continue
+        _crit, ma = g.hits[0]  # melhor EV do jogo
+        legs.append({"fixture": g.ctx.label, "market": ma.label,
+                     "odd": ma.metrics.odd, "p": ma.metrics.p_model,
+                     "ev": ma.metrics.ev or 0})
+    if not legs:
+        return None
+    legs.sort(key=lambda l: -l["ev"])
+    legs = legs[:max_legs]
+    ticket = scoring.combine_legs([(l["odd"], l["p"]) for l in legs])
+    return share_store.create(legs, ticket.combined_odd,
+                              ticket.combined_prob, ticket.lose_prob)
+
+
 def format_message(today: str, result, criteria: list[Criterion],
-                   settle_summary: dict, report: dict) -> str:
+                   settle_summary: dict, report: dict,
+                   ticket_code: str | None = None) -> str:
     lines = [f"⚡ ChapaFut — garimpo de {today}", ""]
     lines += [f"Critérios: {c.label}" for c in criteria]
     lines.append("")
@@ -66,6 +111,16 @@ def format_message(today: str, result, criteria: list[Criterion],
     if result.skipped_by_limit:
         lines.append(f"({result.skipped_by_limit} candidato(s) fora do "
                      "limite de profundidade)")
+
+    if ticket_code:
+        t = share_store.get(ticket_code)
+        lines += ["",
+                  f"🎫 Bilhete montado com o garimpo "
+                  f"({len(t['legs'])} perna(s), 1 por jogo, maior EV):",
+                  f"   Odd combinada {t['combined_odd']:.2f} | "
+                  f"prob. {t['combined_prob']:.0%} | "
+                  f"chance de PERDER {t['lose_prob']:.0%}",
+                  f"   Ver/compartilhar: {panel_url()}/b/{ticket_code}"]
 
     lines += ["", f"Tracker: {settle_summary['ganhou']} ganhas, "
                   f"{settle_summary['perdeu']} perdidas, "
@@ -102,8 +157,10 @@ def main() -> None:
 
     tracker = Tracker()
     settle_summary = settle.auto_settle(tracker, client)
+    ticket_code = build_auto_ticket(
+        result, max_legs=preset.get("ticket_max_legs", TICKET_MAX_LEGS))
     message = format_message(today, result, criteria, settle_summary,
-                             tracker.report())
+                             tracker.report(), ticket_code=ticket_code)
     print(message)
     if telegram_configured():
         sent = send_telegram(message)
