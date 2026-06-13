@@ -62,6 +62,8 @@ MARKET_BET_NAMES = {
     "team_goals_home": ["Total - Home"],
     "team_goals_away": ["Total - Away"],
     "handicap": ["Asian Handicap"],
+    "btts": ["Both Teams Score", "Both Teams To Score"],
+    "double_chance": ["Double Chance"],
 }
 
 # --- Modelo ----------------------------------------------------------------

@@ -218,15 +218,17 @@ def scanner_page(request: Request, _: str = Depends(auth)):
 
 def _parse_criteria(form) -> list[scanner.Criterion]:
     criteria = []
+    side_only = ("1x2", "handicap", "btts", "double_chance")
     for market in ("goals", "team_goals_home", "team_goals_away",
-                   "corners", "cards", "handicap", "1x2"):
+                   "corners", "cards", "handicap", "1x2", "btts",
+                   "double_chance"):
         if form.get(f"{market}_on") != "on":
             continue
         raw_line = (form.get(f"{market}_line") or "").strip()
         criteria.append(scanner.Criterion(
             market=market,
             side=form.get(f"{market}_side") or
-                 ("any" if market in ("1x2", "handicap") else "over"),
+                 ("any" if market in side_only else "over"),
             line=float(raw_line) if raw_line else None,
             odd_min=float(form.get(f"{market}_odd_min") or 1.01),
             odd_max=float(form.get(f"{market}_odd_max") or 100),

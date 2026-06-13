@@ -44,6 +44,11 @@
         o ChapaFut calcula (0.60 = 60%). Dica de ouro: usar
         <code>1 ÷ odd máxima</code> (ex.: odd máx 1.60 → 0.63) traz só
         mercados onde o modelo vê MAIS chance do que o preço cobra.</li>
+      <li><strong>Dupla chance</strong> = você ganha em 2 dos 3 resultados
+        (ex.: "Casa ou empate" só perde se o visitante vencer). Odds baixas,
+        perfeita pra bilhete acumulado seguro.</li>
+      <li><strong>Ambas marcam</strong> = os dois times precisam fazer gol.
+        Bom em jogos de ataques parelhos.</li>
       <li><strong>Bilhete de odds baixas (muitas pernas "quase certas")</strong>:
         em cada mercado, use odd mín <code>1.01</code>, odd máx
         <code>1.20</code> e probabilidade mínima <code>0.90</code>. O
@@ -127,6 +132,48 @@
           <input type="number" step="any" name="1x2_p_min" value="0.50"></label>
         <label>EV mínimo <span class="hint">(0 = só valor positivo)</span>
           <input type="number" step="any" name="1x2_ev_min" value="0.00"></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>🤝 Ambas marcam</legend>
+      <label class="inline"><input type="checkbox" name="btts_on"> ativar</label>
+      <div class="crit-row">
+        <label>Resultado
+          <select name="btts_side">
+            <option value="yes">Sim (os dois marcam)</option>
+            <option value="no">Não</option>
+          </select></label>
+        <label>Odd mínima
+          <input type="number" step="any" name="btts_odd_min" value="1.20"></label>
+        <label>Odd máxima
+          <input type="number" step="any" name="btts_odd_max" value="2.00"></label>
+        <label>Probabilidade mínima (0–1)
+          <input type="number" step="any" name="btts_p_min" value="0.55"></label>
+        <label>EV mínimo <span class="hint">(0 = só valor positivo)</span>
+          <input type="number" step="any" name="btts_ev_min" value="0.00"></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>🛡️ Dupla chance <span class="hint">(odds baixas: cobre 2 dos 3 resultados)</span></legend>
+      <label class="inline"><input type="checkbox" name="double_chance_on"> ativar</label>
+      <div class="crit-row">
+        <label>Cobertura
+          <select name="double_chance_side">
+            <option value="any">Qualquer</option>
+            <option value="1X">Casa ou empate (1X)</option>
+            <option value="12">Casa ou visitante (12)</option>
+            <option value="X2">Empate ou visitante (X2)</option>
+          </select></label>
+        <label>Odd mínima
+          <input type="number" step="any" name="double_chance_odd_min" value="1.01"></label>
+        <label>Odd máxima
+          <input type="number" step="any" name="double_chance_odd_max" value="1.50"></label>
+        <label>Probabilidade mínima (0–1)
+          <input type="number" step="any" name="double_chance_p_min" value="0.70"></label>
+        <label>EV mínimo <span class="hint">(0 = só valor positivo)</span>
+          <input type="number" step="any" name="double_chance_ev_min" value="0.00"></label>
       </div>
     </fieldset>
 

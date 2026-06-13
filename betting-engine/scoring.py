@@ -130,6 +130,25 @@ def handicap_prob(lam_home: float, lam_away: float, side: str,
     return p_win / total, p_push / total
 
 
+def both_teams_score_prob(lam_home: float, lam_away: float) -> float:
+    """P(ambas as equipes marcam). Independência (aprox.).
+
+    = P(casa marca >= 1) x P(fora marca >= 1)
+    = (1 - P(casa=0)) x (1 - P(fora=0)).
+    """
+    return (1.0 - poisson_pmf(0, lam_home)) * (1.0 - poisson_pmf(0, lam_away))
+
+
+def double_chance_prob(lam_home: float, lam_away: float, side: str,
+                       max_goals: int = 10) -> float:
+    """Dupla chance derivada do 1X2: '1X', '12' ou 'X2'."""
+    ph, pd, pa = match_outcome_probs(lam_home, lam_away, max_goals)
+    table = {"1X": ph + pd, "12": ph + pa, "X2": pd + pa}
+    if side not in table:
+        raise ValueError("side deve ser '1X', '12' ou 'X2'")
+    return table[side]
+
+
 # -------------------------------------------------------------- múltiplas
 @dataclass
 class CombinedTicket:

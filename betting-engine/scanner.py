@@ -78,7 +78,7 @@ def _odds_keys_matching(odds_map: OddsMap, c: Criterion) -> list:
     for (mkt, side, line), odd in odds_map.items():
         if mkt != c.market:
             continue
-        if c.market in ("1x2", "handicap"):
+        if c.market in ("1x2", "handicap", "btts", "double_chance"):
             if c.side != "any" and side != c.side:
                 continue
             if (c.market == "handicap" and c.line is not None
@@ -109,6 +109,9 @@ def _prob_for_key(key: tuple, lambdas: dict) -> float:
             lambdas["goals_home"], lambdas["goals_away"], side, line,
             max_goals=config.MODEL["max_goals_grid"])
         return p_win
+    if market in ("btts", "double_chance"):
+        from recommender import _derived_prob
+        return _derived_prob(market, side, lambdas)
     if market == "team_goals_home":
         lam = lambdas["goals_home"]
     elif market == "team_goals_away":
@@ -160,6 +163,18 @@ def plain_explanation(ma) -> str:
     elif ma.market == "handicap":
         text = (f"Para ganhar, {_handicap_event(ma.side, ma.line)}. "
                 f"O ChapaFut calcula {mt.p_model:.0%} de chance disso.")
+    elif ma.market == "btts":
+        ev = ("os DOIS times marcarem" if ma.side == "yes"
+              else "pelo menos um time NÃO marcar")
+        text = (f"Para ganhar, precisa {ev}. "
+                f"O ChapaFut calcula {mt.p_model:.0%} de chance disso.")
+    elif ma.market == "double_chance":
+        ev = {"1X": "o mandante vencer OU empatar",
+              "12": "o mandante OU o visitante vencer (qualquer um, menos "
+                    "empate)",
+              "X2": "o visitante vencer OU empatar"}.get(ma.side, ma.side)
+        text = (f"Para ganhar, basta {ev}. "
+                f"O ChapaFut calcula {mt.p_model:.0%} de chance disso.")
     else:
         unit = _UNITS.get(ma.market, "")
         line = ma.line
@@ -197,7 +212,7 @@ def plain_explanation(ma) -> str:
 
 def _lambda_for_key(key: tuple, lambdas: dict) -> float | None:
     market = key[0]
-    if market in ("1x2", "handicap"):
+    if market in ("1x2", "handicap", "btts", "double_chance"):
         return None
     if market == "goals":
         return lambdas["goals_home"] + lambdas["goals_away"]

@@ -18,6 +18,9 @@ _OU_RE = re.compile(r"^(over|under)\s+([\d.]+)$", re.IGNORECASE)
 _AH_RE = re.compile(r"^(home|away)\s+([+-]?[\d.]+)$", re.IGNORECASE)
 _1X2_MAP = {"home": "home", "draw": "draw", "away": "away",
             "1": "home", "x": "draw", "2": "away"}
+_BTTS_MAP = {"yes": "yes", "no": "no", "sim": "yes", "nao": "no"}
+_DC_MAP = {"home/draw": "1X", "home/away": "12", "draw/away": "X2",
+           "1x": "1X", "12": "12", "x2": "X2"}
 
 OddsMap = dict[tuple[str, str, float | None], float]
 
@@ -70,6 +73,12 @@ def _parse_value_label(market: str,
                        label: str) -> tuple[str, str, float | None] | None:
     if market == "1x2":
         side = _1X2_MAP.get(label.lower())
+        return (market, side, None) if side else None
+    if market == "btts":
+        side = _BTTS_MAP.get(label.lower())
+        return (market, side, None) if side else None
+    if market == "double_chance":
+        side = _DC_MAP.get(label.lower().replace(" ", ""))
         return (market, side, None) if side else None
     if market == "handicap":
         m = _AH_RE.match(label)
