@@ -5,6 +5,14 @@
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const hasHover = matchMedia("(hover: hover) and (pointer: fine)").matches;
 
+  /* ------------- marca a aba atual no menu (estado premium) ---------- */
+  const path = location.pathname;
+  document.querySelectorAll(".topbar nav a").forEach((a) => {
+    const href = a.getAttribute("href");
+    const active = href === "/" ? path === "/" : path.startsWith(href);
+    if (active) a.classList.add("active");
+  });
+
   /* ---------------- revelação no scroll (fade + movimento) ----------- */
   if (!reduced && "IntersectionObserver" in window) {
     const io = new IntersectionObserver((entries) => {

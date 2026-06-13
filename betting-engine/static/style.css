@@ -19,14 +19,32 @@
   --grad: linear-gradient(90deg, var(--cyan), var(--blue) 50%, var(--violet));
   --radius: 18px;
   --ease: cubic-bezier(.22, 1, .36, 1);
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: "Sora", "Inter", system-ui, sans-serif;
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body {
   margin: 0; color: var(--text); background: var(--bg);
-  font: 15px/1.6 "Segoe UI", system-ui, -apple-system, sans-serif;
-  overflow-x: hidden;
+  font-family: var(--font); font-size: 15px; line-height: 1.6;
+  letter-spacing: -0.01em; overflow-x: hidden;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
 }
+h1, h2, h3, .brand, .hero h1, .pill, .trio strong, button, .button {
+  font-family: var(--display);
+}
+
+/* seleção de texto e barra de rolagem (toque premium) */
+::selection { background: rgba(34, 211, 238, .3); color: #fff; }
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, .35); border-radius: 99px;
+  border: 3px solid transparent; background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, .6);
+  background-clip: content-box; }
+html { scrollbar-width: thin; scrollbar-color: rgba(139,92,246,.4) transparent; }
 
 /* ------------------------------------------------ fundo vivo (parallax) */
 .bg-scene {
@@ -94,8 +112,9 @@ body {
 }
 
 main { max-width: 1120px; margin: 0 auto; padding: 22px 18px 60px; }
-h1 { font-size: 1.5rem; letter-spacing: .01em; }
-h2 { font-size: 1.06rem; margin-top: 0; letter-spacing: .01em; }
+h1 { font-size: 1.55rem; font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: 1.08rem; margin-top: 0; font-weight: 700;
+     letter-spacing: -0.01em; }
 
 /* ------------------------------------------------------------- topo */
 .topbar {
@@ -115,8 +134,8 @@ h2 { font-size: 1.06rem; margin-top: 0; letter-spacing: .01em; }
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .topbar nav a {
-  color: var(--text); text-decoration: none; margin-left: 10px;
-  padding: 9px 18px; border-radius: 999px; font-weight: 600;
+  color: var(--text); text-decoration: none; margin-left: 8px;
+  padding: 9px 18px; border-radius: 999px; font-weight: 600; font-size: .92rem;
   border: 1px solid var(--line-soft); background: var(--glass);
   backdrop-filter: blur(10px);
   transition: all .3s var(--ease);
@@ -125,6 +144,10 @@ h2 { font-size: 1.06rem; margin-top: 0; letter-spacing: .01em; }
   border-color: rgba(34, 211, 238, .6); color: var(--cyan);
   box-shadow: 0 0 22px rgba(34, 211, 238, .25), inset 0 0 12px rgba(34, 211, 238, .08);
   transform: translateY(-1px);
+}
+.topbar nav a.active {
+  background: var(--grad); color: #051018; border-color: transparent;
+  box-shadow: 0 4px 18px rgba(59, 130, 246, .4);
 }
 .disclaimer {
   color: var(--muted); font-size: .82rem; padding: 9px 24px;
@@ -280,6 +303,15 @@ button.primary:hover {
   box-shadow: 0 8px 36px rgba(34, 211, 238, .50), 0 0 60px rgba(139, 92, 246, .25);
   transform: translateY(-2px) scale(1.02);
 }
+/* brilho que varre o botão primário no hover */
+button.primary::after {
+  content: ""; position: absolute; top: 0; left: -120%;
+  width: 60%; height: 100%; pointer-events: none;
+  background: linear-gradient(100deg, transparent,
+              rgba(255, 255, 255, .55), transparent);
+  transform: skewX(-18deg); transition: left .6s var(--ease);
+}
+button.primary:hover::after { left: 140%; }
 
 /* ----------------------------------- lobby estilo casa de apostas */
 .match-row {
