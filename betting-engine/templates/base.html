@@ -22,10 +22,17 @@
   <header class="topbar">
     <a class="brand" href="/">⚡ CHAPA<span>FUT</span></a>
     <nav>
+      {% if username %}
       <a href="/">Radar</a>
       <a href="/analisar">Analisar</a>
       <a href="/scanner">Scanner</a>
       <a href="/tracker">Tracker</a>
+      <span class="nav-user">👤 {{ username }}</span>
+      <a href="/logout" class="nav-logout">sair</a>
+      {% else %}
+      <a href="/login">Entrar</a>
+      <a href="/register" class="active">Criar conta</a>
+      {% endif %}
     </nav>
   </header>
 

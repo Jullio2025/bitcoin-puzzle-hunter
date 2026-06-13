@@ -21,26 +21,30 @@ import config
 import scoring
 import settle
 import share_store
+import users
 from api_client import ApiFootballClient
-from notify import send_telegram, telegram_configured
+from notify import bot_configured, send_telegram
 from scanner import Criterion, scan_day
 from tracker import Tracker
 
-PRESET_FILE = config.DATA_DIR / "scan_preset.json"
 MAX_HITS_IN_MESSAGE = 10
 TICKET_MAX_LEGS = 10  # bilhete automático: até N pernas (1 por jogo)
 
 
-def load_preset() -> dict | None:
-    if not PRESET_FILE.exists():
+def _preset_path(username: str):
+    return users.user_dir(username) / "scan_preset.json"
+
+
+def load_preset(username: str) -> dict | None:
+    path = _preset_path(username)
+    if not path.exists():
         return None
-    return json.loads(PRESET_FILE.read_text())
+    return json.loads(path.read_text())
 
 
-def save_preset(criteria: list[Criterion], bookmaker: int, last_n: int,
-                match_all: bool, deep_limit: int) -> None:
-    PRESET_FILE.parent.mkdir(parents=True, exist_ok=True)
-    PRESET_FILE.write_text(json.dumps({
+def save_preset(username: str, criteria: list[Criterion], bookmaker: int,
+                last_n: int, match_all: bool, deep_limit: int) -> None:
+    _preset_path(username).write_text(json.dumps({
         "criteria": [c.__dict__ for c in criteria],
         "bookmaker": bookmaker, "last_n": last_n,
         "match_all": match_all, "deep_limit": deep_limit,
@@ -136,38 +140,54 @@ def format_message(today: str, result, criteria: list[Criterion],
     return "\n".join(lines)
 
 
+def run_for_user(client: ApiFootballClient, username: str,
+                 today: str) -> str:
+    """Roda o garimpo + liquidação de UM usuário e devolve a mensagem."""
+    u = users.get_user(username) or {}
+    chat_id = u.get("telegram_chat_id", "")
+    tracker = Tracker(users.user_dir(username) / "bets.json")
+    preset = load_preset(username)
+
+    if not preset:
+        # ainda liquida o tracker do usuário, mesmo sem preset
+        settle.auto_settle(tracker, client)
+        msg = (f"⚡ ChapaFut ({username}): você ainda não salvou critérios "
+               "padrão. Abra o Scanner e marque 'Salvar como padrão'.")
+    else:
+        criteria = [Criterion(**c) for c in preset["criteria"]]
+        result = scan_day(client, today, criteria,
+                          bookmaker=preset.get("bookmaker"),
+                          last_n=preset.get("last_n"),
+                          match_all=preset.get("match_all", False),
+                          deep_limit=preset.get("deep_limit", 20))
+        settle_summary = settle.auto_settle(tracker, client)
+        ticket_code = build_auto_ticket(
+            result, max_legs=preset.get("ticket_max_legs", TICKET_MAX_LEGS))
+        msg = format_message(today, result, criteria, settle_summary,
+                             tracker.report(), ticket_code=ticket_code)
+    print(f"\n===== {username} =====\n{msg}")
+    if chat_id and bot_configured():
+        send_telegram(msg, chat_id=chat_id)
+    return msg
+
+
 def main() -> None:
     today = date.today().isoformat()
-    preset = load_preset()
-    if not preset:
-        msg = ("⚡ ChapaFut: nenhum critério padrão salvo ainda. Abra o "
-               "Scanner no painel e marque 'Salvar estes critérios como "
-               "padrão' ao garimpar.")
-        print(msg)
-        send_telegram(msg)
-        return
-
     client = ApiFootballClient()
-    criteria = [Criterion(**c) for c in preset["criteria"]]
-    result = scan_day(client, today, criteria,
-                      bookmaker=preset.get("bookmaker"),
-                      last_n=preset.get("last_n"),
-                      match_all=preset.get("match_all", False),
-                      deep_limit=preset.get("deep_limit", 20))
-
-    tracker = Tracker()
-    settle_summary = settle.auto_settle(tracker, client)
-    ticket_code = build_auto_ticket(
-        result, max_legs=preset.get("ticket_max_legs", TICKET_MAX_LEGS))
-    message = format_message(today, result, criteria, settle_summary,
-                             tracker.report(), ticket_code=ticket_code)
-    print(message)
-    if telegram_configured():
-        sent = send_telegram(message)
-        print(f"\n[telegram: {'enviado' if sent else 'FALHOU'}]")
-    else:
-        print("\n[telegram não configurado — defina TELEGRAM_BOT_TOKEN e "
-              "TELEGRAM_CHAT_ID no .env]")
+    usernames = users.all_usernames()
+    if not usernames:
+        print("Nenhum usuário cadastrado.")
+        return
+    if not bot_configured():
+        print("[aviso] TELEGRAM_BOT_TOKEN ausente no .env — rodando sem "
+              "enviar mensagens.")
+    for username in usernames:
+        try:
+            run_for_user(client, username, today)
+        except Exception as e:  # um usuário com erro não derruba os demais
+            print(f"[erro em {username}] {type(e).__name__}: {e}")
+    print(f"\n[concluído: {len(usernames)} usuário(s) | "
+          f"{client.calls_made} chamadas à API no total]")
 
 
 if __name__ == "__main__":

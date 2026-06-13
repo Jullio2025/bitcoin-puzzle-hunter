@@ -1,10 +1,11 @@
 """
 Notificações via Telegram (bot oficial, grátis).
 
-Configuração no .env:
+O BOT é compartilhado (um token só, no .env):
   TELEGRAM_BOT_TOKEN  -> crie um bot com o @BotFather e cole o token
-  TELEGRAM_CHAT_ID    -> mande /start pro seu bot e pegue seu id com
-                         o @userinfobot (ou via getUpdates)
+
+Cada usuário cadastra o PRÓPRIO chat_id no painel (aba Tracker) e recebe
+o garimpo dele. O id se descobre falando com o @userinfobot.
 """
 from __future__ import annotations
 
@@ -13,15 +14,21 @@ import os
 import requests
 
 
+def bot_configured() -> bool:
+    return bool(os.getenv("TELEGRAM_BOT_TOKEN"))
+
+
 def telegram_configured() -> bool:
+    """Compat.: bot + um chat_id global no .env (modo usuário único)."""
     return bool(os.getenv("TELEGRAM_BOT_TOKEN")
                 and os.getenv("TELEGRAM_CHAT_ID"))
 
 
-def send_telegram(text: str) -> bool:
-    """Envia a mensagem; True se chegou. Mensagens longas são fatiadas."""
+def send_telegram(text: str, chat_id: str | None = None) -> bool:
+    """Envia a mensagem ao chat_id (ou ao TELEGRAM_CHAT_ID do .env).
+    True se chegou. Mensagens longas são fatiadas."""
     token = os.getenv("TELEGRAM_BOT_TOKEN")
-    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    chat_id = chat_id or os.getenv("TELEGRAM_CHAT_ID")
     if not token or not chat_id:
         return False
     ok = True

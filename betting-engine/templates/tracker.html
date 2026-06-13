@@ -22,6 +22,24 @@
 </div>
 
 <div class="card">
+  <h2>📲 Receber meu garimpo no Telegram</h2>
+  {% if bot_ready %}
+  <form method="post" action="/conta/telegram" class="form-inline">
+    <label>Seu chat_id
+      <input name="chat_id" value="{{ telegram_chat_id }}"
+             placeholder="ex.: 7724269186"></label>
+    <button type="submit" class="primary">Salvar</button>
+  </form>
+  <p class="hint">Fale com o <strong>@userinfobot</strong> no Telegram pra
+  descobrir seu chat_id, e mande um "oi" pro bot do ChapaFut antes. O garimpo
+  diário com seus critérios chega aqui automaticamente.</p>
+  {% else %}
+  <p class="hint">O administrador ainda não configurou o bot do Telegram
+  (TELEGRAM_BOT_TOKEN no servidor).</p>
+  {% endif %}
+</div>
+
+<div class="card">
   <h2>Apostas</h2>
   <form method="post" action="/tracker/autosettle">
     <button type="submit" class="primary">🔄 Liquidar automaticamente

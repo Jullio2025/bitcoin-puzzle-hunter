@@ -15,15 +15,15 @@ import os
 import secrets
 from datetime import date
 
-from fastapi import Depends, FastAPI, Form, HTTPException, Request
+from fastapi import Depends, FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 import config
 import rules
 import scanner
+import users
 from api_client import ApiError, ApiFootballClient
 from features import build_match_context
 from odds_parser import parse_odds
@@ -34,22 +34,31 @@ BASE = config.BASE_DIR
 app = FastAPI(title="ChapaFut — calculadora transparente de apostas")
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 templates = Jinja2Templates(directory=BASE / "templates")
-security = HTTPBasic()
+SESSION_COOKIE = "chapafut_session"
+
+# migra deploy antigo (PANEL_PASSWORD) para conta admin, se preciso
+users.ensure_admin_from_env()
 
 
-def auth(creds: HTTPBasicCredentials = Depends(security)) -> str:
-    user = os.getenv("PANEL_USER", "admin")
-    password = os.getenv("PANEL_PASSWORD", "")
-    if not password:
-        raise HTTPException(
-            status_code=500,
-            detail="Defina PANEL_PASSWORD no arquivo .env para liberar o painel.")
-    ok = (secrets.compare_digest(creds.username, user)
-          and secrets.compare_digest(creds.password, password))
-    if not ok:
-        raise HTTPException(status_code=401, detail="Login inválido",
-                            headers={"WWW-Authenticate": "Basic"})
-    return creds.username
+class NotAuthenticated(Exception):
+    """Disparada quando falta sessão válida; o handler redireciona p/ login."""
+
+
+@app.exception_handler(NotAuthenticated)
+async def _to_login(request: Request, exc: NotAuthenticated) -> RedirectResponse:
+    return RedirectResponse("/login", status_code=303)
+
+
+def current_user(request: Request) -> str:
+    """Dependência: devolve o usuário logado ou redireciona p/ login."""
+    username = users.read_token(request.cookies.get(SESSION_COOKIE))
+    if not username:
+        raise NotAuthenticated()
+    return username
+
+
+def user_tracker(username: str) -> Tracker:
+    return Tracker(users.user_dir(username) / "bets.json")
 
 
 @app.exception_handler(Exception)
@@ -68,9 +77,61 @@ async def unhandled_error(request: Request, exc: Exception) -> HTMLResponse:
 
 
 def render(request: Request, template: str, **ctx) -> HTMLResponse:
+    ctx.setdefault("username",
+                   users.read_token(request.cookies.get(SESSION_COOKIE)))
     ctx.update({"request": request, "defaults": config.USER_DEFAULTS,
                 "bookmaker_default": config.DEFAULT_BOOKMAKER_ID})
     return templates.TemplateResponse(request, template, ctx)
+
+
+# ---------------------------------------------------------- contas/login
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    return render(request, "login.html", username=None)
+
+
+@app.post("/login")
+def login(request: Request, username: str = Form(...),
+          password: str = Form(...)):
+    if not users.verify_user(username, password):
+        return render(request, "login.html", username=None,
+                      error="Usuário ou senha inválidos.")
+    resp = RedirectResponse("/", status_code=303)
+    resp.set_cookie(SESSION_COOKIE, users.make_token(username),
+                    httponly=True, samesite="lax", max_age=30 * 24 * 3600)
+    return resp
+
+
+@app.get("/register", response_class=HTMLResponse)
+def register_page(request: Request):
+    return render(request, "register.html", username=None)
+
+
+@app.post("/register")
+def register(request: Request, username: str = Form(...),
+             password: str = Form(...)):
+    ok, msg = users.create_user(username, password)
+    if not ok:
+        return render(request, "register.html", username=None, error=msg)
+    resp = RedirectResponse("/", status_code=303)
+    resp.set_cookie(SESSION_COOKIE, users.make_token(username),
+                    httponly=True, samesite="lax", max_age=30 * 24 * 3600)
+    return resp
+
+
+@app.get("/logout")
+def logout():
+    resp = RedirectResponse("/login", status_code=303)
+    resp.delete_cookie(SESSION_COOKIE)
+    return resp
+
+
+@app.post("/conta/telegram")
+def conta_telegram(user: str = Depends(current_user),
+                   chat_id: str = Form("")):
+    users.set_telegram(user, chat_id)
+    return RedirectResponse("/tracker?msg=Telegram+atualizado",
+                            status_code=303)
 
 
 def _bookmakers() -> list:
@@ -109,19 +170,19 @@ def _home(request: Request, **extra) -> HTMLResponse:
 
 
 @app.get("/", response_class=HTMLResponse)
-def home(request: Request, _: str = Depends(auth)):
+def home(request: Request, user: str = Depends(current_user)):
     """Porta de entrada: o Radar (simples e direto)."""
     return render(request, "radar.html", today=date.today().isoformat(),
                   bookmakers=_bookmakers())
 
 
 @app.get("/analisar", response_class=HTMLResponse)
-def analisar(request: Request, _: str = Depends(auth)):
+def analisar(request: Request, user: str = Depends(current_user)):
     return _home(request)
 
 
 @app.post("/fixtures", response_class=HTMLResponse)
-def list_fixtures(request: Request, _: str = Depends(auth),
+def list_fixtures(request: Request, user: str = Depends(current_user),
                   match_date: str = Form(...), league_id: str = Form("0")):
     # o seletor envia "id:temporada" (a API exige season junto com league)
     league, season = 0, None
@@ -168,7 +229,7 @@ def list_fixtures(request: Request, _: str = Depends(auth),
 
 
 @app.post("/analyze", response_class=HTMLResponse)
-async def analyze(request: Request, _: str = Depends(auth)):
+async def analyze(request: Request, user: str = Depends(current_user)):
     form = await request.form()
     fixture_ids = [int(x) for x in form.getlist("fixture_id")]
     if not fixture_ids:
@@ -218,20 +279,20 @@ async def analyze(request: Request, _: str = Depends(auth)):
 
 # ------------------------------------------------------------------ scanner
 @app.get("/scanner", response_class=HTMLResponse)
-def scanner_page(request: Request, _: str = Depends(auth)):
+def scanner_page(request: Request, user: str = Depends(current_user)):
     return render(request, "scanner.html", today=date.today().isoformat(),
                   preset_on=["goals", "corners"], bookmakers=_bookmakers())
 
 
 # -------------------------------------------------------------------- radar
 @app.get("/radar", response_class=HTMLResponse)
-def radar_page(request: Request, _: str = Depends(auth)):
+def radar_page(request: Request, user: str = Depends(current_user)):
     return render(request, "radar.html", today=date.today().isoformat(),
                   bookmakers=_bookmakers())
 
 
 @app.post("/radar", response_class=HTMLResponse)
-async def radar(request: Request, _: str = Depends(auth)):
+async def radar(request: Request, user: str = Depends(current_user)):
     form = await request.form()
     try:
         p_min = float(form.get("p_min") or 85) / 100.0
@@ -279,7 +340,7 @@ def _parse_criteria(form) -> list[scanner.Criterion]:
 
 
 @app.post("/scan", response_class=HTMLResponse)
-async def scan(request: Request, _: str = Depends(auth)):
+async def scan(request: Request, user: str = Depends(current_user)):
     form = await request.form()
     criteria = _parse_criteria(form)
     if not criteria:
@@ -296,7 +357,7 @@ async def scan(request: Request, _: str = Depends(auth)):
     preset_saved = False
     if form.get("save_preset") == "on":
         import daily_scan
-        daily_scan.save_preset(criteria, bookmaker, last_n, match_all,
+        daily_scan.save_preset(user, criteria, bookmaker, last_n, match_all,
                                deep_limit)
         preset_saved = True
 
@@ -317,7 +378,7 @@ async def scan(request: Request, _: str = Depends(auth)):
 
 # ------------------------------------------------- bilhete compartilhável
 @app.post("/ticket/share")
-def ticket_share(request: Request, _: str = Depends(auth),
+def ticket_share(request: Request, user: str = Depends(current_user),
                  legs_json: str = Form(...)):
     """Cria a página pública do bilhete e leva pro link curto."""
     legs = json.loads(legs_json)
@@ -347,25 +408,29 @@ def shared_ticket(request: Request, code: str):
     return render(request, "share.html", ticket=ticket, code=code,
                   share_url=str(request.base_url).rstrip("/") + f"/b/{code}")
 @app.get("/tracker", response_class=HTMLResponse)
-def tracker_page(request: Request, _: str = Depends(auth), msg: str = ""):
-    t = Tracker()
+def tracker_page(request: Request, user: str = Depends(current_user), msg: str = ""):
+    import notify
+    t = user_tracker(user)
+    u = users.get_user(user) or {}
     return render(request, "tracker.html", report=t.report(),
-                  bets=sorted(t.bets, key=lambda b: -b.id), msg=msg)
+                  bets=sorted(t.bets, key=lambda b: -b.id), msg=msg,
+                  telegram_chat_id=u.get("telegram_chat_id", ""),
+                  bot_ready=notify.bot_configured())
 
 
 @app.post("/tracker/add")
-def tracker_add(_: str = Depends(auth), fixture: str = Form(...),
+def tracker_add(user: str = Depends(current_user), fixture: str = Form(...),
                 market: str = Form(...), odd: float = Form(...),
                 stake: float = Form(...), p_model: float = Form(...)):
-    bet = Tracker().add(fixture, market, odd, stake, p_model)
+    bet = user_tracker(user).add(fixture, market, odd, stake, p_model)
     return RedirectResponse(f"/tracker?msg=Aposta+%23{bet.id}+registrada",
                             status_code=303)
 
 
 @app.post("/tracker/autosettle")
-def tracker_autosettle(_: str = Depends(auth)):
+def tracker_autosettle(user: str = Depends(current_user)):
     import settle
-    s = settle.auto_settle(Tracker(), ApiFootballClient())
+    s = settle.auto_settle(user_tracker(user), ApiFootballClient())
     msg = (f"Auto:+{s['ganhou']}+ganhas,+{s['perdeu']}+perdidas,"
            f"+{s['devolvida']}+devolvidas;+{s['pendentes']}+aguardando+jogo,"
            f"+{s['manuais']}+manuais")
@@ -377,15 +442,15 @@ def tracker_autosettle(_: str = Depends(auth)):
 
 
 @app.post("/tracker/settle")
-def tracker_settle(_: str = Depends(auth), bet_id: int = Form(...),
+def tracker_settle(user: str = Depends(current_user), bet_id: int = Form(...),
                    result: str = Form(...)):
-    Tracker().settle(bet_id, result)
+    user_tracker(user).settle(bet_id, result)
     return RedirectResponse(f"/tracker?msg=Aposta+%23{bet_id}+atualizada",
                             status_code=303)
 
 
 @app.post("/ticket/register")
-def ticket_register(_: str = Depends(auth), legs_json: str = Form(...),
+def ticket_register(user: str = Depends(current_user), legs_json: str = Form(...),
                     stake: float = Form(1.0), mode: str = Form("multipla")):
     """Registra a seleção feita na tela de resultados.
 
@@ -406,7 +471,7 @@ def ticket_register(_: str = Depends(auth), legs_json: str = Form(...),
                         "label": f"{l['fixture']} — {l['market']}"})
         return out
 
-    t = Tracker()
+    t = user_tracker(user)
     if mode == "simples":
         for leg in legs:
             t.add(leg["fixture"], leg["market"], float(leg["odd"]),
