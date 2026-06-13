@@ -110,6 +110,13 @@ def _home(request: Request, **extra) -> HTMLResponse:
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, _: str = Depends(auth)):
+    """Porta de entrada: o Radar (simples e direto)."""
+    return render(request, "radar.html", today=date.today().isoformat(),
+                  bookmakers=_bookmakers())
+
+
+@app.get("/analisar", response_class=HTMLResponse)
+def analisar(request: Request, _: str = Depends(auth)):
     return _home(request)
 
 
