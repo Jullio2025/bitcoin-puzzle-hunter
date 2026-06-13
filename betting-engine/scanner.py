@@ -307,3 +307,96 @@ def scan_day(client: ApiFootballClient, date: str,
         odds_candidates=len(candidates),
         analyzed=min(len(candidates), deep_limit),
         skipped_by_limit=max(0, len(candidates) - deep_limit))
+
+
+# ====================================================================
+# RADAR — lógica simplificada: o usuário diz só a probabilidade mínima
+# e o motor mostra TODAS as combinações jogo + mercado que atingem isso,
+# independentemente da odd (odd entra só como informação extra).
+# ====================================================================
+
+# Linhas "clássicas" calculadas pelo modelo, sem depender do bookmaker.
+RADAR_LINES = {
+    "goals": [0.5, 1.5, 2.5, 3.5],
+    "team_goals_home": [0.5, 1.5, 2.5],
+    "team_goals_away": [0.5, 1.5, 2.5],
+    "corners": [6.5, 7.5, 8.5, 9.5, 10.5, 11.5],
+    "cards": [2.5, 3.5, 4.5, 5.5, 6.5],
+}
+RADAR_MARKETS = ["goals", "team_goals_home", "team_goals_away", "corners",
+                 "cards", "1x2", "btts", "double_chance", "handicap"]
+RADAR_HANDICAP_LINES = [-1.5, -1.0, 1.0, 1.5]
+
+
+def _radar_candidates(market: str) -> list[tuple[str, float | None]]:
+    """(lado, linha) que o radar testa para um mercado."""
+    if market in RADAR_LINES:
+        return [(s, l) for l in RADAR_LINES[market] for s in ("over", "under")]
+    if market == "1x2":
+        return [("home", None), ("draw", None), ("away", None)]
+    if market == "btts":
+        return [("yes", None), ("no", None)]
+    if market == "double_chance":
+        return [("1X", None), ("12", None), ("X2", None)]
+    if market == "handicap":
+        return [(s, l) for l in RADAR_HANDICAP_LINES for s in ("home", "away")]
+    return []
+
+
+def radar_day(client: ApiFootballClient, date: str, p_min: float,
+              markets: list[str] | None = None, deep_limit: int = 15,
+              bookmaker: int | None = None, last_n: int | None = None,
+              with_odds: bool = True) -> ScanResult:
+    """Varre os jogos do dia e devolve, por jogo, todo mercado cuja
+    probabilidade do modelo >= p_min. A odd é só informação extra."""
+    markets = markets or RADAR_MARKETS
+    bookmaker = bookmaker or config.DEFAULT_BOOKMAKER_ID
+    covered = {lg["league_id"] for lg in client.leagues_with_stats_coverage()}
+    fixtures = [fx for fx in client.fixtures_by_date(date)
+                if fx["fixture"]["status"]["short"] in ("NS", "TBD")
+                and fx["league"]["id"] in covered]
+    fixtures.sort(key=lambda fx: fx["fixture"]["date"])
+    total_today = len(fixtures)
+    fixtures = fixtures[:deep_limit]
+
+    groups = []
+    for fx in fixtures:
+        ctx = build_match_context(client, fx, last_n=last_n)
+        lambdas, expl = base_lambdas(ctx)
+        lambdas, rule_results = apply_rules(ctx, lambdas, None)
+        odds_map: OddsMap = {}
+        if with_odds:
+            try:
+                odds_map = parse_odds(client.odds(fx["fixture"]["id"],
+                                                  bookmaker),
+                                      bookmaker_id=bookmaker)
+            except Exception:
+                odds_map = {}
+
+        hits = []
+        for market in markets:
+            lam = _lambda_for_key((market, "", None), lambdas)
+            if lam is not None and lam <= 0.05:
+                continue  # API sem estatísticas deste mercado: sem base
+            for side, line in _radar_candidates(market):
+                p = _prob_for_key((market, side, line), lambdas)
+                if p < p_min:
+                    continue
+                odd = odds_map.get((market, side, line))
+                ma = MarketAnalysis(market=market, side=side, line=line,
+                                    lambda_used=lam,
+                                    metrics=scoring.market_metrics(p, odd),
+                                    passes_filters=True)
+                ma.plain = plain_explanation(ma)
+                hits.append(ma)
+        if hits:
+            hits.sort(key=lambda m: -m.metrics.p_model)
+            groups.append(ScanGroup(
+                ctx=ctx, lambdas=lambdas, lambda_explanations=expl,
+                rule_results=rule_results, charts=count_charts(lambdas),
+                hits=[(None, m) for m in hits]))
+
+    return ScanResult(groups=groups, fixtures_today=total_today,
+                      odds_candidates=len(fixtures),
+                      analyzed=len(fixtures),
+                      skipped_by_limit=max(0, total_today - deep_limit))

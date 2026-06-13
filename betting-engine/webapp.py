@@ -216,6 +216,39 @@ def scanner_page(request: Request, _: str = Depends(auth)):
                   preset_on=["goals", "corners"], bookmakers=_bookmakers())
 
 
+# -------------------------------------------------------------------- radar
+@app.get("/radar", response_class=HTMLResponse)
+def radar_page(request: Request, _: str = Depends(auth)):
+    return render(request, "radar.html", today=date.today().isoformat(),
+                  bookmakers=_bookmakers())
+
+
+@app.post("/radar", response_class=HTMLResponse)
+async def radar(request: Request, _: str = Depends(auth)):
+    form = await request.form()
+    try:
+        p_min = float(form.get("p_min") or 85) / 100.0
+    except ValueError:
+        p_min = 0.85
+    markets = form.getlist("markets") or None
+    match_date = form.get("match_date") or date.today().isoformat()
+    try:
+        client = ApiFootballClient()
+        result = scanner.radar_day(
+            client, match_date, p_min, markets=markets,
+            deep_limit=int(form.get("deep_limit") or 15),
+            bookmaker=int(form.get("bookmaker") or config.DEFAULT_BOOKMAKER_ID),
+            last_n=int(form.get("last_n") or config.USER_DEFAULTS["last_n"]),
+            with_odds=form.get("with_odds") == "on",
+        )
+    except ApiError as e:
+        return render(request, "radar.html", today=match_date,
+                      bookmakers=_bookmakers(), error=str(e))
+    return render(request, "radar_results.html", result=result,
+                  match_date=match_date, p_min=p_min,
+                  api_calls=client.calls_made)
+
+
 def _parse_criteria(form) -> list[scanner.Criterion]:
     criteria = []
     side_only = ("1x2", "handicap", "btts", "double_chance")

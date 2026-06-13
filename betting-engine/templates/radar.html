@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="hero">
+  <h1>RA<span>DAR</span></h1>
+  <p class="tagline">Diga só a <strong>chance mínima</strong> que você quer.
+  O ChapaFut varre os jogos do dia e mostra <em>todos</em> os mercados que
+  atingem isso — a odd é só informação extra.</p>
+  <div class="hero-ball">📡</div>
+</div>
+
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+<form method="post" action="/radar">
+  <div class="card form-grid">
+    <h2>1. Que chance mínima você quer?</h2>
+    <div class="radar-prob">
+      <input type="range" name="p_min" id="p_range" min="50" max="99"
+             value="85" oninput="document.getElementById('pv').textContent=this.value+'%'">
+      <span class="radar-prob-val" id="pv">85%</span>
+    </div>
+    <p class="hint">Ex.: 85% = só mercados que o modelo dá 85% ou mais de
+    chance de acontecer. Quanto mais alto, menos resultados (e mais
+    "seguros" na visão do modelo).</p>
+
+    <label>Data dos jogos
+      <input type="date" name="match_date" value="{{ today }}" required></label>
+    <label>Máx. de jogos varridos
+      <span class="hint">(protege sua cota da API)</span>
+      <input type="number" name="deep_limit" value="15"></label>
+    {% include "_bookmaker_field.html" %}
+    <label class="inline"><input type="checkbox" name="with_odds" checked>
+      Mostrar também a odd da casa (mais lento)</label>
+  </div>
+
+  <div class="card">
+    <h2>2. Em quais mercados procurar
+      <span class="hint">(todos ligados por padrão)</span></h2>
+    {% for val, lbl in [("goals","⚽ Gols"),
+                        ("team_goals_home","🏠 Gols mandante"),
+                        ("team_goals_away","🛫 Gols visitante"),
+                        ("corners","🚩 Escanteios"), ("cards","🟨 Cartões"),
+                        ("1x2","🏆 Resultado (1X2)"), ("btts","🤝 Ambas marcam"),
+                        ("double_chance","🛡️ Dupla chance"),
+                        ("handicap","⚖️ Handicap")] %}
+    <label class="inline"><input type="checkbox" name="markets" value="{{ val }}" checked> {{ lbl }}</label>
+    {% endfor %}
+    <br><br>
+    <button type="submit" class="primary">📡 Ativar o radar</button>
+    <p class="hint">A primeira varredura do dia pode levar alguns minutos
+    (coleta o histórico dos times); depois o cache deixa rápido.</p>
+  </div>
+</form>
+{% endblock %}

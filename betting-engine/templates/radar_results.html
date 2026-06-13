@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>📡 Radar de {{ match_date }} — chance mínima {{ "%.0f"|format(p_min * 100) }}%</h1>
+
+<p class="hint">Jogos do dia (não iniciados, com cobertura):
+{{ result.fixtures_today }} — varridos a fundo: {{ result.analyzed }}.
+{% if result.skipped_by_limit %}<span class="badge warn">
+{{ result.skipped_by_limit }} jogo(s) fora pelo limite — aumente o máximo
+de jogos varridos.</span>{% endif %}</p>
+
+{% if not result.groups %}
+<div class="error">Nenhum mercado atingiu {{ "%.0f"|format(p_min * 100) }}%
+nos jogos varridos. Baixe a chance mínima e tente de novo.</div>
+<a class="button" href="/radar">← Ajustar radar</a>
+{% else %}
+
+{% for g in result.groups %}
+<div class="card">
+  <h2>{{ g.ctx.label }}
+    <span class="badge ok">{{ g.hits|length }} mercado(s) ≥ alvo</span></h2>
+  <p class="meta">{{ g.ctx.fixture.fixture.date[:16] }} —
+    {{ g.ctx.fixture.league.name }} ({{ g.ctx.fixture.league.country }})
+    {% if g.ctx.weather %}— 🌦 {{ g.ctx.weather.summary }}{% endif %}</p>
+
+  {% if g.charts %}
+  {% with charts = g.charts, xctx = g.ctx %}{% include "_charts.html" %}{% endwith %}
+  {% endif %}
+
+  <table class="markets">
+    <thead><tr>
+      <th></th><th>Mercado</th><th>Chance (modelo)</th>
+      <th>Odd</th><th>Edge</th><th>EV</th>
+    </tr></thead>
+    <tbody>
+    {% for _crit, m in g.hits %}
+      <tr class="pass">
+        <td>
+          {% if m.metrics.odd %}
+          <input type="checkbox" class="leg"
+                 data-fixture="{{ g.ctx.label }}"
+                 data-market="{{ m.label }}"
+                 data-odd="{{ m.metrics.odd }}"
+                 data-p="{{ m.metrics.p_model }}"
+                 data-fid="{{ g.ctx.fixture.fixture.id }}"
+                 data-mkt="{{ m.market }}"
+                 data-side="{{ m.side }}"
+                 data-line="{{ m.line if m.line is not none else '' }}">
+          {% endif %}
+        </td>
+        <td>{{ m.label }}</td>
+        <td>
+          <div class="pwrap"><strong>{{ "%.0f"|format(m.metrics.p_model * 100) }}%</strong>
+            <span class="pbar"><i style="width: {{ m.metrics.p_model * 100 }}%"></i>
+              {% if m.metrics.implied %}<b style="left: {{ m.metrics.implied * 100 }}%"></b>{% endif %}
+            </span>
+          </div>
+        </td>
+        <td>{{ "%.2f"|format(m.metrics.odd) if m.metrics.odd else "—" }}</td>
+        <td>{{ "%+.3f"|format(m.metrics.edge) if m.metrics.edge is not none else "—" }}</td>
+        <td>{{ "%+.3f"|format(m.metrics.ev) if m.metrics.ev is not none else "—" }}</td>
+      </tr>
+      {% if m.plain %}
+      <tr class="note-row"><td></td><td colspan="5" class="plain">📖 {{ m.plain }}</td></tr>
+      {% endif %}
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endfor %}
+
+{% include "_ticket.html" %}
+{% endif %}
+
+<p class="hint">Chamadas reais à API nesta varredura: {{ api_calls }}.</p>
+<a class="button" href="/radar">← Novo radar</a>
+{% endblock %}
