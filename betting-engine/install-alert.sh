@@ -34,10 +34,10 @@ EOF
 
 cat > /etc/systemd/system/chapafut-daily.timer <<EOF
 [Unit]
-Description=ChapaFut - dispara o garimpo diario as $HORA
+Description=ChapaFut - dispara o garimpo de hora em hora (cada user no seu horario)
 
 [Timer]
-OnCalendar=*-*-* $HORA:00
+OnCalendar=*-*-* *:00:00
 Persistent=true
 
 [Install]
@@ -48,7 +48,9 @@ systemctl daemon-reload
 systemctl enable --now chapafut-daily.timer
 echo
 echo "==============================================="
-echo " Garimpo automático agendado todo dia às $HORA!"
-echo " Teste agora:  systemctl start chapafut-daily"
-echo " Logs:         journalctl -u chapafut-daily -n 50"
+echo " Garimpo agendado de hora em hora — cada usuário"
+echo " recebe na hora que escolher no painel (aba Tracker)."
+echo " Horário do servidor: $(date '+%H:%M %Z')"
+echo " Testar todos agora:  $DIR/.venv/bin/python daily_scan.py force"
+echo " Logs:                journalctl -u chapafut-daily -n 50"
 echo "==============================================="

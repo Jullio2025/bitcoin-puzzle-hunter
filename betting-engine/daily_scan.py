@@ -171,8 +171,15 @@ def run_for_user(client: ApiFootballClient, username: str,
     return msg
 
 
-def main() -> None:
+def main(force: bool = False) -> None:
+    """Roda o garimpo. Por padrão, só dos usuários cuja hora escolhida
+    bate com a hora atual do servidor (o timer chama de hora em hora).
+    force=True processa todos (para teste manual)."""
+    import sys
+    from datetime import datetime
+    force = force or any(a in ("force", "all", "--force") for a in sys.argv[1:])
     today = date.today().isoformat()
+    now_hour = datetime.now().hour
     client = ApiFootballClient()
     usernames = users.all_usernames()
     if not usernames:
@@ -181,12 +188,18 @@ def main() -> None:
     if not bot_configured():
         print("[aviso] TELEGRAM_BOT_TOKEN ausente no .env — rodando sem "
               "enviar mensagens.")
-    for username in usernames:
+
+    due = [u for u in usernames
+           if force or (users.get_user(u) or {}).get("send_hour", 9) == now_hour]
+    if not due:
+        print(f"[{now_hour:02d}h] nenhum usuário agendado para esta hora.")
+        return
+    for username in due:
         try:
             run_for_user(client, username, today)
         except Exception as e:  # um usuário com erro não derruba os demais
             print(f"[erro em {username}] {type(e).__name__}: {e}")
-    print(f"\n[concluído: {len(usernames)} usuário(s) | "
+    print(f"\n[concluído: {len(due)} usuário(s) nesta hora | "
           f"{client.calls_made} chamadas à API no total]")
 
 

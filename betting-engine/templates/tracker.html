@@ -28,11 +28,17 @@
     <label>Seu chat_id
       <input name="chat_id" value="{{ telegram_chat_id }}"
              placeholder="ex.: 7724269186"></label>
+    <label>Hora de receber
+      <select name="send_hour">
+        {% for h in range(24) %}
+        <option value="{{ h }}" {{ "selected" if h == send_hour }}>{{ "%02d:00"|format(h) }}</option>
+        {% endfor %}
+      </select></label>
     <button type="submit" class="primary">Salvar</button>
   </form>
-  <p class="hint">Fale com o <strong>@userinfobot</strong> no Telegram pra
-  descobrir seu chat_id, e mande um "oi" pro bot do ChapaFut antes. O garimpo
-  diário com seus critérios chega aqui automaticamente.</p>
+  <p class="hint">Mande <strong>/start</strong> pro <strong>@ChapaFut_bot</strong>
+  que ele te dá seu chat_id. O garimpo com seus critérios chega no horário
+  escolhido (horário do servidor — agora são <strong>{{ server_time }}</strong>).</p>
   {% else %}
   <p class="hint">O administrador ainda não configurou o bot do Telegram
   (TELEGRAM_BOT_TOKEN no servidor).</p>

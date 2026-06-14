@@ -83,7 +83,8 @@ def create_user(username: str, password: str) -> tuple[bool, str]:
         return False, "Esse usuário já existe."
     salt = secrets.token_hex(16)
     data[username] = {"salt": salt, "hash": _hash(password, salt),
-                      "created": time.time(), "telegram_chat_id": ""}
+                      "created": time.time(), "telegram_chat_id": "",
+                      "send_hour": 9}
     _save(data)
     return True, "Conta criada."
 
@@ -100,6 +101,14 @@ def set_telegram(username: str, chat_id: str) -> None:
     data = _load()
     if username.lower() in data:
         data[username.lower()]["telegram_chat_id"] = (chat_id or "").strip()
+        _save(data)
+
+
+def set_send_hour(username: str, hour: int) -> None:
+    """Hora (0–23, horário do servidor) em que o usuário quer o garimpo."""
+    data = _load()
+    if username.lower() in data:
+        data[username.lower()]["send_hour"] = max(0, min(23, int(hour)))
         _save(data)
 
 

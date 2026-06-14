@@ -128,8 +128,9 @@ def logout():
 
 @app.post("/conta/telegram")
 def conta_telegram(user: str = Depends(current_user),
-                   chat_id: str = Form("")):
+                   chat_id: str = Form(""), send_hour: int = Form(9)):
     users.set_telegram(user, chat_id)
+    users.set_send_hour(user, send_hour)
     return RedirectResponse("/tracker?msg=Telegram+atualizado",
                             status_code=303)
 
@@ -410,11 +411,14 @@ def shared_ticket(request: Request, code: str):
 @app.get("/tracker", response_class=HTMLResponse)
 def tracker_page(request: Request, user: str = Depends(current_user), msg: str = ""):
     import notify
+    from datetime import datetime
     t = user_tracker(user)
     u = users.get_user(user) or {}
     return render(request, "tracker.html", report=t.report(),
                   bets=sorted(t.bets, key=lambda b: -b.id), msg=msg,
                   telegram_chat_id=u.get("telegram_chat_id", ""),
+                  send_hour=u.get("send_hour", 9),
+                  server_time=datetime.now().strftime("%H:%M"),
                   bot_ready=notify.bot_configured())
 
 
