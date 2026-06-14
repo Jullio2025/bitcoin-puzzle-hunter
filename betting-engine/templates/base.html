@@ -46,7 +46,16 @@
     {% block content %}{% endblock %}
   </main>
 
+  <div id="loading-overlay" aria-hidden="true">
+    <div class="load-box">
+      <div class="load-ball">⚽</div>
+      <div class="load-title" id="load-title">Carregando…</div>
+      <div class="load-tip" id="load-tip"></div>
+      <div class="load-bar"><i></i></div>
+    </div>
+  </div>
+
   <footer class="foot">ChapaFut — os números na mesa, a decisão é sua.</footer>
-  <script src="/static/fx.js?v=8" defer></script>
+  <script src="/static/fx.js?v=9" defer></script>
 </body>
 </html>

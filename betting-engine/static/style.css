@@ -128,6 +128,48 @@ html { scrollbar-width: thin; scrollbar-color: rgba(139,92,246,.4) transparent; 
   background-clip: text; color: transparent;
 }
 
+/* overlay de carregamento (busca do radar/scanner/análise) */
+#loading-overlay {
+  position: fixed; inset: 0; z-index: 999;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(6, 10, 24, .78);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+}
+#loading-overlay.on { display: flex; animation: fade-in .3s var(--ease); }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.load-box { text-align: center; padding: 30px; max-width: 420px; }
+.load-ball {
+  font-size: 72px; display: inline-block;
+  filter: drop-shadow(0 0 24px rgba(34, 211, 238, .6));
+  animation: load-spin 1.1s linear infinite;
+}
+@keyframes load-spin {
+  0% { transform: rotate(0) scale(1); }
+  50% { transform: rotate(180deg) scale(1.12); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+.load-title {
+  font-family: var(--display); font-weight: 800; font-size: 1.3rem;
+  margin: 20px 0 8px;
+}
+.load-tip {
+  color: var(--muted); font-size: .92rem; min-height: 2.6em;
+  transition: opacity .25s var(--ease);
+}
+.load-bar {
+  margin: 18px auto 0; width: 220px; height: 5px; border-radius: 99px;
+  background: rgba(255, 255, 255, .1); overflow: hidden;
+}
+.load-bar i {
+  display: block; height: 100%; width: 40%; border-radius: 99px;
+  background: var(--grad); animation: load-slide 1.3s var(--ease) infinite;
+}
+@keyframes load-slide {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(330%); }
+}
+
 /* barra de progresso da leitura (topo) */
 #progress {
   position: fixed; top: 0; left: 0; height: 3px; width: 0; z-index: 200;

@@ -5,6 +5,40 @@
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const hasHover = matchMedia("(hover: hover) and (pointer: fine)").matches;
 
+  /* ------------- overlay de carregamento (busca demorada) ----------- */
+  const overlay = document.getElementById("loading-overlay");
+  if (overlay) {
+    const TIPS = [
+      "Buscando os últimos jogos de cada time (casa e fora)…",
+      "Calculando gols, escanteios e cartões esperados…",
+      "Consultando a média de cartões do árbitro…",
+      "Cruzando o modelo Poisson com as odds da casa…",
+      "Na primeira vez do dia demora um pouco; depois fica rápido.",
+    ];
+    let tipTimer = null;
+    document.querySelectorAll("form[data-loading]").forEach((form) => {
+      form.addEventListener("submit", () => {
+        document.getElementById("load-title").textContent =
+          form.getAttribute("data-loading") || "Carregando…";
+        const tipEl = document.getElementById("load-tip");
+        let i = 0;
+        tipEl.textContent = TIPS[0];
+        tipTimer = setInterval(() => {
+          i = (i + 1) % TIPS.length;
+          tipEl.style.opacity = 0;
+          setTimeout(() => { tipEl.textContent = TIPS[i];
+                             tipEl.style.opacity = 1; }, 250);
+        }, 2600);
+        overlay.classList.add("on");
+      });
+    });
+    // se o usuário voltar pela seta do navegador, esconde o overlay
+    addEventListener("pageshow", () => {
+      overlay.classList.remove("on");
+      if (tipTimer) clearInterval(tipTimer);
+    });
+  }
+
   /* ------------- marca a aba atual no menu (estado premium) ---------- */
   const path = location.pathname;
   document.querySelectorAll(".topbar nav a").forEach((a) => {
