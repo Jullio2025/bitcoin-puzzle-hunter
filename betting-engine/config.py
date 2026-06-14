@@ -6,9 +6,14 @@ O usuário pode sobrescrever qualquer parâmetro na interface (main.py)
 ou via argumentos de linha de comando.
 """
 import os
+from datetime import timedelta, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+# Fuso de Brasília (UTC-3; Brasil não tem horário de verão desde 2019).
+# Usado nos horários de envio do garimpo, independente do fuso do VPS.
+BR_TZ = timezone(timedelta(hours=-3))
 
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")

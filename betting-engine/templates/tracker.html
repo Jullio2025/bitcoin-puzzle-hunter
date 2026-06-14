@@ -24,6 +24,11 @@
 <div class="card">
   <h2>📲 Receber meu garimpo no Telegram</h2>
   {% if bot_ready %}
+  <ol class="tg-steps">
+    <li>No Telegram, abra o <strong>@ChapaFut_bot</strong> e mande
+      <strong>/start</strong> — ele responde com o seu <strong>chat_id</strong>.</li>
+    <li>Cole o chat_id abaixo, escolha a hora e salve.</li>
+  </ol>
   <form method="post" action="/conta/telegram" class="form-inline">
     <label>Seu chat_id
       <input name="chat_id" value="{{ telegram_chat_id }}"
@@ -36,9 +41,8 @@
       </select></label>
     <button type="submit" class="primary">Salvar</button>
   </form>
-  <p class="hint">Mande <strong>/start</strong> pro <strong>@ChapaFut_bot</strong>
-  que ele te dá seu chat_id. O garimpo com seus critérios chega no horário
-  escolhido (horário do servidor — agora são <strong>{{ server_time }}</strong>).</p>
+  <p class="hint">O garimpo com os seus critérios chega no horário escolhido
+  (horário de Brasília — agora são <strong>{{ server_time }}</strong>).</p>
   {% else %}
   <p class="hint">O administrador ainda não configurou o bot do Telegram
   (TELEGRAM_BOT_TOKEN no servidor).</p>

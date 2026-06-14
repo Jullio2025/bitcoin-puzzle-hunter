@@ -223,6 +223,9 @@ h2 { font-size: 1.08rem; margin-top: 0; font-weight: 700;
   opacity: .8; }
 .auth-card { max-width: 440px; margin-left: auto; margin-right: auto; }
 .auth-card input { max-width: none; }
+.tg-steps { margin: 6px 0 14px; padding-left: 20px; color: var(--muted); }
+.tg-steps li { margin: 6px 0; }
+.tg-steps strong { color: var(--text); }
 .disclaimer {
   color: var(--muted); font-size: .82rem; padding: 9px 24px;
   border-bottom: 1px solid var(--line-soft);

@@ -418,7 +418,7 @@ def tracker_page(request: Request, user: str = Depends(current_user), msg: str =
                   bets=sorted(t.bets, key=lambda b: -b.id), msg=msg,
                   telegram_chat_id=u.get("telegram_chat_id", ""),
                   send_hour=u.get("send_hour", 9),
-                  server_time=datetime.now().strftime("%H:%M"),
+                  server_time=datetime.now(config.BR_TZ).strftime("%H:%M"),
                   bot_ready=notify.bot_configured())
 
 
