@@ -56,6 +56,11 @@ chmod +x run.sh
 [ -f run-web.sh ] && chmod +x run-web.sh
 [ -f install-service.sh ] && chmod +x install-service.sh
 [ -f install-alert.sh ] && chmod +x install-alert.sh
+[ -f install-bot.sh ] && chmod +x install-bot.sh
+# se o ouvinte do bot já roda, aplica a versão nova
+if systemctl is-active --quiet chapafut-bot 2>/dev/null; then
+    systemctl restart chapafut-bot
+fi
 
 # 4. chave da API -------------------------------------------------------------
 if [ -f .env ] && grep -q "APISPORTS_KEY=." .env; then

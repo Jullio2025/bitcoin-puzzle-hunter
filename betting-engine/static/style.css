@@ -289,6 +289,7 @@ label { display: block; margin: 12px 0; font-weight: 600; }
 label.inline { display: inline-block; margin-right: 18px; font-weight: 500; }
 select,
 input[type="number"], input[type="date"], input[type="text"],
+input[type="password"], input[type="email"],
 input:not([type]) {
   width: 100%; max-width: 340px; padding: 11px 14px; margin-top: 5px;
   background: rgba(6, 10, 24, .55); border: 1px solid var(--line);
@@ -296,7 +297,7 @@ input:not([type]) {
   backdrop-filter: blur(8px);
   transition: border-color .3s var(--ease), box-shadow .3s var(--ease);
 }
-select:focus, input:focus {
+select:focus, input:focus, input[type="password"]:focus {
   outline: none; border-color: var(--cyan);
   box-shadow: 0 0 0 3px rgba(34, 211, 238, .15), 0 0 18px rgba(34, 211, 238, .12);
 }
