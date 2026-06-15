@@ -36,6 +36,12 @@ class Criterion:
     p_min: float = 0.0
     ev_min: float = -100.0      # -100 = sem filtro de EV
 
+    def __post_init__(self):
+        # aceita probabilidade como fração (0.80) OU porcentagem (80):
+        # se vier > 1, interpreta como % e converte. Tolera o erro comum.
+        if self.p_min > 1:
+            self.p_min = self.p_min / 100.0
+
     @property
     def label(self) -> str:
         base = MARKET_LABELS.get(self.market, self.market)

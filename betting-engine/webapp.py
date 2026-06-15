@@ -236,10 +236,11 @@ async def analyze(request: Request, user: str = Depends(current_user)):
     if not fixture_ids:
         return _home(request, error="Selecione pelo menos um jogo.")
 
+    p_raw = float(form.get("p_min"))
     params = UserParams(
         odd_min=float(form.get("odd_min")),
         odd_max=float(form.get("odd_max")),
-        p_min=float(form.get("p_min")),
+        p_min=p_raw / 100 if p_raw > 1 else p_raw,
         ev_min=float(form.get("ev_min")),
         markets=form.getlist("markets") or ["goals", "corners", "cards", "1x2"],
         rules_enabled=form.getlist("rules") or None,
