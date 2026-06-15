@@ -392,6 +392,16 @@ button.primary::after {
 button.primary:hover::after { left: 140%; }
 
 /* ----------------------------------- lobby estilo casa de apostas */
+.filter-bar {
+  display: flex; gap: 14px; align-items: end; flex-wrap: wrap;
+}
+.filter-bar label { margin: 0; }
+.filter-bar button { margin: 0; }
+.league-block { padding: 14px 16px; }
+.league-title {
+  font-size: .95rem; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .06em; margin-bottom: 8px;
+}
 .match-row {
   display: grid; grid-template-columns: 24px 110px 1fr auto;
   gap: 14px; align-items: center; padding: 12px 10px; margin: 6px 0;

@@ -179,7 +179,8 @@ def home(request: Request, user: str = Depends(current_user)):
 
 @app.get("/analisar", response_class=HTMLResponse)
 def analisar(request: Request, user: str = Depends(current_user)):
-    return _home(request)
+    # painel direto: todos os jogos do dia, sem precisar escolher liga antes
+    return _render_lobby(request, date.today().isoformat(), 0, None)
 
 
 @app.post("/fixtures", response_class=HTMLResponse)
@@ -191,21 +192,25 @@ def list_fixtures(request: Request, user: str = Depends(current_user),
         league, season = (int(x) for x in league_id.split(":", 1))
     elif league_id.strip():
         league = int(league_id)
+    return _render_lobby(request, match_date, league, season)
+
+
+def _render_lobby(request: Request, match_date: str, league: int,
+                  season: int | None) -> HTMLResponse:
+    """Painel de jogos do dia (todos ou de uma liga), agrupado por campeonato."""
     try:
         client = ApiFootballClient()
+        covered = client.leagues_with_stats_coverage()
         if league:
             if season is None:
-                season = next(
-                    (lg["season"]
-                     for lg in client.leagues_with_stats_coverage()
-                     if lg["league_id"] == league), None)
+                season = next((lg["season"] for lg in covered
+                               if lg["league_id"] == league), None)
             fixtures = client.fixtures_by_date(match_date, league_id=league,
                                                season=season)
         else:
-            covered = {lg["league_id"]
-                       for lg in client.leagues_with_stats_coverage()}
+            covered_ids = {lg["league_id"] for lg in covered}
             fixtures = [fx for fx in client.fixtures_by_date(match_date)
-                        if fx["league"]["id"] in covered]
+                        if fx["league"]["id"] in covered_ids]
         upcoming = [fx for fx in fixtures
                     if fx["fixture"]["status"]["short"] in ("NS", "TBD")]
     except ApiError as e:
@@ -223,10 +228,20 @@ def list_fixtures(request: Request, user: str = Depends(current_user),
     except Exception:
         lobby_odds = {}
 
-    upcoming.sort(key=lambda fx: fx["fixture"]["date"])
+    upcoming.sort(key=lambda fx: (fx["league"].get("country") or "",
+                                  fx["league"].get("name") or "",
+                                  fx["fixture"]["date"]))
+    # agrupa por "País — Campeonato" para o painel ficar navegável
+    groups: dict[str, list] = {}
+    for fx in upcoming:
+        key = f'{fx["league"].get("country") or ""} — {fx["league"]["name"]}'
+        groups.setdefault(key, []).append(fx)
+
+    favs, leagues, _ = _leagues_for_select()
     return render(request, "fixtures.html", fixtures=upcoming,
-                  match_date=match_date, rule_names=rules.all_rule_names(),
-                  bookmakers=_bookmakers(), lobby_odds=lobby_odds)
+                  fixture_groups=groups, match_date=match_date,
+                  rule_names=rules.all_rule_names(), bookmakers=_bookmakers(),
+                  lobby_odds=lobby_odds, favorites=favs, leagues=leagues)
 
 
 @app.post("/analyze", response_class=HTMLResponse)
