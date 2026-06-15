@@ -13,11 +13,15 @@
 
   <form method="post" action="/ticket/register" class="form-inline">
     <input type="hidden" name="legs_json" id="legs-json" value="[]">
+    <button formaction="/ticket/share" class="primary card-btn">🎟️ Gerar meu cartão</button>
     <label>Stake (unidades) <input type="number" step="any" name="stake" value="1.0"></label>
-    <button name="mode" value="multipla" class="primary">Registrar como múltipla</button>
+    <button name="mode" value="multipla">Registrar como múltipla</button>
     <button name="mode" value="simples">Registrar como simples (1 por linha)</button>
-    <button formaction="/ticket/share">🔗 Gerar link p/ compartilhar</button>
   </form>
+  <p class="hint">🎟️ <strong>Gerar meu cartão</strong> monta uma página
+  bonita com suas seleções e um botão "achar na casa" por jogo — fácil de
+  conferir e de mandar pra galera. <strong>Registrar</strong> guarda no seu
+  tracker pra medir acerto/ROI depois.</p>
 </div>
 
 <button type="button" id="ticket-fab" hidden>🎫 <span id="fab-text"></span></button>
@@ -62,7 +66,7 @@ function refreshTicket() {
   document.getElementById("t-prob").textContent = (prob*100).toFixed(1) + "%";
   document.getElementById("t-lose").textContent = ((1-prob)*100).toFixed(1) + "%";
   document.getElementById("fab-text").textContent =
-    `${legs.length} ✓ odd ${odd.toFixed(2)} — ver bilhete`;
+    `${legs.length} ✓ — ver meu cartão`;
 }
 document.querySelectorAll(".leg").forEach(cb =>
   cb.addEventListener("change", refreshTicket));

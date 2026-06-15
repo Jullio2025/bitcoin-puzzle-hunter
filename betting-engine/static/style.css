@@ -553,6 +553,7 @@ summary:hover { color: var(--cyan); }
 
 .form-inline { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
 .form-inline label { margin: 0; }
+.card-btn { font-size: 1rem !important; padding: 12px 22px !important; }
 .crit-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
 .crit-row label { flex: 1; min-width: 130px; }
 .crit-row input, .crit-row select { max-width: none; }
