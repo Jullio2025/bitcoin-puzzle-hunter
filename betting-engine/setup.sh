@@ -25,10 +25,12 @@ apt-get install -y -qq git python3 python3-venv python3-pip
 
 # 2. código ------------------------------------------------------------------
 if [ -d "$DIR/.git" ]; then
-    echo "[2/5] Atualizando o código..."
+    echo "[2/5] Atualizando o código (forçando sincronização)..."
     git -C "$DIR" fetch origin "$BRANCH"
-    git -C "$DIR" checkout "$BRANCH"
-    git -C "$DIR" pull origin "$BRANCH"
+    # reset --hard evita o pull travar por alteração local; .env, cache/ e
+    # data/ são ignorados pelo git, então dados do usuário ficam intactos
+    git -C "$DIR" checkout -B "$BRANCH" "origin/$BRANCH"
+    git -C "$DIR" reset --hard "origin/$BRANCH"
 else
     echo "[2/5] Baixando o código..."
     git clone "$REPO_URL" "$DIR"
