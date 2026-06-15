@@ -32,7 +32,9 @@
 
   {% for liga, jogos in fixture_groups.items() %}
   <div class="card league-block">
-    <h2 class="league-title">🏆 {{ liga }} <span class="badge">{{ jogos|length }}</span></h2>
+    <h2 class="league-title">🏆 {{ liga }} <span class="badge">{{ jogos|length }}</span>
+      {% if liga in partial_groups %}<span class="badge warn" title="A API não tem estatística completa de cartões/escanteios desta competição — gols, 1X2, ambas marcam e dupla chance funcionam normalmente">sem stats de cartões/escanteios</span>{% endif %}
+    </h2>
     {% for fx in jogos %}
     {% set o = lobby_odds.get(fx.fixture.id) %}
     <label class="match-row">

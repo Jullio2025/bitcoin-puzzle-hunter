@@ -197,20 +197,25 @@ def list_fixtures(request: Request, user: str = Depends(current_user),
 
 def _render_lobby(request: Request, match_date: str, league: int,
                   season: int | None) -> HTMLResponse:
-    """Painel de jogos do dia (todos ou de uma liga), agrupado por campeonato."""
+    """Painel de jogos do dia (todos ou de uma liga), agrupado por campeonato.
+
+    Mostra TODAS as competições do dia (inclusive Copa do Mundo etc.), não só
+    as com estatística completa — nada é escondido. As ligas sem cobertura
+    completa de cartões/escanteios ficam marcadas; gols/1X2 funcionam sempre.
+    """
     try:
         client = ApiFootballClient()
-        covered = client.leagues_with_stats_coverage()
+        covered_ids = {lg["league_id"]
+                       for lg in client.leagues_with_stats_coverage()}
         if league:
             if season is None:
-                season = next((lg["season"] for lg in covered
+                season = next((lg["season"]
+                               for lg in client.leagues_with_stats_coverage()
                                if lg["league_id"] == league), None)
             fixtures = client.fixtures_by_date(match_date, league_id=league,
                                                season=season)
         else:
-            covered_ids = {lg["league_id"] for lg in covered}
-            fixtures = [fx for fx in client.fixtures_by_date(match_date)
-                        if fx["league"]["id"] in covered_ids]
+            fixtures = client.fixtures_by_date(match_date)
         upcoming = [fx for fx in fixtures
                     if fx["fixture"]["status"]["short"] in ("NS", "TBD")]
     except ApiError as e:
@@ -231,17 +236,21 @@ def _render_lobby(request: Request, match_date: str, league: int,
     upcoming.sort(key=lambda fx: (fx["league"].get("country") or "",
                                   fx["league"].get("name") or "",
                                   fx["fixture"]["date"]))
-    # agrupa por "País — Campeonato" para o painel ficar navegável
+    # agrupa por "País — Campeonato"; marca quais NÃO têm stats completas
     groups: dict[str, list] = {}
+    partial: set[str] = set()
     for fx in upcoming:
         key = f'{fx["league"].get("country") or ""} — {fx["league"]["name"]}'
         groups.setdefault(key, []).append(fx)
+        if fx["league"]["id"] not in covered_ids:
+            partial.add(key)
 
     favs, leagues, _ = _leagues_for_select()
     return render(request, "fixtures.html", fixtures=upcoming,
-                  fixture_groups=groups, match_date=match_date,
-                  rule_names=rules.all_rule_names(), bookmakers=_bookmakers(),
-                  lobby_odds=lobby_odds, favorites=favs, leagues=leagues)
+                  fixture_groups=groups, partial_groups=partial,
+                  match_date=match_date, rule_names=rules.all_rule_names(),
+                  bookmakers=_bookmakers(), lobby_odds=lobby_odds,
+                  favorites=favs, leagues=leagues)
 
 
 @app.post("/analyze", response_class=HTMLResponse)
