@@ -103,6 +103,26 @@ html { scrollbar-width: thin; scrollbar-color: rgba(139,92,246,.4) transparent; 
 .o3 { width: 420px; height: 420px; left: 35%; bottom: -180px;
   background: radial-gradient(circle, rgba(59, 130, 246, .30), transparent 65%); }
 
+/* estratégias pré-montadas (cards) */
+.strat-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+.strat-card {
+  display: flex; flex-direction: column; gap: 8px; text-align: center;
+  background: linear-gradient(160deg, rgba(139,92,246,.10), var(--glass-2));
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 22px 18px; transition: all .3s var(--ease);
+}
+.strat-card:hover {
+  border-color: rgba(34,211,238,.5); transform: translateY(-3px);
+  box-shadow: 0 14px 40px rgba(0,0,0,.4), 0 0 30px rgba(34,211,238,.12);
+}
+.strat-icon { font-size: 2.4rem; }
+.strat-name { font-family: var(--display); font-weight: 800; font-size: 1.1rem; }
+.strat-desc { color: var(--muted); font-size: .85rem; flex: 1; }
+.strat-card button { margin: 6px 0 0; width: 100%; }
+
 /* radar: slider grande de probabilidade */
 .radar-prob { display: flex; align-items: center; gap: 18px; margin: 10px 0; }
 .radar-prob input[type="range"] {

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Garimpo de {{ match_date }}</h1>
+<h1>{% if strategy_name %}{{ strategy_name }} — {% endif %}Garimpo de {{ match_date }}</h1>
 {% if preset_saved %}
 <div class="success">💾 Critérios salvos como padrão — o garimpo automático
 diário vai usá-los e avisar no Telegram (se configurado).</div>

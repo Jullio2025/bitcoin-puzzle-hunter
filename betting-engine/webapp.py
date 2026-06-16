@@ -349,6 +349,43 @@ def scanner_page(request: Request, user: str = Depends(current_user)):
                   preset_on=["goals", "corners"], bookmakers=_bookmakers())
 
 
+# --------------------------------------------------------------- estratégias
+@app.get("/estrategias", response_class=HTMLResponse)
+def estrategias_page(request: Request, user: str = Depends(current_user)):
+    import strategies
+    cards = [{"key": k, **v} for k, v in strategies.STRATEGIES.items()]
+    return render(request, "estrategias.html", today=date.today().isoformat(),
+                  strategies=cards)
+
+
+@app.post("/estrategia", response_class=HTMLResponse)
+def estrategia_run(request: Request, user: str = Depends(current_user),
+                   key: str = Form(...), match_date: str = Form(""),
+                   deep_limit: int = Form(20)):
+    import strategies
+    strat = strategies.get(key)
+    if not strat:
+        return RedirectResponse("/estrategias", status_code=303)
+    match_date = match_date or date.today().isoformat()
+    try:
+        client = ApiFootballClient()
+        result = scanner.scan_day(
+            client, match_date, strat["criteria"],
+            bookmaker=config.DEFAULT_BOOKMAKER_ID,
+            last_n=config.USER_DEFAULTS["last_n"],
+            match_all=strat.get("match_all", False), deep_limit=deep_limit)
+    except ApiError as e:
+        import strategies as s
+        cards = [{"key": k, **v} for k, v in s.STRATEGIES.items()]
+        return render(request, "estrategias.html",
+                      today=match_date, strategies=cards, error=str(e))
+    return render(request, "scanner_results.html", result=result,
+                  criteria=strat["criteria"], match_date=match_date,
+                  match_all=strat.get("match_all", False), preset_saved=False,
+                  strategy_name=f'{strat["icon"]} {strat["nome"]}',
+                  api_calls=client.calls_made)
+
+
 # -------------------------------------------------------------------- radar
 @app.get("/radar", response_class=HTMLResponse)
 def radar_page(request: Request, user: str = Depends(current_user)):
