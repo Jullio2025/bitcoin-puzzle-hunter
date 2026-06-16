@@ -82,6 +82,16 @@ MODEL = {
     "referee_weight": 0.5,
     # Cartão vermelho conta como N cartões no total (1 = conta simples)
     "red_card_weight": 1,
+    # Regressão à média (encolhimento): com poucos jogos, a média do time é
+    # ruidosa e o modelo fica superconfiante. Puxamos cada taxa em direção a
+    # um baseline típico, com peso `shrink_k` (equivale a "k jogos médios").
+    # shrink_k=0 desliga. ~4 é moderado.
+    "shrink_k": 4,
+    "baseline_goals_for": 1.30,    # gols marcados/jogo típico
+    "baseline_goals_against": 1.30,
+    "baseline_corners_for": 5.0,   # escanteios a favor/jogo típico
+    "baseline_corners_against": 5.0,
+    "baseline_cards_team": 2.0,    # cartões recebidos/jogo por time
 }
 
 # --- Tracker ---------------------------------------------------------------

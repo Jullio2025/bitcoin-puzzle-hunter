@@ -97,9 +97,11 @@ class TestAnalyzeFixture(unittest.TestCase):
         self.assertAlmostEqual(sum(probs), 1.0, places=6)
 
     def test_referee_rule_raises_cards_lambda(self):
-        # árbitro com 5.5 vs baseline 4.8 deve subir o lambda de cartões
-        base_cards = 2.2 + 2.6
-        self.assertGreater(self.fa.lambdas["cards"], base_cards)
+        # árbitro 5.5 vs baseline 4.8 deve SUBIR os cartões em relação à
+        # base (já encolhida). Comparamos com a base antes das regras.
+        import recommender
+        base, _ = recommender.base_lambdas(fake_ctx())
+        self.assertGreater(self.fa.lambdas["cards"], base["cards"])
 
     def test_every_rule_explains_itself(self):
         for res in self.fa.rule_results:

@@ -78,14 +78,31 @@ class FixtureAnalysis:
     charts: dict = field(default_factory=dict)
 
 
-def count_charts(lambdas: dict[str, float]) -> dict:
+def markets_without_base(ctx: MatchContext) -> set[str]:
+    """Mercados sem estatística da API (médias cruas zeradas dos dois times).
+
+    Detecta pela amostra crua — NÃO pelo lambda — porque o encolhimento
+    puxa zeros para o baseline e mascararia a ausência de dados."""
+    h, a = ctx.home, ctx.away
+    out: set[str] = set()
+    if (h.corners_for + h.corners_against
+            + a.corners_for + a.corners_against) <= 0:
+        out.add("corners")
+    if (h.cards + a.cards) <= 0:
+        out.add("cards")
+    return out
+
+
+def count_charts(lambdas: dict[str, float], omit: set[str] = frozenset()) -> dict:
     """Dados dos gráficos da interface: distribuição de Poisson por mercado
-    (P de cada contagem exata) e probabilidades do 1X2."""
+    (P de cada contagem exata) e probabilidades do 1X2.
+
+    `omit` lista mercados sem base de dados (não desenha gráfico mentiroso)."""
     charts: dict = {}
     specs = {"goals": lambdas["goals_home"] + lambdas["goals_away"],
              "corners": lambdas["corners"], "cards": lambdas["cards"]}
     for market, lam in specs.items():
-        if lam <= 0.05:
+        if lam <= 0.05 or market in omit:
             continue  # sem estatísticas: gráfico mentiroso é pior que nenhum
         k_max = max(6, min(18, int(lam * 2 + 3)))
         points = [{"k": k, "p": scoring.poisson_pmf(k, lam)}
@@ -102,40 +119,67 @@ def count_charts(lambdas: dict[str, float]) -> dict:
 
 
 # ------------------------------------------------------------ lambdas base
+def _shrink(value: float, games: int, baseline: float) -> float:
+    """Regressão à média: puxa `value` (de `games` jogos) para `baseline`.
+
+    shrunk = (n*observado + k*baseline) / (n + k). Com poucos jogos, o
+    resultado fica mais perto do baseline (menos superconfiança); com
+    muitos jogos, fica perto do observado. k=0 desliga.
+    """
+    k = config.MODEL.get("shrink_k", 0)
+    if k <= 0 or games <= 0:
+        return value
+    return (games * value + k * baseline) / (games + k)
+
+
 def base_lambdas(ctx: MatchContext) -> tuple[dict[str, float], dict[str, str]]:
-    """Lambdas base a partir das médias por mando, com explicação textual."""
+    """Lambdas base a partir das médias por mando, com explicação textual.
+
+    Cada taxa de time passa por regressão à média (encolhimento) conforme
+    o tamanho da amostra, para o modelo não ficar superconfiante com poucos
+    jogos."""
     h, a = ctx.home, ctx.away
-    goals_home = (h.goals_for + a.goals_against) / 2
-    goals_away = (a.goals_for + h.goals_against) / 2
-    corners = ((h.corners_for + a.corners_against) / 2
-               + (a.corners_for + h.corners_against) / 2)
-    cards = h.cards + a.cards
+    M = config.MODEL
+
+    hgf = _shrink(h.goals_for, h.games, M["baseline_goals_for"])
+    hga = _shrink(h.goals_against, h.games, M["baseline_goals_against"])
+    agf = _shrink(a.goals_for, a.games, M["baseline_goals_for"])
+    aga = _shrink(a.goals_against, a.games, M["baseline_goals_against"])
+    hcf = _shrink(h.corners_for, h.games, M["baseline_corners_for"])
+    hca = _shrink(h.corners_against, h.games, M["baseline_corners_against"])
+    acf = _shrink(a.corners_for, a.games, M["baseline_corners_for"])
+    aca = _shrink(a.corners_against, a.games, M["baseline_corners_against"])
+    hcards = _shrink(h.cards, h.games, M["baseline_cards_team"])
+    acards = _shrink(a.cards, a.games, M["baseline_cards_team"])
+
+    goals_home = (hgf + aga) / 2
+    goals_away = (agf + hga) / 2
+    corners = ((hcf + aca) / 2 + (acf + hca) / 2)
+    cards = hcards + acards
 
     lambdas = {"goals_home": goals_home, "goals_away": goals_away,
                "corners": corners, "cards": cards}
+    nota = ("  (valores já ponderados pelo tamanho da amostra — quanto menos "
+            "jogos, mais perto da média típica, p/ evitar exagero.)")
     expl = {
         "goals_home": (
-            f"⚽ Gols esperados do {h.team_name} (mandante): nos últimos "
-            f"jogos EM CASA ele marcou {h.goals_for:.2f} gols por jogo, e o "
-            f"{a.team_name} sofreu {a.goals_against:.2f} por jogo FORA. A "
-            f"média dos dois dá {goals_home:.2f} gols esperados"),
+            f"⚽ Gols esperados do {h.team_name} (mandante): em casa marcou "
+            f"~{h.goals_for:.2f}/jogo e o {a.team_name} sofreu "
+            f"~{a.goals_against:.2f}/jogo fora → {goals_home:.2f} esperados."
+            + nota),
         "goals_away": (
-            f"⚽ Gols esperados do {a.team_name} (visitante): FORA de casa "
-            f"ele marcou {a.goals_for:.2f} gols por jogo, e o {h.team_name} "
-            f"sofreu {h.goals_against:.2f} por jogo EM CASA. A média dá "
-            f"{goals_away:.2f} gols esperados"),
+            f"⚽ Gols esperados do {a.team_name} (visitante): fora marcou "
+            f"~{a.goals_for:.2f}/jogo e o {h.team_name} sofreu "
+            f"~{h.goals_against:.2f}/jogo em casa → {goals_away:.2f} esperados."
+            + nota),
         "corners": (
-            f"🚩 Escanteios esperados no jogo: o {h.team_name} força "
-            f"{h.corners_for:.2f} por jogo em casa (e o {a.team_name} cede "
-            f"{a.corners_against:.2f} fora), enquanto o {a.team_name} força "
-            f"{a.corners_for:.2f} fora (e o {h.team_name} cede "
-            f"{h.corners_against:.2f} em casa). Somando os dois lados: "
-            f"{corners:.2f} escanteios esperados"),
+            f"🚩 Escanteios esperados: {h.team_name} força ~{h.corners_for:.2f} "
+            f"em casa, {a.team_name} força ~{a.corners_for:.2f} fora → "
+            f"{corners:.2f} no jogo." + nota),
         "cards": (
-            f"🟨 Cartões esperados no jogo: o {h.team_name} recebe "
-            f"{h.cards:.2f} por jogo em casa e o {a.team_name} recebe "
-            f"{a.cards:.2f} por jogo fora — juntos, {cards:.2f} cartões "
-            f"esperados"),
+            f"🟨 Cartões esperados: {h.team_name} recebe ~{h.cards:.2f}/jogo em "
+            f"casa e {a.team_name} ~{a.cards:.2f}/jogo fora → {cards:.2f} no "
+            f"jogo." + nota),
     }
     return lambdas, expl
 
@@ -179,6 +223,7 @@ def analyze_fixture(ctx: MatchContext, odds_map: OddsMap,
                     params: UserParams) -> FixtureAnalysis:
     lambdas, expl = base_lambdas(ctx)
     lambdas, rule_results = apply_rules(ctx, lambdas, params.rules_enabled)
+    no_base = markets_without_base(ctx)
 
     markets: list[MarketAnalysis] = []
 
@@ -201,9 +246,8 @@ def analyze_fixture(ctx: MatchContext, odds_map: OddsMap,
                 if market == "goals" else lambdas.get(market)
         if lam is None:
             continue
-        # médias zeradas = a API não devolveu estatísticas desses jogos;
-        # sem base, o modelo não pode fingir 0%/100% de certeza
-        no_data = lam <= 0.05
+        # mercado sem estatística da API (detecção pela amostra crua)
+        no_data = market in no_base or lam <= 0.05
         lines = available_lines(odds_map, market)
         if not lines:
             # sem odds: mostra a linha "clássica" só com p_model
@@ -234,7 +278,7 @@ def analyze_fixture(ctx: MatchContext, odds_map: OddsMap,
     return FixtureAnalysis(ctx=ctx, lambdas=lambdas,
                            lambda_explanations=expl,
                            rule_results=rule_results, markets=markets,
-                           charts=count_charts(lambdas))
+                           charts=count_charts(lambdas, omit=no_base))
 
 
 def _analyze_handicap(lambdas: dict[str, float], odds_map: OddsMap,

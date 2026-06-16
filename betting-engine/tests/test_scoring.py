@@ -130,3 +130,34 @@ class TestCombine(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestShrinkage(unittest.TestCase):
+    """Regressão à média: poucos jogos com média extrema são puxados ao baseline."""
+
+    def setUp(self):
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+    def test_shrink_pulls_toward_baseline(self):
+        import recommender
+        # 1 jogo só, valor extremo -> bem perto do baseline
+        v = recommender._shrink(4.0, games=1, baseline=1.3)
+        self.assertLess(v, 4.0)
+        self.assertGreater(v, 1.3)
+
+    def test_shrink_more_games_closer_to_observed(self):
+        import recommender
+        few = recommender._shrink(4.0, games=2, baseline=1.3)
+        many = recommender._shrink(4.0, games=30, baseline=1.3)
+        self.assertGreater(many, few)  # mais jogos = mais perto do observado
+
+    def test_shrink_disabled_with_k_zero(self):
+        import config, recommender
+        old = config.MODEL["shrink_k"]
+        config.MODEL["shrink_k"] = 0
+        try:
+            self.assertEqual(recommender._shrink(4.0, 3, 1.3), 4.0)
+        finally:
+            config.MODEL["shrink_k"] = old

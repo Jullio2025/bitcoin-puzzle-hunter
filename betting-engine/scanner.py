@@ -22,7 +22,8 @@ from api_client import ApiFootballClient
 from features import MatchContext, build_match_context
 from odds_parser import OddsMap, parse_odds
 from recommender import (MARKET_LABELS, SIDE_LABELS, MarketAnalysis,
-                         apply_rules, base_lambdas, count_charts)
+                         apply_rules, base_lambdas, count_charts,
+                         markets_without_base)
 
 
 @dataclass
@@ -272,14 +273,17 @@ def scan_day(client: ApiFootballClient, date: str,
         ctx = build_match_context(client, fx, last_n=last_n)
         lambdas, expl = base_lambdas(ctx)
         lambdas, rule_results = apply_rules(ctx, lambdas, None)
+        no_base = markets_without_base(ctx)
 
         hits_by_crit: dict[int, list] = {}
         for i, keys in matched.items():
             c = criteria[i]
             for key in keys:
+                if key[0] in no_base:
+                    continue  # API sem estatísticas deste mercado: sem base
                 lam = _lambda_for_key(key, lambdas)
                 if lam is not None and lam <= 0.05:
-                    continue  # API sem estatísticas deste mercado: sem base
+                    continue
                 p = _prob_for_key(key, lambdas)
                 if p < c.p_min:
                     continue
@@ -304,7 +308,7 @@ def scan_day(client: ApiFootballClient, date: str,
                                   if h[1].metrics.ev is not None else -999))
         groups.append(ScanGroup(
             ctx=ctx, lambdas=lambdas, lambda_explanations=expl,
-            rule_results=rule_results, charts=count_charts(lambdas),
+            rule_results=rule_results, charts=count_charts(lambdas, omit=no_base),
             hits=hits))
 
     return ScanResult(
@@ -370,6 +374,7 @@ def radar_day(client: ApiFootballClient, date: str, p_min: float,
         ctx = build_match_context(client, fx, last_n=last_n)
         lambdas, expl = base_lambdas(ctx)
         lambdas, rule_results = apply_rules(ctx, lambdas, None)
+        no_base = markets_without_base(ctx)
         odds_map: OddsMap = {}
         if with_odds:
             try:
@@ -381,9 +386,11 @@ def radar_day(client: ApiFootballClient, date: str, p_min: float,
 
         hits = []
         for market in markets:
+            if market in no_base:
+                continue  # API sem estatísticas deste mercado: sem base
             lam = _lambda_for_key((market, "", None), lambdas)
             if lam is not None and lam <= 0.05:
-                continue  # API sem estatísticas deste mercado: sem base
+                continue
             for side, line in _radar_candidates(market):
                 p = _prob_for_key((market, side, line), lambdas)
                 if p < p_min:
@@ -399,7 +406,7 @@ def radar_day(client: ApiFootballClient, date: str, p_min: float,
             hits.sort(key=lambda m: -m.metrics.p_model)
             groups.append(ScanGroup(
                 ctx=ctx, lambdas=lambdas, lambda_explanations=expl,
-                rule_results=rule_results, charts=count_charts(lambdas),
+                rule_results=rule_results, charts=count_charts(lambdas, omit=no_base),
                 hits=[(None, m) for m in hits]))
 
     return ScanResult(groups=groups, fixtures_today=total_today,
