@@ -673,12 +673,74 @@ summary:hover { color: var(--cyan); }
 }
 
 /* --------------------------------------------------------- responsivo */
-@media (max-width: 700px) {
-  .fixture-row { flex-wrap: wrap; }
-  .fixture-row .teams { min-width: 0; }
-  table.markets { display: block; overflow-x: auto; }
-  .hero { padding-top: 30px; }
-  .card { padding: 16px; }
+@media (max-width: 760px) {
+  main { padding: 16px 12px 80px; }
+  h1 { font-size: 1.3rem; }
+  .card { padding: 15px; margin: 14px 0; border-radius: 15px; }
+
+  /* topo: marca menor + menu que rola na horizontal sem quebrar layout */
+  .topbar { padding: 11px 14px; flex-wrap: wrap; gap: 8px; }
+  .brand { font-size: 1.1rem; }
+  .topbar nav {
+    width: 100%; display: flex; gap: 6px; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; padding-bottom: 2px;
+  }
+  .topbar nav::-webkit-scrollbar { display: none; }
+  .topbar nav a {
+    margin-left: 0; padding: 8px 13px; font-size: .85rem; white-space: nowrap;
+    flex: 0 0 auto;
+  }
+  .nav-user { display: none; }
+  .disclaimer { font-size: .75rem; padding: 8px 14px; }
+
+  /* lobby de jogos: hora em cima, times no meio, odds embaixo */
+  .match-row {
+    grid-template-columns: 1fr auto; gap: 6px 10px; padding: 11px 12px;
+  }
+  .match-when { grid-column: 1 / -1; flex-direction: row; gap: 8px;
+    align-items: baseline; }
+  .match-when small { font-size: .7rem; }
+  .match-teams { grid-column: 1; min-width: 0; }
+  .odd-pills { grid-column: 2; grid-row: 2; }
+  .pill { min-width: 46px; padding: 5px 7px; font-size: .85rem; }
+
+  /* tabelas de mercado: rolam na horizontal, fonte compacta */
+  table.markets { display: block; overflow-x: auto; white-space: nowrap;
+    -webkit-overflow-scrolling: touch; }
+  table.markets th, table.markets td { padding: 7px 6px; font-size: .82rem; }
+  td.plain { white-space: normal; }
+
+  /* formulários e filtros empilham; campos ocupam a largura toda */
+  select, input[type="number"], input[type="date"], input[type="text"],
+  input[type="password"], input[type="email"], input:not([type]) {
+    max-width: 100%;
+  }
+  .filter-bar, .crit-row, .form-inline { gap: 10px; }
+  .crit-row label { min-width: 100%; }
+  label.inline { margin-right: 12px; }
+
+  /* hero e bola um pouco menores */
+  .hero { padding: 26px 8px 14px; }
+  .tagline { font-size: .98rem; }
+
+  /* gráficos do raio-x ocupam largura total, 1 por linha */
+  .charts { grid-template-columns: 1fr; }
+  .bars { height: 80px; }
+
+  /* cartão público (aberto pelo Telegram): pernas empilhadas */
+  .share-leg { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .share-leg-right { width: 100%; justify-content: space-between; }
+
+  /* botões com alvo de toque maior */
+  button, .button { padding: 12px 18px; }
+  .trio strong { font-size: 1.2rem; }
+  #ticket-fab { left: 12px; right: 12px; text-align: center; }
+}
+
+@media (max-width: 400px) {
+  .match-teams { font-size: .92rem; }
+  .pill { min-width: 42px; font-size: .8rem; }
+  .hero h1 { font-size: 2.2rem; }
 }
 /* acessibilidade: respeita quem desativa animações */
 @media (prefers-reduced-motion: reduce) {
