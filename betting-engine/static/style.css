@@ -103,6 +103,13 @@ html { scrollbar-width: thin; scrollbar-color: rgba(139,92,246,.4) transparent; 
 .o3 { width: 420px; height: 420px; left: 35%; bottom: -180px;
   background: radial-gradient(circle, rgba(59, 130, 246, .30), transparent 65%); }
 
+/* glossário */
+.glossario summary { font-weight: 700; color: var(--cyan); }
+.glossario ul { margin: 10px 0; padding-left: 18px; }
+.glossario li { margin: 7px 0; color: var(--muted); }
+.glossario li strong { color: var(--text); }
+table.markets th[title] { cursor: help; border-bottom: 1px dotted var(--line); }
+
 /* estratégias pré-montadas (cards) */
 .strat-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

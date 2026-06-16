@@ -3,6 +3,8 @@
 <h1>Resultado da análise</h1>
 {% for e in errors %}<div class="error">{{ e }}</div>{% endfor %}
 
+{% include "_glossario.html" %}
+
 {% for fa in analyses %}
 <div class="card">
   <h2>{{ fa.ctx.label }}</h2>
@@ -58,8 +60,8 @@
 
   <table class="markets">
     <thead><tr>
-      <th></th><th>Mercado</th><th>p_model</th><th>Odd</th><th>1/odd</th>
-      <th>Edge</th><th>EV</th><th>Vit. p/ recuperar 1 derrota</th><th>Seus filtros</th>
+      <th></th><th>Mercado</th><th title="Probabilidade que o modelo calcula do evento acontecer.">p_model</th><th>Odd</th><th title="Chance embutida no preço da casa; taxa de acerto p/ empatar.">1/odd</th>
+      <th title="p_model menos a chance do preço (1/odd). Positivo = o modelo vê valor.">Edge</th><th title="Valor esperado por unidade no longo prazo. Positivo = lucro médio se o modelo estiver certo.">EV</th><th title="Quantas vitórias pagam 1 derrota nessa odd = 1/(odd-1).">Vit. p/ recuperar 1 derrota</th><th>Seus filtros</th>
     </tr></thead>
     <tbody>
     {% for m in fa.markets %}

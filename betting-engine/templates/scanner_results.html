@@ -17,6 +17,8 @@ profundidade — aumente o limite se quiser ver todos.</span>{% endif %}</p>
 <span class="badge ok">{{ c.label }}</span>
 {% endfor %}
 
+{% include "_glossario.html" %}
+
 {% if not result.groups %}
 <div class="error">Nenhum jogo entregou as peças pedidas
 {% if match_all %} (todas juntas no mesmo jogo){% endif %} —
@@ -65,9 +67,9 @@ afrouxe a faixa de odd ou a probabilidade mínima e garimpe de novo.</div>
 
   <table class="markets">
     <thead><tr>
-      <th></th><th>Mercado encontrado</th><th>Critério</th><th>p_model</th>
-      <th>Odd</th><th>1/odd</th><th>Edge</th><th>EV</th>
-      <th>Vit. p/ recuperar 1 derrota</th>
+      <th></th><th>Mercado encontrado</th><th>Critério</th><th title="Probabilidade que o modelo calcula do evento acontecer.">p_model</th>
+      <th>Odd</th><th title="Chance embutida no preço da casa; taxa de acerto p/ empatar.">1/odd</th><th title="p_model menos a chance do preço (1/odd). Positivo = o modelo vê valor.">Edge</th><th title="Valor esperado por unidade no longo prazo. Positivo = lucro médio se o modelo estiver certo.">EV</th>
+      <th title="Quantas vitórias pagam 1 derrota nessa odd = 1/(odd-1).">Vit. p/ recuperar 1 derrota</th>
     </tr></thead>
     <tbody>
     {% for crit, m in g.hits %}

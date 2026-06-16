@@ -8,6 +8,8 @@
 {{ result.skipped_by_limit }} jogo(s) fora pelo limite — aumente o máximo
 de jogos varridos.</span>{% endif %}</p>
 
+{% include "_glossario.html" %}
+
 {% if not result.groups %}
 <div class="error">Nenhum mercado atingiu {{ "%.0f"|format(p_min * 100) }}%
 nos jogos varridos. Baixe a chance mínima e tente de novo.</div>
@@ -28,8 +30,8 @@ nos jogos varridos. Baixe a chance mínima e tente de novo.</div>
 
   <table class="markets">
     <thead><tr>
-      <th></th><th>Mercado</th><th>Chance (modelo)</th>
-      <th>Odd</th><th>Edge</th><th>EV</th>
+      <th></th><th>Mercado</th><th title="Probabilidade que o modelo calcula do evento acontecer.">Chance (modelo)</th>
+      <th>Odd</th><th title="p_model menos a chance do preço (1/odd). Positivo = o modelo vê valor.">Edge</th><th title="Valor esperado por unidade no longo prazo. Positivo = lucro médio se o modelo estiver certo.">EV</th>
     </tr></thead>
     <tbody>
     {% for _crit, m in g.hits %}
