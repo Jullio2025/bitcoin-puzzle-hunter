@@ -126,12 +126,51 @@ def logout():
     return resp
 
 
+@app.get("/conta", response_class=HTMLResponse)
+def conta(request: Request, user: str = Depends(current_user), msg: str = ""):
+    import notify
+    import daily_scan
+    from datetime import datetime
+    u = users.get_user(user) or {}
+    preset = daily_scan.load_preset(user)
+    criteria_labels = []
+    if preset:
+        criteria_labels = [scanner.Criterion(**c).label
+                           for c in preset["criteria"]]
+    return render(request, "conta.html", conta_user=user,
+                  telegram_chat_id=u.get("telegram_chat_id", ""),
+                  send_hour=u.get("send_hour", 9),
+                  server_time=datetime.now(config.BR_TZ).strftime("%H:%M"),
+                  bot_ready=notify.bot_configured(),
+                  criteria_labels=criteria_labels, msg=msg)
+
+
 @app.post("/conta/telegram")
 def conta_telegram(user: str = Depends(current_user),
                    chat_id: str = Form(""), send_hour: int = Form(9)):
     users.set_telegram(user, chat_id)
     users.set_send_hour(user, send_hour)
-    return RedirectResponse("/tracker?msg=Telegram+atualizado",
+    return RedirectResponse("/conta?msg=Telegram+e+hor%C3%A1rio+salvos",
+                            status_code=303)
+
+
+@app.post("/conta/preset/limpar")
+def conta_preset_clear(user: str = Depends(current_user)):
+    import daily_scan
+    daily_scan.clear_preset(user)
+    return RedirectResponse("/conta?msg=Crit%C3%A9rios+do+garimpo+limpos",
+                            status_code=303)
+
+
+@app.post("/conta/senha")
+def conta_senha(request: Request, user: str = Depends(current_user),
+                senha_atual: str = Form(...), senha_nova: str = Form(...)):
+    if not users.verify_user(user, senha_atual):
+        return RedirectResponse("/conta?msg=Senha+atual+incorreta",
+                                status_code=303)
+    ok, _m = users.set_password(user, senha_nova)
+    msg = "Senha alterada" if ok else "Senha+nova+muito+curta"
+    return RedirectResponse(f"/conta?msg={msg.replace(' ', '+')}",
                             status_code=303)
 
 

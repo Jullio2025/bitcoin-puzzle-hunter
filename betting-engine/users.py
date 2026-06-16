@@ -112,6 +112,20 @@ def set_send_hour(username: str, hour: int) -> None:
         _save(data)
 
 
+def set_password(username: str, new_password: str) -> tuple[bool, str]:
+    if len(new_password or "") < 6:
+        return False, "Senha muito curta (mínimo 6 caracteres)."
+    data = _load()
+    u = data.get(username.lower())
+    if not u:
+        return False, "Usuário não encontrado."
+    salt = secrets.token_hex(16)
+    u["salt"] = salt
+    u["hash"] = _hash(new_password, salt)
+    _save(data)
+    return True, "Senha alterada."
+
+
 # ------------------------------------------------------------- sessão
 def make_token(username: str) -> str:
     sig = hmac.new(_secret(), username.lower().encode(),

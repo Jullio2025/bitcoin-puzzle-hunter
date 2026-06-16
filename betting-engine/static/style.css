@@ -226,6 +226,11 @@ h2 { font-size: 1.08rem; margin-top: 0; font-weight: 700;
 .tg-steps { margin: 6px 0 14px; padding-left: 20px; color: var(--muted); }
 .tg-steps li { margin: 6px 0; }
 .tg-steps strong { color: var(--text); }
+.crit-list { margin: 8px 0 14px; padding-left: 18px; }
+.crit-list li {
+  margin: 5px 0; color: var(--text); font-size: .9rem;
+  border-left: 2px solid var(--cyan); padding-left: 10px; list-style: none;
+}
 .disclaimer {
   color: var(--muted); font-size: .82rem; padding: 9px 24px;
   border-bottom: 1px solid var(--line-soft);

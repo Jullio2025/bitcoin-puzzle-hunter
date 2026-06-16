@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>⚙️ Minha conta — {{ conta_user }}</h1>
+{% if msg %}<div class="success">{{ msg }}</div>{% endif %}
+
+<div class="card">
+  <h2>📲 Garimpo no Telegram</h2>
+  {% if bot_ready %}
+  <ol class="tg-steps">
+    <li>No Telegram, abra o <strong>@ChapaFut_bot</strong> e mande
+      <strong>/start</strong> — ele responde com o seu <strong>chat_id</strong>.</li>
+    <li>Cole o chat_id, escolha a hora e salve.</li>
+  </ol>
+  <form method="post" action="/conta/telegram" class="form-inline">
+    <label>Seu chat_id
+      <input name="chat_id" value="{{ telegram_chat_id }}"
+             placeholder="ex.: 7724269186"></label>
+    <label>Hora de receber
+      <select name="send_hour">
+        {% for h in range(24) %}
+        <option value="{{ h }}" {{ "selected" if h == send_hour }}>{{ "%02d:00"|format(h) }}</option>
+        {% endfor %}
+      </select></label>
+    <button type="submit" class="primary">Salvar</button>
+  </form>
+  <p class="hint">Chega no horário escolhido (horário de Brasília — agora são
+  <strong>{{ server_time }}</strong>).
+  {% if not telegram_chat_id %}<br>⚠️ Você ainda não cadastrou seu chat_id —
+  sem ele o garimpo não é enviado.{% endif %}</p>
+  {% else %}
+  <p class="hint">O administrador ainda não configurou o bot do Telegram.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>⛏️ Critérios do garimpo automático</h2>
+  {% if criteria_labels %}
+  <p class="hint">É isto que o bot procura todo dia pra você:</p>
+  <ul class="crit-list">
+    {% for c in criteria_labels %}<li>{{ c }}</li>{% endfor %}
+  </ul>
+  <a class="button" href="/scanner">✏️ Editar no Scanner</a>
+  <form method="post" action="/conta/preset/limpar" style="display:inline">
+    <button type="submit">🗑️ Limpar critérios</button>
+  </form>
+  <p class="hint">Pra trocar, ajuste no Scanner e marque "💾 Salvar como
+  padrão" — substitui estes.</p>
+  {% else %}
+  <p class="hint">Você ainda não salvou critérios. Vá ao
+  <a href="/scanner">Scanner</a>, monte o que quer garimpar e marque
+  <strong>"💾 Salvar como padrão"</strong>.</p>
+  <a class="button primary" href="/scanner">Ir ao Scanner</a>
+  {% endif %}
+</div>
+
+<div class="card form-grid">
+  <h2>🔒 Trocar senha</h2>
+  <form method="post" action="/conta/senha" class="form-grid">
+    <label>Senha atual
+      <input type="password" name="senha_atual" required></label>
+    <label>Nova senha <span class="hint">(mínimo 6)</span>
+      <input type="password" name="senha_nova" required></label>
+    <button type="submit" class="primary">Alterar senha</button>
+  </form>
+</div>
+{% endblock %}

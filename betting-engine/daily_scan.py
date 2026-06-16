@@ -51,6 +51,12 @@ def save_preset(username: str, criteria: list[Criterion], bookmaker: int,
     }, ensure_ascii=False, indent=2))
 
 
+def clear_preset(username: str) -> None:
+    path = _preset_path(username)
+    if path.exists():
+        path.unlink()
+
+
 def panel_url() -> str:
     """URL pública do painel: PANEL_URL do .env, senão IP detectado:8000."""
     url = os.getenv("PANEL_URL", "").rstrip("/")
