@@ -442,6 +442,25 @@ async def scan(request: Request, user: str = Depends(current_user)):
 
 
 # ------------------------------------------------- bilhete compartilhável
+def _combine_tolerant(legs: list) -> dict:
+    """Combina pernas que podem NÃO ter odd de referência.
+    - prob combinada = produto de TODOS os p_model (sempre disponível)
+    - odd combinada  = produto só das pernas com odd; 'partial' se faltar
+    """
+    prob = 1.0
+    odd = 1.0
+    with_odd = 0
+    for l in legs:
+        prob *= float(l["p"])
+        o = l.get("odd")
+        if o:
+            odd *= float(o)
+            with_odd += 1
+    partial = with_odd < len(legs)
+    return {"prob": prob, "lose": 1.0 - prob,
+            "odd": (odd if with_odd else None), "partial": partial}
+
+
 @app.post("/ticket/share")
 def ticket_share(request: Request, user: str = Depends(current_user),
                  legs_json: str = Form(...)):
@@ -450,12 +469,10 @@ def ticket_share(request: Request, user: str = Depends(current_user),
     if not legs:
         return RedirectResponse("/tracker?msg=Nenhuma+sele%C3%A7%C3%A3o",
                                 status_code=303)
-    import scoring
     import share_store
-    ticket = scoring.combine_legs([(float(l["odd"]), float(l["p"]))
-                                   for l in legs])
-    code = share_store.create(legs, ticket.combined_odd,
-                              ticket.combined_prob, ticket.lose_prob)
+    combo = _combine_tolerant(legs)
+    code = share_store.create(legs, combo["odd"], combo["prob"],
+                              combo["lose"], partial=combo["partial"])
     return RedirectResponse(f"/b/{code}", status_code=303)
 
 
@@ -538,6 +555,13 @@ def ticket_register(user: str = Depends(current_user), legs_json: str = Form(...
                         "side": l["side"], "line": l.get("line"),
                         "label": f"{l['fixture']} — {l['market']}"})
         return out
+
+    # o tracker precisa de odd p/ calcular ROI; sem ela não dá pra registrar
+    if any(not l.get("odd") for l in legs):
+        return RedirectResponse(
+            "/tracker?msg=Para+registrar+no+tracker+todas+as+pernas+"
+            "precisam+ter+odd.+Use+'Gerar+meu+cart%C3%A3o'+para+as+sem+odd.",
+            status_code=303)
 
     t = user_tracker(user)
     if mode == "simples":

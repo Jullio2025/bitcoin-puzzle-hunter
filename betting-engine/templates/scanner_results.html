@@ -99,7 +99,7 @@ afrouxe a faixa de odd ou a probabilidade mínima e garimpe de novo.</div>
         <td>{{ "%.1f"|format(m.metrics.wins_to_recover) }}</td>
       </tr>
       {% if m.plain %}
-      <tr class="note-row"><td></td><td colspan="8" class="plain">📖 {{ m.plain }}</td></tr>
+      <tr class="note-row"><td></td><td colspan="8" class="plain">{{ m.plain }}</td></tr>
       {% endif %}
       {% for note in m.metrics.notes %}
       <tr class="note-row"><td></td><td colspan="8" class="hint">{{ note }}</td></tr>

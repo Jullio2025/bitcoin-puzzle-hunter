@@ -36,7 +36,7 @@
             {{ "%.0f"|format(leg.p * 100) }}%</span>
         </div>
         <div class="share-leg-right">
-          <span class="pill"><small>odd</small>{{ "%.2f"|format(leg.odd) }}</span>
+          <span class="pill"><small>odd</small>{{ "%.2f"|format(leg.odd) if leg.odd else "—" }}</span>
           <a class="button" target="_blank" rel="noopener"
              href="https://www.google.com/search?q=Betano+{{ leg.fixture|urlencode }}">
             🔎 achar na casa</a>
@@ -45,13 +45,18 @@
       {% endfor %}
 
       <div class="trio">
-        <div><span>Odd combinada</span>
-          <strong>{{ "%.2f"|format(ticket.combined_odd) }}</strong></div>
+        <div><span>Odd combinada{% if ticket.partial %} (parcial*){% endif %}</span>
+          <strong>{{ "%.2f"|format(ticket.combined_odd) if ticket.combined_odd else "—" }}</strong></div>
         <div><span>Probabilidade combinada</span>
           <strong>{{ "%.1f"|format(ticket.combined_prob * 100) }}%</strong></div>
         <div><span>Chance de PERDER o bilhete</span>
           <strong>{{ "%.1f"|format(ticket.lose_prob * 100) }}%</strong></div>
       </div>
+      {% if ticket.partial %}
+      <p class="hint">* Algumas pernas não tinham odd na casa de referência —
+      a odd combinada considera só as que tinham. Confira as odds reais na
+      sua casa de apostas.</p>
+      {% endif %}
 
       <p class="hint">A probabilidade combinada assume
       <strong>independência</strong> entre as pernas (aproximação). Odds

@@ -493,6 +493,10 @@ td.plain {
   color: #d4e4ff; font-size: .86rem; line-height: 1.55;
   background: rgba(139, 92, 246, .08); border-radius: 10px;
 }
+td.plain::before {
+  content: "ℹ"; display: inline-block; margin-right: 7px;
+  color: var(--cyan); font-weight: 700;
+}
 .badge {
   padding: 3px 11px; border-radius: 999px; font-size: .76rem;
   background: var(--glass); color: var(--muted); font-weight: 700;

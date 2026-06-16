@@ -35,17 +35,15 @@ nos jogos varridos. Baixe a chance mínima e tente de novo.</div>
     {% for _crit, m in g.hits %}
       <tr class="pass">
         <td>
-          {% if m.metrics.odd %}
           <input type="checkbox" class="leg"
                  data-fixture="{{ g.ctx.label }}"
                  data-market="{{ m.label }}"
-                 data-odd="{{ m.metrics.odd }}"
+                 data-odd="{{ m.metrics.odd if m.metrics.odd else '' }}"
                  data-p="{{ m.metrics.p_model }}"
                  data-fid="{{ g.ctx.fixture.fixture.id }}"
                  data-mkt="{{ m.market }}"
                  data-side="{{ m.side }}"
                  data-line="{{ m.line if m.line is not none else '' }}">
-          {% endif %}
         </td>
         <td>{{ m.label }}</td>
         <td>
@@ -60,7 +58,7 @@ nos jogos varridos. Baixe a chance mínima e tente de novo.</div>
         <td>{{ "%+.3f"|format(m.metrics.ev) if m.metrics.ev is not none else "—" }}</td>
       </tr>
       {% if m.plain %}
-      <tr class="note-row"><td></td><td colspan="5" class="plain">📖 {{ m.plain }}</td></tr>
+      <tr class="note-row"><td></td><td colspan="5" class="plain">{{ m.plain }}</td></tr>
       {% endif %}
     {% endfor %}
     </tbody>

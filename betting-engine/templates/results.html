@@ -65,11 +65,11 @@
     {% for m in fa.markets %}
       <tr class="{{ 'pass' if m.passes_filters else 'fail' }}">
         <td>
-          {% if m.metrics.odd %}
+          {% if m.passes_filters %}
           <input type="checkbox" class="leg"
                  data-fixture="{{ fa.ctx.label }}"
                  data-market="{{ m.label }}"
-                 data-odd="{{ m.metrics.odd }}"
+                 data-odd="{{ m.metrics.odd if m.metrics.odd else '' }}"
                  data-p="{{ m.metrics.p_model }}"
                  data-fid="{{ fa.ctx.fixture.fixture.id }}"
                  data-mkt="{{ m.market }}"

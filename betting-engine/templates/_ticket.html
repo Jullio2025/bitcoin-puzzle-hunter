@@ -39,8 +39,8 @@ fab.addEventListener("click", () =>
 function refreshTicket() {
   const legs = [...document.querySelectorAll(".leg:checked")].map(cb => ({
     fixture: cb.dataset.fixture, market: cb.dataset.market,
-    odd: parseFloat(cb.dataset.odd), p: parseFloat(cb.dataset.p),
-    // dados estruturados p/ liquidação automática do tracker
+    odd: cb.dataset.odd === "" ? null : parseFloat(cb.dataset.odd),
+    p: parseFloat(cb.dataset.p),
     fid: parseInt(cb.dataset.fid), mkt: cb.dataset.mkt,
     side: cb.dataset.side,
     line: cb.dataset.line === "" ? null : parseFloat(cb.dataset.line)
@@ -57,14 +57,26 @@ function refreshTicket() {
       document.getElementById(id).textContent = "—");
     return;
   }
+  const withOdd = legs.filter(l => l.odd && l.odd > 1);
   box.innerHTML = legs.map(l =>
-    `• ${l.fixture} — ${l.market} (odd ${l.odd.toFixed(2)}, p ${(l.p*100).toFixed(1)}%)`
+    `• ${l.fixture} — ${l.market} (`
+    + (l.odd ? `odd ${l.odd.toFixed(2)}, ` : `<em>sem odd ref. — confira na casa</em>, `)
+    + `p ${(l.p*100).toFixed(1)}%)`
   ).join("<br>");
-  const odd = legs.reduce((a, l) => a * l.odd, 1);
+  // probabilidade combinada usa TODAS as pernas (sempre temos p_model)
   const prob = legs.reduce((a, l) => a * l.p, 1);
-  document.getElementById("t-odd").textContent = odd.toFixed(2);
   document.getElementById("t-prob").textContent = (prob*100).toFixed(1) + "%";
   document.getElementById("t-lose").textContent = ((1-prob)*100).toFixed(1) + "%";
+  // odd combinada só sai completa se TODAS as pernas tiverem odd de referência
+  if (withOdd.length === legs.length) {
+    const odd = legs.reduce((a, l) => a * l.odd, 1);
+    document.getElementById("t-odd").textContent = odd.toFixed(2);
+  } else if (withOdd.length) {
+    const partial = withOdd.reduce((a, l) => a * l.odd, 1);
+    document.getElementById("t-odd").textContent = "~" + partial.toFixed(2) + "*";
+  } else {
+    document.getElementById("t-odd").textContent = "—";
+  }
   document.getElementById("fab-text").textContent =
     `${legs.length} ✓ — ver meu cartão`;
 }

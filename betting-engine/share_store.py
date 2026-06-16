@@ -25,8 +25,8 @@ def get(code: str) -> dict | None:
     return _load().get(code)
 
 
-def create(legs: list[dict], combined_odd: float, combined_prob: float,
-           lose_prob: float) -> str:
+def create(legs: list[dict], combined_odd: float | None, combined_prob: float,
+           lose_prob: float, partial: bool = False) -> str:
     """Guarda o bilhete e devolve o código curto do link público."""
     shared = _load()
     code = secrets.token_urlsafe(4).replace("_", "a").replace("-", "b")[:6]
@@ -35,10 +35,12 @@ def create(legs: list[dict], combined_odd: float, combined_prob: float,
     shared[code] = {
         "created": date.today().isoformat(),
         "legs": [{"fixture": l["fixture"], "market": l["market"],
-                  "odd": float(l["odd"]), "p": float(l["p"])} for l in legs],
+                  "odd": (float(l["odd"]) if l.get("odd") else None),
+                  "p": float(l["p"])} for l in legs],
         "combined_odd": combined_odd,
         "combined_prob": combined_prob,
         "lose_prob": lose_prob,
+        "partial": partial,
     }
     _save(shared)
     return code
