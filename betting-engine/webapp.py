@@ -518,7 +518,8 @@ def ticket_share(request: Request, user: str = Depends(current_user),
 def cartoes(request: Request, user: str = Depends(current_user), msg: str = ""):
     import share_store
     cards = share_store.list_for_user(user)
-    return render(request, "cartoes.html", cards=cards, msg=msg)
+    return render(request, "cartoes.html", cards=cards, msg=msg,
+                  summary=share_store.user_summary(user))
 
 
 @app.post("/cartoes/conferir")

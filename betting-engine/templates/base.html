@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css?v=18">
+  <link rel="stylesheet" href="/static/style.css?v=19">
 </head>
 <body>
   <div id="progress"></div>
@@ -19,35 +19,53 @@
     <div class="ball b2">⚽</div>
     <div class="ball b3">⚽</div>
   </div>
-  <header class="topbar">
+  {% if username %}
+  <aside class="sidebar" id="sidebar">
     <a class="brand" href="/">⚡ CHAPA<span>FUT</span></a>
     <nav>
-      {% if username %}
-      <a href="/estrategias">Estratégias</a>
-      <a href="/">Radar</a>
-      <a href="/analisar">Analisar</a>
-      <a href="/scanner">Scanner</a>
-      <a href="/cartoes">Cartões</a>
-      <a href="/tracker">Tracker</a>
-      <a href="/conta">Conta</a>
+      <a href="/estrategias">🎯 Estratégias</a>
+      <a href="/">📡 Radar</a>
+      <a href="/analisar">🔎 Analisar</a>
+      <a href="/scanner">⛏️ Scanner</a>
+      <a href="/cartoes">🎫 Cartões</a>
+      <a href="/tracker">📊 Tracker</a>
+      <a href="/conta">⚙️ Conta</a>
+    </nav>
+    <div class="side-foot">
       <span class="nav-user">👤 {{ username }}</span>
       <a href="/logout" class="nav-logout">sair</a>
-      {% else %}
-      <a href="/login">Entrar</a>
-      <a href="/register" class="active">Criar conta</a>
-      {% endif %}
-    </nav>
-  </header>
+    </div>
+  </aside>
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+  {% endif %}
 
-  <div class="disclaimer">
-    O ChapaFut só <strong>calcula e mostra números</strong> — não recomenda
-    estratégia nem decide nada. Toda decisão de risco e de aposta é
-    <strong>sua</strong>, na sua casa de apostas. Modelo: Poisson auditável. 18+
+  <div class="content{{ ' with-side' if username else '' }}">
+    {% if username %}
+    <header class="mobilebar">
+      <button id="menu-toggle" aria-label="abrir menu">☰</button>
+      <a class="brand" href="/">⚡ CHAPA<span>FUT</span></a>
+    </header>
+    {% else %}
+    <header class="topbar">
+      <a class="brand" href="/">⚡ CHAPA<span>FUT</span></a>
+      <nav>
+        <a href="/login">Entrar</a>
+        <a href="/register" class="active">Criar conta</a>
+      </nav>
+    </header>
+    {% endif %}
+
+    <div class="disclaimer">
+      O ChapaFut só <strong>calcula e mostra números</strong> — não recomenda
+      estratégia nem decide nada. Toda decisão de risco e de aposta é
+      <strong>sua</strong>, na sua casa de apostas. Modelo: Poisson auditável. 18+
+    </div>
+
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="foot">ChapaFut — os números na mesa, a decisão é sua.</footer>
   </div>
-
-  <main>
-    {% block content %}{% endblock %}
-  </main>
 
   <div id="loading-overlay" aria-hidden="true">
     <div class="load-box">
@@ -58,7 +76,6 @@
     </div>
   </div>
 
-  <footer class="foot">ChapaFut — os números na mesa, a decisão é sua.</footer>
-  <script src="/static/fx.js?v=9" defer></script>
+  <script src="/static/fx.js?v=19" defer></script>
 </body>
 </html>

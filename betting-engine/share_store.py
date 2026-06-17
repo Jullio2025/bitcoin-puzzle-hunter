@@ -76,3 +76,54 @@ def update(code: str, **fields) -> None:
     if code in data:
         data[code].update(fields)
         _save(data)
+
+
+def user_summary(username: str) -> dict:
+    """Resumo do histórico + calibração do modelo (por perna) do usuário.
+
+    Calibração: agrupa as pernas JÁ RESOLVIDAS por faixa de probabilidade
+    e compara a chance que o modelo previu com o acerto real. Se as duas
+    baterem, o modelo está calibrado. Abaixo de ~100 pernas, a variância
+    ainda domina (não dá pra concluir)."""
+    cards = list_for_user(username)
+    counts = {"pendente": 0, "ganhou": 0, "perdeu": 0,
+              "devolvida": 0, "conferir": 0}
+    # faixas de calibração: <50, 50-60, ..., 90-100
+    edges = [(0.0, 0.5), (0.5, 0.6), (0.6, 0.7), (0.7, 0.8), (0.8, 0.9),
+             (0.9, 1.01)]
+    buckets = [{"lo": lo, "hi": hi, "n": 0, "won": 0, "psum": 0.0}
+               for lo, hi in edges]
+    legs_settled = 0
+
+    for card in cards:
+        counts[card.get("status", "pendente")] = \
+            counts.get(card.get("status", "pendente"), 0) + 1
+        for leg, det in zip(card.get("legs", []), card.get("detail", [])):
+            outcome = det.get("outcome")
+            if outcome not in ("won", "lost"):
+                continue  # push/unknown/pending não entram na calibração
+            p = leg.get("p")
+            if p is None:
+                continue
+            legs_settled += 1
+            for b in buckets:
+                if b["lo"] <= p < b["hi"]:
+                    b["n"] += 1
+                    b["psum"] += p
+                    if outcome == "won":
+                        b["won"] += 1
+                    break
+
+    for b in buckets:
+        b["previsto"] = (b["psum"] / b["n"]) if b["n"] else None
+        b["real"] = (b["won"] / b["n"]) if b["n"] else None
+
+    decided = counts["ganhou"] + counts["perdeu"]
+    return {
+        "counts": counts,
+        "total": len(cards),
+        "card_hit_rate": (counts["ganhou"] / decided) if decided else None,
+        "buckets": [b for b in buckets if b["n"] > 0],
+        "legs_settled": legs_settled,
+        "enough": legs_settled >= 100,
+    }

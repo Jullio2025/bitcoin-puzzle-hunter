@@ -3,6 +3,50 @@
 <h1>🎫 Meus Cartões</h1>
 {% if msg %}<div class="success">{{ msg }}</div>{% endif %}
 
+{% if summary.total %}
+<div class="card">
+  <h2>📊 Histórico & calibração do modelo</h2>
+  <div class="trio">
+    <div><span>Cartões</span><strong>{{ summary.total }}</strong></div>
+    <div><span>Ganhos</span><strong>{{ summary.counts.ganhou }}</strong></div>
+    <div><span>Perdidos</span><strong>{{ summary.counts.perdeu }}</strong></div>
+    <div><span>Acerto dos cartões</span>
+      <strong>{{ "%.0f"|format(summary.card_hit_rate * 100) ~ "%" if summary.card_hit_rate is not none else "—" }}</strong></div>
+  </div>
+
+  <p class="hint">Calibração: quando o modelo diz X%, ele acerta X% de
+  verdade? (mede perna por perna, nas {{ summary.legs_settled }} já
+  resolvidas)</p>
+  {% if summary.buckets %}
+  <table class="markets calib">
+    <thead><tr><th>Modelo dizia</th><th>Acertou de verdade</th><th>Amostra</th></tr></thead>
+    <tbody>
+    {% for b in summary.buckets %}
+      <tr>
+        <td>{{ "%.0f"|format(b.previsto * 100) }}%</td>
+        <td>
+          <div class="pwrap"><strong>{{ "%.0f"|format(b.real * 100) }}%</strong>
+            <span class="pbar"><i style="width: {{ b.real * 100 }}%"></i>
+              <b style="left: {{ b.previsto * 100 }}%"></b></span>
+          </div>
+        </td>
+        <td>{{ b.n }} perna(s)</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="hint">Barra = acerto real · risco branco = o que o modelo previu.
+  Quanto mais perto, mais calibrado.</p>
+  {% endif %}
+
+  {% if not summary.enough %}
+  <div class="error">⚠️ AMOSTRA PEQUENA: {{ summary.legs_settled }} pernas
+  resolvidas (&lt; 100). A variância ainda domina — ainda NÃO dá pra concluir
+  se o modelo é bem calibrado. Siga registrando.</div>
+  {% endif %}
+</div>
+{% endif %}
+
 <form method="post" action="/cartoes/conferir">
   <button type="submit" class="primary">🔄 Conferir resultados agora</button>
   <span class="hint">A conferência também roda sozinha de hora em hora; o

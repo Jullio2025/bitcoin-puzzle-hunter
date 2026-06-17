@@ -216,6 +216,49 @@ h1 { font-size: 1.55rem; font-weight: 800; letter-spacing: -0.02em; }
 h2 { font-size: 1.08rem; margin-top: 0; font-weight: 700;
      letter-spacing: -0.01em; }
 
+/* ------------------------------------------------------- menu lateral */
+.sidebar {
+  position: fixed; top: 0; left: 0; bottom: 0; width: 215px; z-index: 60;
+  display: flex; flex-direction: column; padding: 20px 14px;
+  background: rgba(8, 12, 28, .72);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border-right: 1px solid var(--line-soft);
+  transition: transform .3s var(--ease);
+}
+.sidebar .brand { display: block; margin: 4px 6px 22px; font-size: 1.3rem; }
+.sidebar nav { display: flex; flex-direction: column; gap: 6px; }
+.sidebar nav a {
+  color: var(--text); text-decoration: none; padding: 11px 14px;
+  border-radius: 12px; font-weight: 600; font-size: .95rem;
+  border: 1px solid transparent; transition: all .2s var(--ease);
+}
+.sidebar nav a:hover {
+  background: var(--glass); border-color: var(--line-soft);
+  transform: translateX(3px);
+}
+.sidebar nav a.active {
+  background: var(--grad); color: #051018;
+  box-shadow: 0 4px 18px rgba(59, 130, 246, .35);
+}
+.side-foot {
+  margin-top: auto; padding-top: 16px; border-top: 1px solid var(--line-soft);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.side-foot .nav-user { color: var(--muted); font-size: .85rem; font-weight: 600; }
+.side-foot .nav-logout {
+  color: var(--muted); text-decoration: none; font-size: .82rem;
+  padding: 6px 12px; border: 1px solid var(--line-soft); border-radius: 999px;
+}
+.side-foot .nav-logout:hover { color: var(--bad); border-color: var(--bad); }
+.content.with-side { margin-left: 215px; }
+.sidebar-backdrop {
+  position: fixed; inset: 0; z-index: 55; background: rgba(0,0,0,.5);
+  opacity: 0; pointer-events: none; transition: opacity .3s var(--ease);
+}
+.sidebar-backdrop.on { opacity: 1; pointer-events: auto; }
+.mobilebar { display: none; }
+
 /* ------------------------------------------------------------- topo */
 .topbar {
   display: flex; justify-content: space-between; align-items: center;
@@ -712,6 +755,26 @@ summary:hover { color: var(--cyan); }
   position: absolute; top: -3px; bottom: -3px; width: 2.5px;
   background: #fff; border-radius: 2px;
   box-shadow: 0 0 6px rgba(255, 255, 255, .9);
+}
+
+/* ----------------------------- sidebar vira gaveta no celular */
+@media (max-width: 900px) {
+  .sidebar { transform: translateX(-100%); width: 240px; box-shadow:
+    8px 0 40px rgba(0,0,0,.5); }
+  .sidebar.open { transform: translateX(0); }
+  .content.with-side { margin-left: 0; }
+  .mobilebar {
+    display: flex; align-items: center; gap: 12px; position: sticky; top: 0;
+    z-index: 50; padding: 11px 16px;
+    background: rgba(8,12,28,.8); backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .mobilebar .brand { font-size: 1.15rem; }
+  #menu-toggle {
+    background: var(--glass); border: 1px solid var(--line);
+    color: var(--text); font-size: 1.3rem; line-height: 1;
+    padding: 6px 13px; border-radius: 10px; cursor: pointer; margin: 0;
+  }
 }
 
 /* --------------------------------------------------------- responsivo */

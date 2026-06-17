@@ -39,6 +39,22 @@
     });
   }
 
+  /* ------------- menu lateral (abrir/fechar no celular) ------------- */
+  const sidebar = document.getElementById("sidebar");
+  const toggle = document.getElementById("menu-toggle");
+  const backdrop = document.getElementById("sidebar-backdrop");
+  if (sidebar && toggle) {
+    const open = () => { sidebar.classList.add("open");
+                         if (backdrop) backdrop.classList.add("on"); };
+    const close = () => { sidebar.classList.remove("open");
+                          if (backdrop) backdrop.classList.remove("on"); };
+    toggle.addEventListener("click", () =>
+      sidebar.classList.contains("open") ? close() : open());
+    if (backdrop) backdrop.addEventListener("click", close);
+    sidebar.querySelectorAll("a").forEach(a =>
+      a.addEventListener("click", close));
+  }
+
   /* ------------- marca a aba atual no menu (estado premium) ---------- */
   const path = location.pathname;
   document.querySelectorAll(".topbar nav a").forEach((a) => {
