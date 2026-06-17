@@ -161,3 +161,35 @@ class TestShrinkage(unittest.TestCase):
             self.assertEqual(recommender._shrink(4.0, 3, 1.3), 4.0)
         finally:
             config.MODEL["shrink_k"] = old
+
+
+class TestDixonColes(unittest.TestCase):
+    """Correção de Dixon-Coles: sobe placares baixos/empate; rho=0 = Poisson."""
+
+    def test_raises_draw_vs_independent(self):
+        import config
+        lh, la = 1.4, 1.2
+        config.MODEL["dixon_coles_rho"] = 0.0
+        _, pd0, _ = scoring.match_outcome_probs(lh, la)
+        config.MODEL["dixon_coles_rho"] = -0.10
+        _, pd1, _ = scoring.match_outcome_probs(lh, la)
+        config.MODEL["dixon_coles_rho"] = -0.10
+        self.assertGreater(pd1, pd0)
+
+    def test_rho_zero_is_independent_poisson(self):
+        import config
+        old = config.MODEL["dixon_coles_rho"]
+        config.MODEL["dixon_coles_rho"] = 0.0
+        try:
+            m = scoring.score_matrix(1.3, 1.1)
+            tot = sum(scoring.poisson_pmf(h, 1.3) * scoring.poisson_pmf(a, 1.1)
+                      for h in range(11) for a in range(11))
+            self.assertAlmostEqual(
+                m[2][1], scoring.poisson_pmf(2, 1.3) *
+                scoring.poisson_pmf(1, 1.1) / tot)
+        finally:
+            config.MODEL["dixon_coles_rho"] = old
+
+    def test_matrix_sums_to_one(self):
+        m = scoring.score_matrix(1.7, 1.0)
+        self.assertAlmostEqual(sum(sum(r) for r in m), 1.0)

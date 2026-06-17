@@ -85,25 +85,63 @@ def wins_to_recover(odd: float) -> float:
 
 
 # ------------------------------------------------------------------- 1X2
-def match_outcome_probs(lam_home: float, lam_away: float,
-                        max_goals: int = 10) -> tuple[float, float, float]:
-    """(P_casa, P_empate, P_fora) com Poisson independente por time.
+def _dc_tau(h: int, a: int, lam: float, mu: float, rho: float) -> float:
+    """Correção de Dixon-Coles para placares baixos (0-0, 1-0, 0-1, 1-1).
 
-    Soma a grade de placares 0..max_goals e normaliza o resíduo da cauda.
+    Ajusta a dependência entre os times nesses placares — o Poisson
+    independente subestima empates/0-0. rho<0 sobe esses placares.
+    Fora dos quatro placares, tau = 1 (sem efeito). rho=0 => Poisson puro.
     """
-    p_home = p_draw = p_away = 0.0
+    if h == 0 and a == 0:
+        return 1.0 - lam * mu * rho
+    if h == 0 and a == 1:
+        return 1.0 + lam * rho
+    if h == 1 and a == 0:
+        return 1.0 + mu * rho
+    if h == 1 and a == 1:
+        return 1.0 - rho
+    return 1.0
+
+
+def score_matrix(lam_home: float, lam_away: float, max_goals: int = 10,
+                 rho: float | None = None) -> list[list[float]]:
+    """Matriz normalizada de probabilidade de cada placar (h x a), com
+    correção de Dixon-Coles. Base auditável de 1X2, handicap e BTTS."""
+    if rho is None:
+        import config
+        rho = config.MODEL.get("dixon_coles_rho", 0.0)
+    m = [[0.0] * (max_goals + 1) for _ in range(max_goals + 1)]
+    total = 0.0
     for h in range(max_goals + 1):
         ph = poisson_pmf(h, lam_home)
         for a in range(max_goals + 1):
-            p = ph * poisson_pmf(a, lam_away)
+            v = ph * poisson_pmf(a, lam_away) * _dc_tau(h, a, lam_home,
+                                                        lam_away, rho)
+            v = max(v, 0.0)  # tau pode passar de 0 em casos extremos
+            m[h][a] = v
+            total += v
+    if total > 0:
+        for h in range(max_goals + 1):
+            for a in range(max_goals + 1):
+                m[h][a] /= total
+    return m
+
+
+def match_outcome_probs(lam_home: float, lam_away: float,
+                        max_goals: int = 10) -> tuple[float, float, float]:
+    """(P_casa, P_empate, P_fora) a partir da matriz de placares (Dixon-Coles).
+    Soma a grade 0..max_goals e normaliza o resíduo da cauda."""
+    m = score_matrix(lam_home, lam_away, max_goals)
+    p_home = p_draw = p_away = 0.0
+    for h in range(max_goals + 1):
+        for a in range(max_goals + 1):
             if h > a:
-                p_home += p
+                p_home += m[h][a]
             elif h == a:
-                p_draw += p
+                p_draw += m[h][a]
             else:
-                p_away += p
-    total = p_home + p_draw + p_away
-    return p_home / total, p_draw / total, p_away / total
+                p_away += m[h][a]
+    return p_home, p_draw, p_away
 
 
 def handicap_prob(lam_home: float, lam_away: float, side: str,
@@ -112,22 +150,20 @@ def handicap_prob(lam_home: float, lam_away: float, side: str,
 
     Ex.: side='away', line=+3 -> visitante cobre se gols_fora + 3 >
     gols_casa (push se empatar exatamente com a linha inteira).
-    Mesma grade de placares do 1X2 — totalmente auditável.
+    Mesma matriz de placares (Dixon-Coles) do 1X2 — auditável.
     """
     if side not in ("home", "away"):
         raise ValueError("side deve ser 'home' ou 'away'")
-    p_win = p_push = total = 0.0
+    m = score_matrix(lam_home, lam_away, max_goals)
+    p_win = p_push = 0.0
     for h in range(max_goals + 1):
-        ph = poisson_pmf(h, lam_home)
         for a in range(max_goals + 1):
-            p = ph * poisson_pmf(a, lam_away)
-            total += p
             adj = (h + line - a) if side == "home" else (a + line - h)
             if adj > 1e-9:
-                p_win += p
+                p_win += m[h][a]
             elif abs(adj) <= 1e-9:
-                p_push += p
-    return p_win / total, p_push / total
+                p_push += m[h][a]
+    return p_win, p_push
 
 
 def both_teams_score_prob(lam_home: float, lam_away: float) -> float:

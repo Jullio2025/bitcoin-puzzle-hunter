@@ -93,6 +93,10 @@ MODEL = {
     "baseline_corners_for": 5.0,   # escanteios a favor/jogo típico
     "baseline_corners_against": 5.0,
     "baseline_cards_team": 2.0,    # cartões recebidos/jogo por time
+    # Correção de Dixon-Coles: ajusta placares baixos (o Poisson puro
+    # subestima empates e 0-0). rho<0 sobe esses placares; 0 = desliga.
+    # Valor típico da literatura: ~ -0.10 a -0.15.
+    "dixon_coles_rho": -0.10,
 }
 
 # --- Tracker ---------------------------------------------------------------
