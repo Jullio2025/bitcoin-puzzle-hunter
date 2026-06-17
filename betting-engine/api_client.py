@@ -142,6 +142,15 @@ class ApiFootballClient:
                          ttl=config.CACHE_TTL["fixtures_day"])
         return rows[0] if rows else None
 
+    def live_fixtures(self) -> list:
+        """TODOS os jogos em andamento no mundo, numa única chamada.
+
+        Cache de 60s (config) — a tela ao vivo atualiza a cada minuto lendo
+        do cache, então o custo é ~1 chamada/min independente de quantos
+        usuários estejam olhando."""
+        return self._get("fixtures", {"live": "all"},
+                         ttl=config.CACHE_TTL["live"])
+
     def team_last_fixtures(self, team_id: int, last: int = 40) -> list:
         """Últimos jogos encerrados de um time (casa e fora misturados).
 

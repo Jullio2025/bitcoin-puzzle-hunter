@@ -40,6 +40,7 @@ CACHE_TTL = {
     "lineups": 15 * 60,              # escalações mudam até a bola rolar
     "odds": 30 * 60,
     "referee": 24 * 3600,
+    "live": 60,                      # placar ao vivo: 1 chamada/min (cache)
 }
 
 # --- Defaults do usuário (SUGESTÕES, nunca travas) -------------------------

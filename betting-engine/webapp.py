@@ -16,7 +16,7 @@ import secrets
 from datetime import date
 
 from fastapi import Depends, FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -388,6 +388,38 @@ def estrategia_run(request: Request, user: str = Depends(current_user),
                   match_all=strat.get("match_all", False), preset_saved=False,
                   strategy_name=f'{strat["icon"]} {strat["nome"]}',
                   api_calls=client.calls_made)
+
+
+# -------------------------------------------------------------------- ao vivo
+@app.get("/aovivo", response_class=HTMLResponse)
+def aovivo(request: Request, user: str = Depends(current_user)):
+    return render(request, "aovivo.html")
+
+
+@app.get("/aovivo.json")
+def aovivo_json(user: str = Depends(current_user)):
+    """Placar ao vivo (cache de 60s). Lido pelo auto-refresh da tela."""
+    try:
+        rows = ApiFootballClient().live_fixtures()
+    except Exception:
+        return JSONResponse({"jogos": [], "erro": True})
+    jogos = []
+    for fx in rows:
+        f, t, g = fx["fixture"], fx["teams"], fx["goals"]
+        jogos.append({
+            "home": t["home"]["name"], "away": t["away"]["name"],
+            "hl": t["home"].get("logo"), "al": t["away"].get("logo"),
+            "gh": g.get("home"), "ga": g.get("away"),
+            "min": f.get("status", {}).get("elapsed"),
+            "status": f.get("status", {}).get("short"),
+            "league": fx["league"]["name"],
+            "country": fx["league"].get("country"),
+            "flag": fx["league"].get("flag"),
+        })
+    # ordena: por liga/país, depois por minuto
+    jogos.sort(key=lambda j: (j["country"] or "", j["league"] or "",
+                              -(j["min"] or 0)))
+    return JSONResponse({"jogos": jogos, "erro": False})
 
 
 # -------------------------------------------------------------------- radar
