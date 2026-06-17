@@ -49,7 +49,8 @@ def create(legs: list[dict], combined_odd: float | None, combined_prob: float,
                   "odd": (float(l["odd"]) if l.get("odd") else None),
                   "p": float(l["p"]),
                   "fid": l.get("fid"), "mkt": l.get("mkt"),
-                  "side": l.get("side"), "line": l.get("line")}
+                  "side": l.get("side"), "line": l.get("line"),
+                  "hl": l.get("hl"), "al": l.get("al")}
                  for l in legs],
         "combined_odd": combined_odd,
         "combined_prob": combined_prob,

@@ -39,6 +39,8 @@ nos jogos varridos. Baixe a chance mínima e tente de novo.</div>
         <td>
           <input type="checkbox" class="leg"
                  data-fixture="{{ g.ctx.label }}"
+                   data-hl="{{ g.ctx.fixture.teams.home.logo or "" }}"
+                   data-al="{{ g.ctx.fixture.teams.away.logo or "" }}"
                  data-market="{{ m.label }}"
                  data-odd="{{ m.metrics.odd if m.metrics.odd else '' }}"
                  data-p="{{ m.metrics.p_model }}"

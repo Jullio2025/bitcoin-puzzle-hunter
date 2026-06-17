@@ -76,6 +76,8 @@ afrouxe a faixa de odd ou a probabilidade mínima e garimpe de novo.</div>
       <tr class="pass">
         <td><input type="checkbox" class="leg"
                    data-fixture="{{ g.ctx.label }}"
+                   data-hl="{{ g.ctx.fixture.teams.home.logo or "" }}"
+                   data-al="{{ g.ctx.fixture.teams.away.logo or "" }}"
                    data-market="{{ m.label }}"
                    data-odd="{{ m.metrics.odd }}"
                    data-p="{{ m.metrics.p_model }}"

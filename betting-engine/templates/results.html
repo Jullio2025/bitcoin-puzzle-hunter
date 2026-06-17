@@ -70,6 +70,8 @@
           {% if m.passes_filters %}
           <input type="checkbox" class="leg"
                  data-fixture="{{ fa.ctx.label }}"
+                 data-hl="{{ fa.ctx.fixture.teams.home.logo or "" }}"
+                 data-al="{{ fa.ctx.fixture.teams.away.logo or "" }}"
                  data-market="{{ m.label }}"
                  data-odd="{{ m.metrics.odd if m.metrics.odd else '' }}"
                  data-p="{{ m.metrics.p_model }}"

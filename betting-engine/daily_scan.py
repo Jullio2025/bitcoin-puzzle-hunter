@@ -91,7 +91,9 @@ def build_auto_ticket(result, max_legs: int = TICKET_MAX_LEGS,
                      "odd": ma.metrics.odd, "p": ma.metrics.p_model,
                      "ev": ma.metrics.ev or 0,
                      "fid": g.ctx.fixture["fixture"]["id"], "mkt": ma.market,
-                     "side": ma.side, "line": ma.line})
+                     "side": ma.side, "line": ma.line,
+                     "hl": g.ctx.fixture["teams"]["home"].get("logo"),
+                     "al": g.ctx.fixture["teams"]["away"].get("logo")})
     if not legs:
         return None
     legs.sort(key=lambda l: -l["ev"])

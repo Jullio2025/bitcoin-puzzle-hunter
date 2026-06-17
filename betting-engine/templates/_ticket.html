@@ -43,7 +43,8 @@ function refreshTicket() {
     p: parseFloat(cb.dataset.p),
     fid: parseInt(cb.dataset.fid), mkt: cb.dataset.mkt,
     side: cb.dataset.side,
-    line: cb.dataset.line === "" ? null : parseFloat(cb.dataset.line)
+    line: cb.dataset.line === "" ? null : parseFloat(cb.dataset.line),
+    hl: cb.dataset.hl || null, al: cb.dataset.al || null
   }));
   document.getElementById("legs-json").value = JSON.stringify(legs);
   document.getElementById("t-count").textContent =
