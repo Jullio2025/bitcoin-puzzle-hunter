@@ -18,7 +18,7 @@ nos jogos varridos. Baixe a chance mínima e tente de novo.</div>
 
 {% for g in result.groups %}
 <div class="card">
-  <h2>{{ g.ctx.label }}
+  <h2>{% with fxx = g.ctx.fixture %}{% include "_matchup.html" %}{% endwith %}
     <span class="badge ok">{{ g.hits|length }} mercado(s) ≥ alvo</span></h2>
   <p class="meta">{{ g.ctx.fixture.fixture.date[:16] }} —
     {{ g.ctx.fixture.league.name }} ({{ g.ctx.fixture.league.country }})

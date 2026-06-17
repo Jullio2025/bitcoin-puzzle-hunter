@@ -32,7 +32,11 @@
 
   {% for liga, jogos in fixture_groups.items() %}
   <div class="card league-block">
-    <h2 class="league-title">🏆 {{ liga }} <span class="badge">{{ jogos|length }}</span>
+    <h2 class="league-title">
+      {% set meta = group_meta.get(liga) %}
+      {% if meta and meta.flag %}<img class="flag" src="{{ meta.flag }}" alt="" loading="lazy">
+      {% elif meta and meta.logo %}<img class="flag" src="{{ meta.logo }}" alt="" loading="lazy">
+      {% else %}🏆 {% endif %}{{ liga }} <span class="badge">{{ jogos|length }}</span>
       {% if liga in partial_groups %}<span class="badge warn" title="A API não tem estatística completa de cartões/escanteios desta competição — gols, 1X2, ambas marcam e dupla chance funcionam normalmente">sem stats de cartões/escanteios</span>{% endif %}
     </h2>
     {% for fx in jogos %}
@@ -41,8 +45,8 @@
       <input type="checkbox" name="fixture_id" value="{{ fx.fixture.id }}">
       <span class="match-when"><strong>{{ fx.fixture.date[11:16] }}</strong></span>
       <span class="match-teams">
-        <span>{{ fx.teams.home.name }}</span>
-        <span>{{ fx.teams.away.name }}</span>
+        <span class="tm">{% if fx.teams.home.logo %}<img class="team-logo" src="{{ fx.teams.home.logo }}" alt="" loading="lazy">{% endif %}{{ fx.teams.home.name }}</span>
+        <span class="tm">{% if fx.teams.away.logo %}<img class="team-logo" src="{{ fx.teams.away.logo }}" alt="" loading="lazy">{% endif %}{{ fx.teams.away.name }}</span>
       </span>
       <span class="odd-pills">
         <span class="pill"><small>1</small>{{ "%.2f"|format(o.home) if o and o.home else "—" }}</span>

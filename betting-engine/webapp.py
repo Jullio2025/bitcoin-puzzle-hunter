@@ -278,15 +278,19 @@ def _render_lobby(request: Request, match_date: str, league: int,
     # agrupa por "País — Campeonato"; marca quais NÃO têm stats completas
     groups: dict[str, list] = {}
     partial: set[str] = set()
+    group_meta: dict[str, dict] = {}
     for fx in upcoming:
         key = f'{fx["league"].get("country") or ""} — {fx["league"]["name"]}'
         groups.setdefault(key, []).append(fx)
+        group_meta.setdefault(key, {"logo": fx["league"].get("logo"),
+                                    "flag": fx["league"].get("flag")})
         if fx["league"]["id"] not in covered_ids:
             partial.add(key)
 
     favs, leagues, _ = _leagues_for_select()
     return render(request, "fixtures.html", fixtures=upcoming,
                   fixture_groups=groups, partial_groups=partial,
+                  group_meta=group_meta,
                   match_date=match_date, rule_names=rules.all_rule_names(),
                   bookmakers=_bookmakers(), lobby_odds=lobby_odds,
                   favorites=favs, leagues=leagues)

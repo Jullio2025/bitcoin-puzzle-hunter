@@ -7,7 +7,7 @@
 
 {% for fa in analyses %}
 <div class="card">
-  <h2>{{ fa.ctx.label }}</h2>
+  <h2>{% with fxx = fa.ctx.fixture %}{% include "_matchup.html" %}{% endwith %}</h2>
   <p class="meta">{{ fa.ctx.fixture.fixture.date[:16] }} —
     árbitro: {{ fa.ctx.fixture.fixture.referee or "?" }} —
     {{ fa.ctx.fixture.league.name }}{% if fa.ctx.weather %} —
