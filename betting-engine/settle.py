@@ -30,6 +30,16 @@ def decide(market: str, side: str, line: float | None,
         adj = (gh + line - ga) if side == "home" else (ga + line - gh)
         return "won" if adj > 1e-9 else ("push" if abs(adj) <= 1e-9
                                          else "lost")
+    if market == "btts":
+        scored = gh > 0 and ga > 0
+        won = scored if side == "yes" else not scored
+        return "won" if won else "lost"
+    if market == "double_chance":
+        winner = "home" if gh > ga else ("away" if ga > gh else "draw")
+        ok = {"1X": winner in ("home", "draw"),
+              "12": winner in ("home", "away"),
+              "X2": winner in ("away", "draw")}.get(side, False)
+        return "won" if ok else "lost"
     if market == "goals":
         total = gh + ga
     elif market == "team_goals_home":
@@ -73,6 +83,42 @@ def leg_outcome(client: ApiFootballClient, leg: dict) -> str:
              if leg["market"] in ("corners", "cards") else None)
     return decide(leg["market"], leg["side"], leg.get("line"),
                   gh, ga, count)
+
+
+_OUTCOME_PT = {"won": "✅", "lost": "❌", "push": "↩️",
+               "unknown": "❔", "pending": "⏳"}
+
+
+def settle_card(client: ApiFootballClient, card: dict) -> tuple[str, list]:
+    """Confere um cartão. Retorna (status, detalhe_por_perna).
+
+    status: 'pendente' (algum jogo não acabou) | 'ganhou' | 'perdeu' |
+    'devolvida' (todas push) | 'conferir' (alguma perna sem estatística).
+    Cada perna do cartão tem fid, mkt, side, line, market(label).
+    """
+    outcomes, detail = [], []
+    for leg in card.get("legs", []):
+        if not leg.get("fid") or not leg.get("mkt"):
+            outcomes.append("unknown")
+            detail.append({"label": leg.get("market", "?"), "icon": "❔"})
+            continue
+        o = leg_outcome(client, {"fid": leg["fid"], "market": leg["mkt"],
+                                 "side": leg["side"], "line": leg.get("line")})
+        outcomes.append(o)
+        detail.append({"label": leg.get("market", leg["mkt"]),
+                       "icon": _OUTCOME_PT.get(o, "❔"), "outcome": o})
+
+    if not outcomes:
+        return "pendente", detail
+    if "pending" in outcomes:
+        return "pendente", detail
+    if "lost" in outcomes:
+        return "perdeu", detail
+    if "unknown" in outcomes:
+        return "conferir", detail
+    if all(o == "push" for o in outcomes):
+        return "devolvida", detail
+    return "ganhou", detail
 
 
 def auto_settle(tracker: Tracker,

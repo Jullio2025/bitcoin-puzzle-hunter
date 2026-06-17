@@ -103,6 +103,12 @@ html { scrollbar-width: thin; scrollbar-color: rgba(139,92,246,.4) transparent; 
 .o3 { width: 420px; height: 420px; left: 35%; bottom: -180px;
   background: radial-gradient(circle, rgba(59, 130, 246, .30), transparent 65%); }
 
+/* meus cartões */
+.card-head { display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 10px; }
+.card-head h2 { margin: 0; display: flex; gap: 8px; align-items: center;
+  flex-wrap: wrap; }
+
 /* glossário */
 .glossario summary { font-weight: 700; color: var(--cyan); }
 .glossario ul { margin: 10px 0; padding-left: 18px; }

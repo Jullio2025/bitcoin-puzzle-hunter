@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>🎫 Meus Cartões</h1>
+{% if msg %}<div class="success">{{ msg }}</div>{% endif %}
+
+<form method="post" action="/cartoes/conferir">
+  <button type="submit" class="primary">🔄 Conferir resultados agora</button>
+  <span class="hint">A conferência também roda sozinha de hora em hora; o
+  resultado chega no seu Telegram assim que os jogos terminam.</span>
+</form>
+
+{% if not cards %}
+<div class="card"><p class="hint">Você ainda não tem cartões. Gere um pelo
+<a href="/estrategias">Estratégias</a>, <a href="/">Radar</a> ou
+<a href="/scanner">Scanner</a> (botão "🎟️ Gerar meu cartão"), ou eles
+aparecem aqui quando o bot monta o garimpo diário.</p></div>
+{% else %}
+
+{% set badge = {"pendente":"", "ganhou":"ok", "perdeu":"warn",
+                "devolvida":"", "conferir":"warn"} %}
+{% set label = {"pendente":"⏳ Pendente", "ganhou":"✅ Ganhou",
+                "perdeu":"❌ Perdeu", "devolvida":"↩️ Devolvido",
+                "conferir":"❔ Conferir"} %}
+{% for card in cards %}
+<div class="card">
+  <div class="card-head">
+    <h2>{{ card.created }}
+      <span class="badge {{ badge.get(card.status, '') }}">{{ label.get(card.status, card.status) }}</span>
+      <span class="badge">{{ "bot" if card.source == "bot" else "meu" }}</span>
+    </h2>
+    <a class="button" href="/b/{{ card.code }}" target="_blank">abrir 🔗</a>
+  </div>
+  <table class="markets">
+    <tbody>
+    {% for leg in card.legs %}
+    <tr>
+      <td style="width:28px">{{ card.detail[loop.index0].icon if card.detail and card.detail|length >= loop.index else "" }}</td>
+      <td>{{ leg.fixture }}<br><span class="hint">{{ leg.market }}</span></td>
+      <td style="text-align:right">{{ "%.2f"|format(leg.odd) if leg.odd else "—" }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <div class="trio">
+    <div><span>Odd combinada{% if card.partial %} (parcial){% endif %}</span>
+      <strong>{{ "%.2f"|format(card.combined_odd) if card.combined_odd else "—" }}</strong></div>
+    <div><span>Probabilidade</span>
+      <strong>{{ "%.0f"|format(card.combined_prob * 100) }}%</strong></div>
+    <div><span>Chance de perder</span>
+      <strong>{{ "%.0f"|format(card.lose_prob * 100) }}%</strong></div>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

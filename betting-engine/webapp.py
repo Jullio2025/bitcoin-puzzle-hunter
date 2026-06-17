@@ -509,8 +509,28 @@ def ticket_share(request: Request, user: str = Depends(current_user),
     import share_store
     combo = _combine_tolerant(legs)
     code = share_store.create(legs, combo["odd"], combo["prob"],
-                              combo["lose"], partial=combo["partial"])
+                              combo["lose"], partial=combo["partial"],
+                              owner=user, source="manual")
     return RedirectResponse(f"/b/{code}", status_code=303)
+
+
+@app.get("/cartoes", response_class=HTMLResponse)
+def cartoes(request: Request, user: str = Depends(current_user), msg: str = ""):
+    import share_store
+    cards = share_store.list_for_user(user)
+    return render(request, "cartoes.html", cards=cards, msg=msg)
+
+
+@app.post("/cartoes/conferir")
+def cartoes_conferir(user: str = Depends(current_user)):
+    import daily_scan
+    try:
+        n = daily_scan.check_cards_for_user(ApiFootballClient(), user)
+        msg = f"{n}+cart%C3%A3o(es)+conferido(s)+e+avisado(s)" if n else \
+              "Nenhum+cart%C3%A3o+novo+para+conferir+(jogos+ainda+rolando)"
+    except ApiError as e:
+        msg = f"Erro:+{e}"
+    return RedirectResponse(f"/cartoes?msg={msg}", status_code=303)
 
 
 @app.get("/b/{code}", response_class=HTMLResponse)

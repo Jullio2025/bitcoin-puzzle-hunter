@@ -72,28 +72,34 @@ def panel_url() -> str:
         return "http://SEU_IP:8000"
 
 
-def build_auto_ticket(result, max_legs: int = TICKET_MAX_LEGS) -> str | None:
+def build_auto_ticket(result, max_legs: int = TICKET_MAX_LEGS,
+                      owner: str | None = None) -> str | None:
     """Monta o bilhete do garimpo e devolve o código do link público.
 
     Montagem MECÂNICA a partir dos critérios do usuário: 1 perna por jogo
     (a de maior EV — os hits já vêm ordenados) até max_legs, ranqueadas
-    por EV. Nenhuma escolha editorial; a decisão continua sendo do usuário.
+    por EV. Guarda as pernas ESTRUTURADAS p/ conferência automática.
     """
     legs = []
     for g in result.groups:
         if not g.hits:
             continue
         _crit, ma = g.hits[0]  # melhor EV do jogo
+        if not ma.metrics.odd:
+            continue
         legs.append({"fixture": g.ctx.label, "market": ma.label,
                      "odd": ma.metrics.odd, "p": ma.metrics.p_model,
-                     "ev": ma.metrics.ev or 0})
+                     "ev": ma.metrics.ev or 0,
+                     "fid": g.ctx.fixture["fixture"]["id"], "mkt": ma.market,
+                     "side": ma.side, "line": ma.line})
     if not legs:
         return None
     legs.sort(key=lambda l: -l["ev"])
     legs = legs[:max_legs]
     ticket = scoring.combine_legs([(l["odd"], l["p"]) for l in legs])
     return share_store.create(legs, ticket.combined_odd,
-                              ticket.combined_prob, ticket.lose_prob)
+                              ticket.combined_prob, ticket.lose_prob,
+                              owner=owner, source="bot")
 
 
 def format_message(today: str, result, criteria: list[Criterion],
@@ -168,13 +174,47 @@ def run_for_user(client: ApiFootballClient, username: str,
                           deep_limit=preset.get("deep_limit", 20))
         settle_summary = settle.auto_settle(tracker, client)
         ticket_code = build_auto_ticket(
-            result, max_legs=preset.get("ticket_max_legs", TICKET_MAX_LEGS))
+            result, max_legs=preset.get("ticket_max_legs", TICKET_MAX_LEGS),
+            owner=username)
         msg = format_message(today, result, criteria, settle_summary,
                              tracker.report(), ticket_code=ticket_code)
     print(f"\n===== {username} =====\n{msg}")
     if chat_id and bot_configured():
         send_telegram(msg, chat_id=chat_id)
     return msg
+
+
+_CARD_STATUS_PT = {"ganhou": "✅ GANHOU", "perdeu": "❌ PERDEU",
+                   "devolvida": "↩️ DEVOLVIDO",
+                   "conferir": "❔ CONFERIR (sem estatística de alguma perna)"}
+
+
+def check_cards_for_user(client: ApiFootballClient, username: str) -> int:
+    """Confere os cartões pendentes do usuário cujos jogos já terminaram e
+    manda o resultado no Telegram assim que fecham. Retorna nº notificados."""
+    import share_store
+    u = users.get_user(username) or {}
+    chat_id = u.get("telegram_chat_id", "")
+    notified = 0
+    for card in share_store.list_for_user(username):
+        if card.get("notified") or card.get("status") not in (None, "pendente"):
+            continue
+        status, detail = settle.settle_card(client, card)
+        if status == "pendente":
+            continue  # ainda tem jogo rolando
+        share_store.update(card["code"], status=status, detail=detail,
+                           notified=True)
+        if chat_id and bot_configured():
+            wins = sum(1 for d in detail if d.get("outcome") == "won")
+            lines = [f"🎫 Seu cartão de {card['created']} — "
+                     f"{_CARD_STATUS_PT.get(status, status)}",
+                     f"(acertou {wins} de {len(detail)})", ""]
+            for d, leg in zip(detail, card["legs"]):
+                lines.append(f"{d['icon']} {leg['fixture']} — {leg['market']}")
+            lines += ["", "Os números na mesa — a decisão é sua. (18+)"]
+            send_telegram("\n".join(lines), chat_id=chat_id)
+            notified += 1
+    return notified
 
 
 def main(force: bool = False) -> None:
@@ -195,17 +235,26 @@ def main(force: bool = False) -> None:
         print("[aviso] TELEGRAM_BOT_TOKEN ausente no .env — rodando sem "
               "enviar mensagens.")
 
+    # 1) conferência de cartões: TODOS os usuários, toda hora — resultado
+    #    chega assim que os jogos do cartão terminam.
+    cards_notified = 0
+    for username in usernames:
+        try:
+            cards_notified += check_cards_for_user(client, username)
+        except Exception as e:
+            print(f"[erro conferindo cartões de {username}] "
+                  f"{type(e).__name__}: {e}")
+
+    # 2) garimpo do dia: só usuários cuja hora escolhida bate com agora.
     due = [u for u in usernames
            if force or (users.get_user(u) or {}).get("send_hour", 9) == now_hour]
-    if not due:
-        print(f"[{now_hour:02d}h] nenhum usuário agendado para esta hora.")
-        return
     for username in due:
         try:
             run_for_user(client, username, today)
         except Exception as e:  # um usuário com erro não derruba os demais
             print(f"[erro em {username}] {type(e).__name__}: {e}")
-    print(f"\n[concluído: {len(due)} usuário(s) nesta hora | "
+    print(f"\n[concluído: garimpo p/ {len(due)} usuário(s) nesta hora | "
+          f"{cards_notified} resultado(s) de cartão enviado(s) | "
           f"{client.calls_made} chamadas à API no total]")
 
 
