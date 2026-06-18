@@ -63,34 +63,67 @@ function render(jogos) {
 function logo(u){ return u ? '<img class="team-logo" src="'+u+'" alt="" loading="lazy">' : ""; }
 function esc(s){ const d=document.createElement("div"); d.textContent=s==null?"":s; return d.innerHTML; }
 
-// expandir/recolher detalhes (timeline) de um jogo — busca sob demanda
+// expandir/recolher detalhes de um jogo — abas carregadas sob demanda
 document.getElementById("live-list").addEventListener("click", (e) => {
+  const tab = e.target.closest(".det-tab");
+  if (tab) { trocarAba(tab.dataset.fid, tab.dataset.aba); return; }
   const row = e.target.closest(".live-row");
-  if (!row) return;
-  abrirDetalhe(row.dataset.fid);
+  if (row) abrirDetalhe(row.dataset.fid);
 });
-async function abrirDetalhe(fid) {
+function abrirDetalhe(fid) {
   const box = document.getElementById("det-" + fid);
   if (!box) return;
-  if (!box.hidden) { box.hidden = true; return; }   // toca de novo = fecha
+  if (!box.hidden) { box.hidden = true; return; }
   box.hidden = false;
-  box.innerHTML = '<span class="hint">carregando lances…</span>';
+  const abas = [["lances","⚽ Lances"],["estatisticas","📊 Estatísticas"],
+                ["escalacoes","👥 Escalações"]];
+  box.innerHTML = '<div class="det-tabs">' + abas.map(([a,l],i) =>
+      '<button class="det-tab'+(i===0?' on':'')+'" data-fid="'+fid+'" data-aba="'+a+'">'+l+'</button>'
+    ).join("") + '</div><div class="det-body" id="body-'+fid+'"></div>';
+  trocarAba(fid, "lances");
+}
+async function trocarAba(fid, aba) {
+  document.querySelectorAll('.det-tab[data-fid="'+fid+'"]').forEach(t =>
+    t.classList.toggle("on", t.dataset.aba === aba));
+  const body = document.getElementById("body-" + fid);
+  body.innerHTML = '<span class="hint">carregando…</span>';
   try {
-    const r = await fetch("/aovivo/" + fid + ".json", {cache: "no-store"});
+    const r = await fetch("/aovivo/"+fid+"/"+aba+".json", {cache:"no-store"});
     const d = await r.json();
-    if (!d.eventos || !d.eventos.length) {
-      box.innerHTML = '<span class="hint">Sem lances registrados ainda.</span>';
-      return;
-    }
-    box.innerHTML = d.eventos.map(ev => {
-      const min = (ev.min != null ? ev.min : "") + (ev.extra ? "+"+ev.extra : "");
-      return '<div class="ev">' + '<span class="ev-min">' + esc(min) + "'</span> "
-        + ev.icon + " <strong>" + esc(ev.player || "") + "</strong> "
-        + '<span class="hint">' + esc(ev.team || "") + (ev.detail ? " · "+esc(ev.detail) : "") + "</span></div>";
-    }).join("");
-  } catch (e) {
-    box.innerHTML = '<span class="hint">falha ao carregar os lances.</span>';
+    body.innerHTML = aba === "lances" ? renderLances(d.lances)
+      : aba === "estatisticas" ? renderStats(d) : renderEscalacoes(d.escalacoes);
+  } catch (e) { body.innerHTML = '<span class="hint">falha ao carregar.</span>'; }
+}
+function renderLances(ev) {
+  if (!ev || !ev.length) return '<span class="hint">Sem lances ainda.</span>';
+  return ev.map(e => {
+    const min = (e.min != null ? e.min : "") + (e.extra ? "+"+e.extra : "");
+    return '<div class="ev"><span class="ev-min">'+esc(min)+"'</span> "+e.icon
+      +" <strong>"+esc(e.player||"")+"</strong> <span class='hint'>"+esc(e.team||"")
+      +(e.detail?" · "+esc(e.detail):"")+"</span></div>";
+  }).join("");
+}
+function renderStats(d) {
+  if (!d.stats || !d.stats.length) return '<span class="hint">Sem estatísticas ainda.</span>';
+  let h = '<div class="stat-head"><span>'+esc(d.times[0]||"Casa")+'</span><span>'
+        + esc(d.times[1]||"Fora")+'</span></div>';
+  for (const s of d.stats) {
+    const hv = s.home==null?"-":s.home, av = s.away==null?"-":s.away;
+    const hn = parseFloat(String(hv))||0, an = parseFloat(String(av))||0, tot = hn+an;
+    const pct = tot>0 ? Math.round(hn/tot*100) : 50;
+    h += '<div class="stat-row"><span class="sv">'+esc(String(hv))+'</span>'
+      + '<span class="sl">'+esc(s.label)+'<span class="sbar"><i style="width:'+pct+'%"></i></span></span>'
+      + '<span class="sv">'+esc(String(av))+'</span></div>';
   }
+  return h;
+}
+function renderEscalacoes(es) {
+  if (!es || !es.length) return '<span class="hint">Escalações saem ~1h antes do jogo.</span>';
+  return es.map(t =>
+    '<div class="lineup"><strong>'+esc(t.team)+'</strong> <span class="hint">'
+    +esc(t.formation||"")+'</span><div class="hint">'
+    +(t.titulares||[]).map(esc).join(" · ")+'</div></div>'
+  ).join("");
 }
 
 carregarAoVivo();

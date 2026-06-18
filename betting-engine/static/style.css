@@ -235,10 +235,28 @@ h2 { font-size: 1.08rem; margin-top: 0; font-weight: 700;
 }
 .live-row { cursor: pointer; transition: background .2s var(--ease); }
 .live-row:hover { background: rgba(255,255,255,.04); }
-.live-detail { padding: 6px 8px 10px 52px; }
-.live-detail .ev { padding: 3px 0; font-size: .88rem; }
+.live-detail { padding: 8px 8px 12px; }
+.live-detail .ev { padding: 3px 0 3px 44px; font-size: .88rem; }
 .live-detail .ev-min { color: var(--good); font-weight: 700; min-width: 34px;
   display: inline-block; }
+.det-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.det-tab {
+  background: var(--glass); border: 1px solid var(--line-soft); color: var(--text);
+  padding: 6px 12px; border-radius: 999px; font-size: .82rem; cursor: pointer;
+  margin: 0; font-weight: 600;
+}
+.det-tab.on { background: var(--grad); color: #051018; border-color: transparent; }
+.det-body { min-height: 24px; }
+.lineup { margin: 6px 0; }
+.stat-head { display: flex; justify-content: space-between; color: var(--muted);
+  font-size: .8rem; margin-bottom: 6px; font-weight: 700; }
+.stat-row { display: grid; grid-template-columns: 38px 1fr 38px; gap: 8px;
+  align-items: center; padding: 4px 0; font-size: .85rem; }
+.stat-row .sv { font-weight: 700; text-align: center; }
+.stat-row .sl { color: var(--muted); text-align: center; font-size: .78rem; }
+.sbar { display: block; height: 5px; border-radius: 99px; margin-top: 3px;
+  background: rgba(255,255,255,.10); overflow: hidden; }
+.sbar i { display: block; height: 100%; background: var(--grad); }
 /* placar ao vivo nos cartões */
 .live-tag {
   display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px;

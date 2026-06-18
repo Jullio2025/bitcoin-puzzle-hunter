@@ -70,10 +70,14 @@ class ApiFootballClient:
 
     # ------------------------------------------------------------------ http
     def _get(self, path: str, params: dict | None = None,
-             ttl: float = 0) -> list:
-        """GET com cache; retorna o campo `response` da API."""
+             ttl: float = 0, cache_suffix: str = "") -> list:
+        """GET com cache; retorna o campo `response` da API.
+
+        `cache_suffix` separa o cache sem mudar a chamada à API — usado p/
+        dados "ao vivo" não colidirem com o cache de longa duração (ex.:
+        estatísticas finais usadas na liquidação)."""
         params = {k: v for k, v in (params or {}).items() if v is not None}
-        key = path + "?" + json.dumps(params, sort_keys=True)
+        key = path + "?" + json.dumps(params, sort_keys=True) + cache_suffix
         if ttl:
             cached = self.cache.get(key, ttl)
             if cached is not None:
@@ -158,6 +162,14 @@ class ApiFootballClient:
         então o custo é proporcional ao que é realmente aberto."""
         return self._get("fixtures/events", {"fixture": fixture_id},
                          ttl=config.CACHE_TTL["live"])
+
+    def fixture_statistics_live(self, fixture_id: int) -> list:
+        """Estatísticas AO VIVO do jogo (chutes, posse, etc.), cache 60s.
+
+        Cache SEPARADO (cache_suffix) do fixture_statistics de longa duração
+        usado na liquidação — para não corromper a conferência de resultado."""
+        return self._get("fixtures/statistics", {"fixture": fixture_id},
+                         ttl=config.CACHE_TTL["live"], cache_suffix="|live")
 
     def team_last_fixtures(self, team_id: int, last: int = 40) -> list:
         """Últimos jogos encerrados de um time (casa e fora misturados).

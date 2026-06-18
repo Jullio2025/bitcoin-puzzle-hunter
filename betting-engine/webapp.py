@@ -439,29 +439,71 @@ def aovivo_json(user: str = Depends(current_user)):
 
 _EVENT_ICON = {"goal": "⚽", "card": "🟨", "subst": "🔁", "var": "📺"}
 
+# nomes das estatísticas da API -> rótulo PT (e ordem de exibição)
+_STAT_PT = [
+    ("Ball Possession", "Posse de bola"),
+    ("Total Shots", "Finalizações"),
+    ("Shots on Goal", "Chutes no gol"),
+    ("Corner Kicks", "Escanteios"),
+    ("Fouls", "Faltas"),
+    ("Yellow Cards", "Cartões amarelos"),
+    ("Red Cards", "Cartões vermelhos"),
+    ("Offsides", "Impedimentos"),
+    ("Total passes", "Passes"),
+]
 
-@app.get("/aovivo/{fid}.json")
-def aovivo_detalhe(fid: int, user: str = Depends(current_user)):
-    """Timeline de eventos de UM jogo (sob demanda, cache 60s)."""
+
+@app.get("/aovivo/{fid}/{aba}.json")
+def aovivo_detalhe(fid: int, aba: str, user: str = Depends(current_user)):
+    """Detalhe de UM jogo ao vivo, por aba (sob demanda, cacheado)."""
+    cli = ApiFootballClient()
     try:
-        rows = ApiFootballClient().fixture_events(fid)
+        if aba == "lances":
+            ev = []
+            for e in cli.fixture_events(fid):
+                tipo = (e.get("type") or "").lower()
+                icon = _EVENT_ICON.get(tipo, "•")
+                if tipo == "card" and "red" in (e.get("detail") or "").lower():
+                    icon = "🟥"
+                ev.append({
+                    "min": (e.get("time") or {}).get("elapsed"),
+                    "extra": (e.get("time") or {}).get("extra"),
+                    "icon": icon,
+                    "team": (e.get("team") or {}).get("name"),
+                    "player": (e.get("player") or {}).get("name"),
+                    "detail": e.get("detail")})
+            return JSONResponse({"lances": ev})
+
+        if aba == "estatisticas":
+            blocks = cli.fixture_statistics_live(fid)
+            if len(blocks) < 2:
+                return JSONResponse({"times": [], "stats": []})
+            casa = {s["type"]: s["value"] for s in blocks[0].get("statistics", [])}
+            fora = {s["type"]: s["value"] for s in blocks[1].get("statistics", [])}
+            stats = []
+            for key, label in _STAT_PT:
+                if key in casa or key in fora:
+                    stats.append({"label": label,
+                                  "home": casa.get(key), "away": fora.get(key)})
+            return JSONResponse({
+                "times": [blocks[0].get("team", {}).get("name"),
+                          blocks[1].get("team", {}).get("name")],
+                "stats": stats})
+
+        if aba == "escalacoes":
+            out = []
+            for lu in cli.fixture_lineups(fid):
+                out.append({
+                    "team": lu.get("team", {}).get("name"),
+                    "formation": lu.get("formation"),
+                    "titulares": [p.get("player", {}).get("name")
+                                  for p in (lu.get("startXI") or [])],
+                    "reservas": [p.get("player", {}).get("name")
+                                 for p in (lu.get("substitutes") or [])]})
+            return JSONResponse({"escalacoes": out})
     except Exception:
-        return JSONResponse({"eventos": [], "erro": True})
-    ev = []
-    for e in rows:
-        tipo = (e.get("type") or "").lower()
-        icon = _EVENT_ICON.get(tipo, "•")
-        if tipo == "card" and "red" in (e.get("detail") or "").lower():
-            icon = "🟥"
-        ev.append({
-            "min": (e.get("time") or {}).get("elapsed"),
-            "extra": (e.get("time") or {}).get("extra"),
-            "icon": icon,
-            "team": (e.get("team") or {}).get("name"),
-            "player": (e.get("player") or {}).get("name"),
-            "detail": e.get("detail"),
-        })
-    return JSONResponse({"eventos": ev, "erro": False})
+        return JSONResponse({"erro": True})
+    return JSONResponse({"erro": "aba desconhecida"})
 
 
 # -------------------------------------------------------------------- radar
