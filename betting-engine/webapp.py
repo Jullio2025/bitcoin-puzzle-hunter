@@ -76,6 +76,36 @@ def _live_map() -> dict:
     return out
 
 
+def _annotate_live(cards: list, live: dict) -> None:
+    """Marca em cada perna se está VENCENDO/PERDENDO agora (parcial ao vivo).
+
+    Usa o placar ao vivo + a mesma lógica de conferência. Só vale para
+    mercados de gols/resultado (escanteios/cartões não têm contagem no
+    feed ao vivo). Também conta quantas pernas estão vencendo no cartão."""
+    import settle
+    _map = {"won": "winning", "lost": "losing", "push": "push"}
+    for c in cards:
+        if c.get("status") not in (None, "pendente"):
+            continue  # cartão já fechado não precisa de parcial
+        winning = total_live = 0
+        for leg in c.get("legs", []):
+            lv = live.get(leg.get("fid"))
+            leg["live"] = lv
+            leg["live_status"] = None
+            if not lv or not leg.get("mkt"):
+                continue
+            o = settle.decide(leg["mkt"], leg["side"], leg.get("line"),
+                              lv["gh"] or 0, lv["ga"] or 0, None)
+            st = _map.get(o)
+            leg["live_status"] = st
+            if st in ("winning", "losing", "push"):
+                total_live += 1
+                if st == "winning":
+                    winning += 1
+        c["live_winning"] = winning
+        c["live_total"] = total_live
+
+
 @app.exception_handler(Exception)
 async def unhandled_error(request: Request, exc: Exception) -> HTMLResponse:
     """Nada de 'Internal Server Error' seco: mostra o que quebrou."""
@@ -638,8 +668,10 @@ def ticket_share(request: Request, user: str = Depends(current_user),
 def cartoes(request: Request, user: str = Depends(current_user), msg: str = ""):
     import share_store
     cards = share_store.list_for_user(user)
+    live = _live_map()
+    _annotate_live(cards, live)
     return render(request, "cartoes.html", cards=cards, msg=msg,
-                  summary=share_store.user_summary(user), live=_live_map())
+                  summary=share_store.user_summary(user), live=live)
 
 
 @app.post("/cartoes/conferir")
@@ -665,8 +697,10 @@ def shared_ticket(request: Request, code: str):
             "color:#eef3fb;padding:40px'><h2>⚡ ChapaFut</h2>"
             "<p>Bilhete não encontrado (link errado ou removido).</p>"
             "</body></html>", status_code=404)
+    live = _live_map()
+    _annotate_live([ticket], live)
     return render(request, "share.html", ticket=ticket, code=code,
-                  live=_live_map(),
+                  live=live,
                   share_url=str(request.base_url).rstrip("/") + f"/b/{code}")
 @app.get("/tracker", response_class=HTMLResponse)
 def tracker_page(request: Request, user: str = Depends(current_user), msg: str = ""):

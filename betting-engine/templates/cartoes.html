@@ -71,6 +71,7 @@ aparecem aqui quando o bot monta o garimpo diário.</p></div>
     <h2>{{ card.created }}
       <span class="badge {{ badge.get(card.status, '') }}">{{ label.get(card.status, card.status) }}</span>
       <span class="badge">{{ "bot" if card.source == "bot" else "meu" }}</span>
+      {% if card.live_total %}<span class="badge ok">🔴 vencendo {{ card.live_winning }}/{{ card.live_total }} ao vivo</span>{% endif %}
     </h2>
     <a class="button" href="/b/{{ card.code }}" target="_blank">abrir 🔗</a>
   </div>
@@ -82,6 +83,9 @@ aparecem aqui quando o bot monta o garimpo diário.</p></div>
       <td>{% if leg.hl %}<img class="team-logo" src="{{ leg.hl }}" alt="" loading="lazy">{% endif %}{% if leg.al %}<img class="team-logo" src="{{ leg.al }}" alt="" loading="lazy">{% endif %}{{ leg.fixture }}
         {% set lv = live.get(leg.fid) if live else none %}
         {% if lv %}<span class="live-tag">🔴 {{ lv.gh if lv.gh is not none else 0 }}-{{ lv.ga if lv.ga is not none else 0 }} {{ "INT" if lv.status == "HT" else (lv.min ~ "'" if lv.min) }}</span>{% endif %}
+        {% if leg.live_status == "winning" %}<span class="win-tag">🟢 vencendo</span>
+        {% elif leg.live_status == "losing" %}<span class="lose-tag">🔴 perdendo</span>
+        {% elif leg.live_status == "push" %}<span class="lose-tag">↩️ devolveria</span>{% endif %}
         <br><span class="hint">{{ leg.market }}</span></td>
       <td style="text-align:right">{{ "%.2f"|format(leg.odd) if leg.odd else "—" }}</td>
     </tr>
