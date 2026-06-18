@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Bilhete ChapaFut ⚡</title>
-  <link rel="stylesheet" href="/static/style.css?v=20">
+  <link rel="stylesheet" href="/static/style.css?v=22">
 </head>
 <body>
   <div class="bg-scene">
@@ -30,8 +30,10 @@
       {% for leg in ticket.legs %}
       <div class="share-leg">
         <div>
-          <strong>{% if leg.hl %}<img class="team-logo" src="{{ leg.hl }}" alt="" loading="lazy">{% endif %}{% if leg.al %}<img class="team-logo" src="{{ leg.al }}" alt="" loading="lazy">{% endif %}{{ leg.fixture }}</strong><br>
-          <span>{{ leg.market }}</span>
+          <strong>{% if leg.hl %}<img class="team-logo" src="{{ leg.hl }}" alt="" loading="lazy">{% endif %}{% if leg.al %}<img class="team-logo" src="{{ leg.al }}" alt="" loading="lazy">{% endif %}{{ leg.fixture }}</strong>
+          {% set lv = live.get(leg.fid) if live else none %}
+          {% if lv %}<span class="live-tag">🔴 {{ lv.gh if lv.gh is not none else 0 }}-{{ lv.ga if lv.ga is not none else 0 }} {{ "INT" if lv.status == "HT" else (lv.min ~ "'" if lv.min) }}</span>{% endif %}
+          <br><span>{{ leg.market }}</span>
           <span class="hint">— chance calculada:
             {{ "%.0f"|format(leg.p * 100) }}%</span>
         </div>

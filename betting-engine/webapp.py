@@ -61,6 +61,21 @@ def user_tracker(username: str) -> Tracker:
     return Tracker(users.user_dir(username) / "bets.json")
 
 
+def _live_map() -> dict:
+    """{fixture_id: {gh, ga, min, status}} dos jogos ao vivo (cache 60s)."""
+    out: dict = {}
+    try:
+        for fx in ApiFootballClient().live_fixtures():
+            f = fx["fixture"]
+            out[f["id"]] = {
+                "gh": fx["goals"].get("home"), "ga": fx["goals"].get("away"),
+                "min": f.get("status", {}).get("elapsed"),
+                "status": f.get("status", {}).get("short")}
+    except Exception:
+        pass
+    return out
+
+
 @app.exception_handler(Exception)
 async def unhandled_error(request: Request, exc: Exception) -> HTMLResponse:
     """Nada de 'Internal Server Error' seco: mostra o que quebrou."""
@@ -407,6 +422,7 @@ def aovivo_json(user: str = Depends(current_user)):
     for fx in rows:
         f, t, g = fx["fixture"], fx["teams"], fx["goals"]
         jogos.append({
+            "fid": f["id"],
             "home": t["home"]["name"], "away": t["away"]["name"],
             "hl": t["home"].get("logo"), "al": t["away"].get("logo"),
             "gh": g.get("home"), "ga": g.get("away"),
@@ -416,10 +432,36 @@ def aovivo_json(user: str = Depends(current_user)):
             "country": fx["league"].get("country"),
             "flag": fx["league"].get("flag"),
         })
-    # ordena: por liga/país, depois por minuto
     jogos.sort(key=lambda j: (j["country"] or "", j["league"] or "",
                               -(j["min"] or 0)))
     return JSONResponse({"jogos": jogos, "erro": False})
+
+
+_EVENT_ICON = {"goal": "⚽", "card": "🟨", "subst": "🔁", "var": "📺"}
+
+
+@app.get("/aovivo/{fid}.json")
+def aovivo_detalhe(fid: int, user: str = Depends(current_user)):
+    """Timeline de eventos de UM jogo (sob demanda, cache 60s)."""
+    try:
+        rows = ApiFootballClient().fixture_events(fid)
+    except Exception:
+        return JSONResponse({"eventos": [], "erro": True})
+    ev = []
+    for e in rows:
+        tipo = (e.get("type") or "").lower()
+        icon = _EVENT_ICON.get(tipo, "•")
+        if tipo == "card" and "red" in (e.get("detail") or "").lower():
+            icon = "🟥"
+        ev.append({
+            "min": (e.get("time") or {}).get("elapsed"),
+            "extra": (e.get("time") or {}).get("extra"),
+            "icon": icon,
+            "team": (e.get("team") or {}).get("name"),
+            "player": (e.get("player") or {}).get("name"),
+            "detail": e.get("detail"),
+        })
+    return JSONResponse({"eventos": ev, "erro": False})
 
 
 # -------------------------------------------------------------------- radar
@@ -555,7 +597,7 @@ def cartoes(request: Request, user: str = Depends(current_user), msg: str = ""):
     import share_store
     cards = share_store.list_for_user(user)
     return render(request, "cartoes.html", cards=cards, msg=msg,
-                  summary=share_store.user_summary(user))
+                  summary=share_store.user_summary(user), live=_live_map())
 
 
 @app.post("/cartoes/conferir")
@@ -582,6 +624,7 @@ def shared_ticket(request: Request, code: str):
             "<p>Bilhete não encontrado (link errado ou removido).</p>"
             "</body></html>", status_code=404)
     return render(request, "share.html", ticket=ticket, code=code,
+                  live=_live_map(),
                   share_url=str(request.base_url).rstrip("/") + f"/b/{code}")
 @app.get("/tracker", response_class=HTMLResponse)
 def tracker_page(request: Request, user: str = Depends(current_user), msg: str = ""):

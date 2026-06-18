@@ -47,13 +47,14 @@ function render(jogos) {
     for (const j of g.jogos) {
       const minuto = j.status === "HT" ? "INT"
         : (j.min != null ? j.min + "'" : (j.status || ""));
-      html += '<div class="live-row">'
+      html += '<div class="live-row" data-fid="' + j.fid + '" role="button" tabindex="0">'
         + '<span class="live-min">' + esc(minuto) + '</span>'
         + '<span class="live-teams">'
         + '<span class="tm">' + logo(j.hl) + esc(j.home) + '</span>'
         + '<span class="tm">' + logo(j.al) + esc(j.away) + '</span></span>'
         + '<span class="live-score">' + (j.gh ?? 0) + '<br>' + (j.ga ?? 0)
-        + '</span></div>';
+        + '</span></div>'
+        + '<div class="live-detail" id="det-' + j.fid + '" hidden></div>';
     }
     html += '</div>';
   }
@@ -61,6 +62,36 @@ function render(jogos) {
 }
 function logo(u){ return u ? '<img class="team-logo" src="'+u+'" alt="" loading="lazy">' : ""; }
 function esc(s){ const d=document.createElement("div"); d.textContent=s==null?"":s; return d.innerHTML; }
+
+// expandir/recolher detalhes (timeline) de um jogo — busca sob demanda
+document.getElementById("live-list").addEventListener("click", (e) => {
+  const row = e.target.closest(".live-row");
+  if (!row) return;
+  abrirDetalhe(row.dataset.fid);
+});
+async function abrirDetalhe(fid) {
+  const box = document.getElementById("det-" + fid);
+  if (!box) return;
+  if (!box.hidden) { box.hidden = true; return; }   // toca de novo = fecha
+  box.hidden = false;
+  box.innerHTML = '<span class="hint">carregando lances…</span>';
+  try {
+    const r = await fetch("/aovivo/" + fid + ".json", {cache: "no-store"});
+    const d = await r.json();
+    if (!d.eventos || !d.eventos.length) {
+      box.innerHTML = '<span class="hint">Sem lances registrados ainda.</span>';
+      return;
+    }
+    box.innerHTML = d.eventos.map(ev => {
+      const min = (ev.min != null ? ev.min : "") + (ev.extra ? "+"+ev.extra : "");
+      return '<div class="ev">' + '<span class="ev-min">' + esc(min) + "'</span> "
+        + ev.icon + " <strong>" + esc(ev.player || "") + "</strong> "
+        + '<span class="hint">' + esc(ev.team || "") + (ev.detail ? " · "+esc(ev.detail) : "") + "</span></div>";
+    }).join("");
+  } catch (e) {
+    box.innerHTML = '<span class="hint">falha ao carregar os lances.</span>';
+  }
+}
 
 carregarAoVivo();
 setInterval(carregarAoVivo, REFRESH);

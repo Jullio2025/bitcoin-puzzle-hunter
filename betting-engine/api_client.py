@@ -151,6 +151,14 @@ class ApiFootballClient:
         return self._get("fixtures", {"live": "all"},
                          ttl=config.CACHE_TTL["live"])
 
+    def fixture_events(self, fixture_id: int) -> list:
+        """Timeline do jogo (gols, cartões, substituições). Cache de 60s.
+
+        Buscado SOB DEMANDA (quando o usuário expande um jogo ao vivo),
+        então o custo é proporcional ao que é realmente aberto."""
+        return self._get("fixtures/events", {"fixture": fixture_id},
+                         ttl=config.CACHE_TTL["live"])
+
     def team_last_fixtures(self, team_id: int, last: int = 40) -> list:
         """Últimos jogos encerrados de um time (casa e fora misturados).
 

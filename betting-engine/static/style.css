@@ -233,6 +233,18 @@ h2 { font-size: 1.08rem; margin-top: 0; font-weight: 700;
   font-family: var(--display); font-weight: 800; text-align: center;
   line-height: 1.25; color: var(--cyan);
 }
+.live-row { cursor: pointer; transition: background .2s var(--ease); }
+.live-row:hover { background: rgba(255,255,255,.04); }
+.live-detail { padding: 6px 8px 10px 52px; }
+.live-detail .ev { padding: 3px 0; font-size: .88rem; }
+.live-detail .ev-min { color: var(--good); font-weight: 700; min-width: 34px;
+  display: inline-block; }
+/* placar ao vivo nos cartões */
+.live-tag {
+  display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px;
+  background: rgba(251,113,133,.15); color: #ffd3da; font-size: .72rem;
+  font-weight: 700; vertical-align: 1px;
+}
 
 /* escudos dos times e bandeira/logo das ligas */
 .team-logo {

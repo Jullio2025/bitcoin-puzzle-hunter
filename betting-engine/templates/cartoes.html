@@ -79,7 +79,10 @@ aparecem aqui quando o bot monta o garimpo diário.</p></div>
     {% for leg in card.legs %}
     <tr>
       <td style="width:28px">{{ card.detail[loop.index0].icon if card.detail and card.detail|length >= loop.index else "" }}</td>
-      <td>{% if leg.hl %}<img class="team-logo" src="{{ leg.hl }}" alt="" loading="lazy">{% endif %}{% if leg.al %}<img class="team-logo" src="{{ leg.al }}" alt="" loading="lazy">{% endif %}{{ leg.fixture }}<br><span class="hint">{{ leg.market }}</span></td>
+      <td>{% if leg.hl %}<img class="team-logo" src="{{ leg.hl }}" alt="" loading="lazy">{% endif %}{% if leg.al %}<img class="team-logo" src="{{ leg.al }}" alt="" loading="lazy">{% endif %}{{ leg.fixture }}
+        {% set lv = live.get(leg.fid) if live else none %}
+        {% if lv %}<span class="live-tag">🔴 {{ lv.gh if lv.gh is not none else 0 }}-{{ lv.ga if lv.ga is not none else 0 }} {{ "INT" if lv.status == "HT" else (lv.min ~ "'" if lv.min) }}</span>{% endif %}
+        <br><span class="hint">{{ leg.market }}</span></td>
       <td style="text-align:right">{{ "%.2f"|format(leg.odd) if leg.odd else "—" }}</td>
     </tr>
     {% endfor %}
