@@ -104,7 +104,7 @@ function renderLances(ev) {
   }).join("");
 }
 function renderStats(d) {
-  if (!d.stats || !d.stats.length) return '<span class="hint">Sem estatísticas ainda.</span>';
+  if (!d.stats || !d.stats.length) return '<span class="hint">Estatísticas ao vivo indisponíveis para esta competição (a API não cobre todas as ligas). Em ligas grandes aparecem normalmente.</span>';
   let h = '<div class="stat-head"><span>'+esc(d.times[0]||"Casa")+'</span><span>'
         + esc(d.times[1]||"Fora")+'</span></div>';
   for (const s of d.stats) {
@@ -118,7 +118,7 @@ function renderStats(d) {
   return h;
 }
 function renderEscalacoes(es) {
-  if (!es || !es.length) return '<span class="hint">Escalações saem ~1h antes do jogo.</span>';
+  if (!es || !es.length) return '<span class="hint">Escalações indisponíveis (saem ~1h antes nas ligas grandes; competições menores podem não ter cobertura na API).</span>';
   return es.map(t =>
     '<div class="lineup"><strong>'+esc(t.team)+'</strong> <span class="hint">'
     +esc(t.formation||"")+'</span><div class="hint">'
