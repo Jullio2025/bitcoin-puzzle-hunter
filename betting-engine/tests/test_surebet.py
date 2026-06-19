@@ -93,24 +93,30 @@ class TestArbDetection(unittest.TestCase):
         self.assertEqual(len(near), 1)
         self.assertFalse(near[0].is_arb)
 
-    def test_rejects_implausible_margin(self):
+    def test_flags_implausible_margin_as_suspect(self):
         # caso real Mexico x Korea: "Fora +2.5 @22.00" é odd podre -> soma 15%
-        # = margem absurda. Não pode ser tratado como surebet.
+        # = margem absurda. NÃO some: vira "suspeita" marcada.
         resp = _resp(
             ("A", [("Asian Handicap", [("Home -2.5", 9.50)])]),
             ("B", [("Asian Handicap", [("Away +2.5", 22.00)])]),
         )
         by = surebet.parse_odds_by_book(resp)
-        self.assertEqual(surebet.scan_fixture(by, ["handicap"], near_max=2.0), [])
+        bets = surebet.scan_fixture(by, ["handicap"], near_max=2.0)
+        self.assertEqual(len(bets), 1)
+        self.assertTrue(bets[0].suspect)
+        self.assertIn("margem", bets[0].suspect_reason.lower())
 
-    def test_rejects_single_book_arb(self):
-        # caso real Galway: as duas pernas na MESMA casa -> impossível ser arb
+    def test_flags_single_book_arb_as_suspect(self):
+        # caso real Galway: as duas pernas na MESMA casa -> suspeita, não arb
         resp = _resp(
             ("Betfair", [("Asian Handicap", [("Home -2.5", 13.00),
                                              ("Away +2.5", 9.50)])]),
         )
         by = surebet.parse_odds_by_book(resp)
-        self.assertEqual(surebet.scan_fixture(by, ["handicap"], near_max=2.0), [])
+        bets = surebet.scan_fixture(by, ["handicap"], near_max=2.0)
+        self.assertEqual(len(bets), 1)
+        self.assertTrue(bets[0].suspect)
+        self.assertIn("casa", bets[0].suspect_reason.lower())
 
     def test_incomplete_group_skipped(self):
         # só tem Over, falta Under -> não dá pra travar
@@ -158,11 +164,30 @@ class TestScanDay(unittest.TestCase):
         scan = surebet.scan_day(self.FakeClient(), "2026-06-19",
                                 markets=["goals"], near_max=1.0)
         self.assertEqual(len(scan.bets), 1)
+        self.assertEqual(scan.suspects, [])
         sb = scan.bets[0]
         self.assertEqual(sb.fixture, "Brasil x Haiti")
         self.assertEqual(sb.fid, 1)
         self.assertEqual(sb.hl, "h.png")
         self.assertTrue(sb.is_arb)
+
+    class MixedClient(FakeClient):
+        def odds_by_date_all(self, date, max_pages=30):
+            return _resp(
+                # arb limpa (gols, 2 casas, margem pequena)
+                ("A", [("Goals Over/Under", [("Over 1.5", 2.00), ("Under 1.5", 1.80)]),
+                       ("Asian Handicap", [("Home -2.5", 13.00), ("Away +2.5", 9.50)])]),
+                ("B", [("Goals Over/Under", [("Over 1.5", 1.85), ("Under 1.5", 2.10)])]),
+            )
+
+    def test_separates_clean_from_suspect(self):
+        scan = surebet.scan_day(self.MixedClient(), "2026-06-19",
+                                markets=["goals", "handicap"], near_max=1.0)
+        self.assertEqual(len(scan.bets), 1)       # gols: arb limpa
+        self.assertFalse(scan.bets[0].suspect)
+        self.assertEqual(len(scan.suspects), 1)   # handicap numa casa só
+        self.assertTrue(scan.suspects[0].suspect)
+        self.assertEqual(scan.suspects[0].fixture, "Brasil x Haiti")
 
 
 if __name__ == "__main__":

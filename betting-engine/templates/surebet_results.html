@@ -12,13 +12,18 @@ R$ {{ "%.2f"|format(bankroll) }}.</p>
   quem arbitra. 18+
 </div>
 
-{% if not scan.bets %}
+{% if not scan.bets and not scan.suspects %}
 <div class="error">Nenhuma surebet
 {% if include_near %}(nem "quase"){% endif %} encontrada nesse dia com esses
 mercados/casas. Isso é normal — arbitragem pré-jogo é rara. Tente outra data,
 mais mercados, ou ligue os "quase-surebet".</div>
 <a class="button" href="/surebet">← Ajustar busca</a>
 {% else %}
+
+{% if not scan.bets %}
+<div class="error">Nenhuma surebet <strong>confiável</strong> hoje. Só
+apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
+{% endif %}
 
 {% for sb in scan.bets %}
 <div class="card">
@@ -72,6 +77,46 @@ mais mercados, ou ligue os "quase-surebet".</div>
   {% endif %}
 </div>
 {% endfor %}
+
+{% if scan.suspects %}
+<h2 style="margin-top:1.6rem">⚠️ Suspeitas — quase sempre erro de odd ({{ scan.suspects|length }})</h2>
+<div class="disclaimer">
+  Estas <strong>parecem</strong> surebet boa demais, mas batem na nossa
+  trava de furada (margem absurda ou aposta numa casa só). Na prática quase
+  sempre é <strong>odd velha/ilíquida ou erro que a casa anula depois</strong>.
+  Não estão escondidas — mas <strong>não confie</strong>: se for tentar,
+  confirme a odd AO VIVO na casa, com valor real, antes de qualquer coisa.
+</div>
+{% for sb in scan.suspects %}
+<div class="card" style="border-color:rgba(251,113,133,.45)">
+  <div class="card-head">
+    <h2>
+      {% if sb.hl %}<img class="team-logo" src="{{ sb.hl }}" alt="" loading="lazy">{% endif %}{% if sb.al %}<img class="team-logo" src="{{ sb.al }}" alt="" loading="lazy">{% endif %}{{ sb.fixture }}
+      <span class="badge warn">⚠️ suspeita</span>
+    </h2>
+  </div>
+  <p class="meta">{{ sb.market_label }}{% if sb.line is not none %} (linha {{ "%g"|format(sb.line) }}){% endif %}
+    {% if sb.when %} — {{ sb.when }}{% endif %}
+    {% if sb.league %} — {{ sb.league }}{% if sb.country %} ({{ sb.country }}){% endif %}{% endif %}</p>
+  <p class="error">🚩 Por quê é suspeita: {{ sb.suspect_reason }}.
+    Soma das implícitas <strong>{{ "%.1f"|format(sb.sum_implied * 100) }}%</strong>,
+    "lucro" aparente <strong>{{ "%+.0f"|format(sb.margin * 100) }}%</strong>
+    em {{ sb.n_books }} casa(s).</p>
+  <table class="markets">
+    <thead><tr>
+      <th>Resultado</th><th>Casa</th><th>Odd</th><th>Implícita</th>
+    </tr></thead>
+    <tbody>
+    {% for leg in sb.legs %}
+      <tr><td><strong>{{ leg.label }}</strong></td><td>{{ leg.book }}</td>
+        <td>{{ "%.2f"|format(leg.odd) }}</td>
+        <td>{{ "%.1f"|format(leg.implied * 100) }}%</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endfor %}
+{% endif %}
 {% endif %}
 
 <p class="hint">Chamadas reais à API nesta busca: {{ api_calls }}.</p>

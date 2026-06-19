@@ -115,6 +115,8 @@ class SureBet:
     margin: float        # 1/soma - 1 (positivo = lucro garantido por unidade)
     is_arb: bool         # soma < 100%
     n_books: int         # quantas casas distintas a operação usa
+    suspect: bool = False        # parece arb mas cheira a erro de dado
+    suspect_reason: str = ""     # por que é suspeita (mostrado ao usuário)
     # preenchidos depois com dados do jogo (para exibir)
     fixture: str = "?"
     league: str = ""
@@ -149,20 +151,29 @@ def _evaluate_group(bybook: dict, market: str, line: float | None,
     is_arb = sum_implied < 1.0
     n_books = len({bk for *_x, bk, _od in best})
 
-    # --- travas anti-falso-positivo --------------------------------------
-    # Surebet de verdade SEMPRE usa >= 2 casas: uma casa sozinha embute
-    # margem a favor dela (soma > 100%), nunca arbitra contra si mesma.
-    # Margem absurda = odd velha/ilíquida/erro da API, não oportunidade
-    # (no pré-jogo arbitragem real fica em ~0–5%; acima do teto é lixo).
-    if is_arb and (n_books < 2 or margin > MAX_PLAUSIBLE_MARGIN):
-        return None
-    # "quase-surebet" também só interessa comparando casas diferentes
-    if not is_arb and n_books < 2:
-        return None
-
-    # filtro do usuário: surebets acima da margem mínima, ou "quase" até o teto
-    if not (margin >= min_margin or sum_implied <= near_max):
-        return None
+    # Classifica em: arb limpa | quase | SUSPEITA (nada é descartado em
+    # silêncio — o que cheira a erro vai pra uma lista separada e marcada).
+    suspect, reason = False, ""
+    if is_arb:
+        # Uma casa sozinha nunca arbitra contra si mesma (sempre tem
+        # overround); e arbitragem real no pré-jogo fica em ~0–5%. Fora
+        # disso é odd velha/ilíquida/mal rotulada — quase sempre a casa
+        # anula depois pela regra de "erro palpável".
+        if n_books < 2:
+            suspect = True
+            reason = ("aposta cairia numa casa só — uma casa nunca arbitra "
+                      "contra si mesma; isso é dado quebrado/odd mal rotulada")
+        elif margin > MAX_PLAUSIBLE_MARGIN:
+            suspect = True
+            reason = ("margem alta demais p/ ser real — quase sempre odd "
+                      "velha/ilíquida ou erro que a casa anula depois; "
+                      "confira AO VIVO na casa antes de qualquer coisa")
+        elif margin < min_margin:
+            return None  # arb limpa abaixo da margem mínima pedida
+    else:
+        # quase-surebet: só interessa entre casas diferentes e dentro do teto
+        if n_books < 2 or sum_implied > near_max:
+            return None
 
     legs = [SureLeg(market=mk, side=sd, line=ln,
                     label=outcome_label(mk, sd, ln), book=bk, odd=od,
@@ -171,7 +182,7 @@ def _evaluate_group(bybook: dict, market: str, line: float | None,
     return SureBet(
         fid=0, market=market, market_label=MARKET_LABELS.get(market, market),
         line=line, legs=legs, sum_implied=sum_implied, margin=margin,
-        is_arb=is_arb, n_books=n_books)
+        is_arb=is_arb, n_books=n_books, suspect=suspect, suspect_reason=reason)
 
 
 def scan_fixture(bybook: dict, markets: list[str],
@@ -218,7 +229,8 @@ def scan_fixture(bybook: dict, markets: list[str],
 
 @dataclass
 class SureScan:
-    bets: list[SureBet]
+    bets: list[SureBet]        # arbitragens/quase confiáveis
+    suspects: list[SureBet]    # parecem arb mas cheiram a erro (mostradas à parte)
     fixtures_scanned: int
     books_seen: int
 
@@ -240,6 +252,7 @@ def scan_day(client, date: str, markets: list[str] | None = None,
     odds_response = client.odds_by_date_all(date)
     all_books: set[str] = set()
     bets: list[SureBet] = []
+    suspects: list[SureBet] = []
     scanned = 0
 
     for item in odds_response:
@@ -268,10 +281,12 @@ def scan_day(client, date: str, markets: list[str] | None = None,
             sb.when = (fx.get("fixture", {}).get("date", "") or "")[:16]
             sb.hl = home.get("logo", "") or ""
             sb.al = away.get("logo", "") or ""
-        bets.extend(found)
+        bets.extend(s for s in found if not s.suspect)
+        suspects.extend(s for s in found if s.suspect)
         if max_fixtures and scanned >= max_fixtures:
             break
 
     bets.sort(key=lambda s: -s.margin)
-    return SureScan(bets=bets, fixtures_scanned=scanned,
+    suspects.sort(key=lambda s: -s.margin)
+    return SureScan(bets=bets, suspects=suspects, fixtures_scanned=scanned,
                     books_seen=len(all_books))
