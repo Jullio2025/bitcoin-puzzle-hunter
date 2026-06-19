@@ -81,9 +81,10 @@ class TestArbDetection(unittest.TestCase):
         self.assertEqual(bets, [])
 
     def test_near_miss_included_when_allowed(self):
-        # soma 1.02 -> entra como "quase" se near_max >= 1.02, nunca como arb
+        # soma ~1.02 entre DUAS casas -> entra como "quase" se near_max >= 1.02
         resp = _resp(
-            ("A", [("Goals Over/Under", [("Over 1.5", 1.96), ("Under 1.5", 1.96)])]),
+            ("A", [("Goals Over/Under", [("Over 1.5", 1.96), ("Under 1.5", 1.90)])]),
+            ("B", [("Goals Over/Under", [("Over 1.5", 1.92), ("Under 1.5", 1.96)])]),
         )
         by = surebet.parse_odds_by_book(resp)
         none = surebet.scan_fixture(by, ["goals"], near_max=1.0)
@@ -91,6 +92,25 @@ class TestArbDetection(unittest.TestCase):
         near = surebet.scan_fixture(by, ["goals"], near_max=1.05)
         self.assertEqual(len(near), 1)
         self.assertFalse(near[0].is_arb)
+
+    def test_rejects_implausible_margin(self):
+        # caso real Mexico x Korea: "Fora +2.5 @22.00" é odd podre -> soma 15%
+        # = margem absurda. Não pode ser tratado como surebet.
+        resp = _resp(
+            ("A", [("Asian Handicap", [("Home -2.5", 9.50)])]),
+            ("B", [("Asian Handicap", [("Away +2.5", 22.00)])]),
+        )
+        by = surebet.parse_odds_by_book(resp)
+        self.assertEqual(surebet.scan_fixture(by, ["handicap"], near_max=2.0), [])
+
+    def test_rejects_single_book_arb(self):
+        # caso real Galway: as duas pernas na MESMA casa -> impossível ser arb
+        resp = _resp(
+            ("Betfair", [("Asian Handicap", [("Home -2.5", 13.00),
+                                             ("Away +2.5", 9.50)])]),
+        )
+        by = surebet.parse_odds_by_book(resp)
+        self.assertEqual(surebet.scan_fixture(by, ["handicap"], near_max=2.0), [])
 
     def test_incomplete_group_skipped(self):
         # só tem Over, falta Under -> não dá pra travar
@@ -107,14 +127,18 @@ class TestArbDetection(unittest.TestCase):
         self.assertEqual(surebet.scan_fixture(by, ["goals"], near_max=1.5), [])
 
     def test_1x2_three_way_arb(self):
+        # melhor odd de cada via vem de casas diferentes -> arb plausível ~8%
         resp = _resp(
-            ("A", [("Match Winner", [("Home", 3.10), ("Draw", 3.50), ("Away", 2.50)])]),
-            ("B", [("Match Winner", [("Home", 3.40), ("Draw", 3.60), ("Away", 2.70)])]),
+            ("A", [("Match Winner", [("Home", 3.20), ("Draw", 3.30), ("Away", 3.00)])]),
+            ("B", [("Match Winner", [("Home", 3.05), ("Draw", 3.45), ("Away", 3.10)])]),
         )
         by = surebet.parse_odds_by_book(resp)
         bets = surebet.scan_fixture(by, ["1x2"], near_max=1.10)
         self.assertEqual(len(bets), 1)
         self.assertEqual(len(bets[0].legs), 3)
+        self.assertTrue(bets[0].is_arb)
+        self.assertGreaterEqual(bets[0].n_books, 2)
+        self.assertLessEqual(bets[0].margin, surebet.MAX_PLAUSIBLE_MARGIN)
 
 
 class TestScanDay(unittest.TestCase):

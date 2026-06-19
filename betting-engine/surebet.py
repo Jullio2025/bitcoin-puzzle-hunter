@@ -31,6 +31,11 @@ ALL_MARKETS = ("goals", "1x2", "btts", "corners", "cards", "handicap")
 # soma das implícitas até este teto entra como "quase-surebet" (não garantido)
 NEAR_MAX_DEFAULT = 1.03
 
+# Margem máxima crível para uma arbitragem REAL. Acima disso é erro de dado
+# (odd velha/ilíquida/mal rotulada): no pré-jogo arbitragem real fica em
+# ~0–5%; uma "surebet" de 50%, 500% etc. nunca é verdadeira.
+MAX_PLAUSIBLE_MARGIN = 0.15
+
 
 def _is_half_line(line: float | None) -> bool:
     """True só para linhas .5 (2.5, -1.5...) — sem risco de empate/devolução."""
@@ -142,7 +147,20 @@ def _evaluate_group(bybook: dict, market: str, line: float | None,
     sum_implied = sum(1.0 / odd for *_x, odd in best)
     margin = (1.0 / sum_implied) - 1.0
     is_arb = sum_implied < 1.0
-    # filtro: surebets acima da margem mínima, ou "quase" até o teto
+    n_books = len({bk for *_x, bk, _od in best})
+
+    # --- travas anti-falso-positivo --------------------------------------
+    # Surebet de verdade SEMPRE usa >= 2 casas: uma casa sozinha embute
+    # margem a favor dela (soma > 100%), nunca arbitra contra si mesma.
+    # Margem absurda = odd velha/ilíquida/erro da API, não oportunidade
+    # (no pré-jogo arbitragem real fica em ~0–5%; acima do teto é lixo).
+    if is_arb and (n_books < 2 or margin > MAX_PLAUSIBLE_MARGIN):
+        return None
+    # "quase-surebet" também só interessa comparando casas diferentes
+    if not is_arb and n_books < 2:
+        return None
+
+    # filtro do usuário: surebets acima da margem mínima, ou "quase" até o teto
     if not (margin >= min_margin or sum_implied <= near_max):
         return None
 
@@ -153,7 +171,7 @@ def _evaluate_group(bybook: dict, market: str, line: float | None,
     return SureBet(
         fid=0, market=market, market_label=MARKET_LABELS.get(market, market),
         line=line, legs=legs, sum_implied=sum_implied, margin=margin,
-        is_arb=is_arb, n_books=len({l.book for l in legs}))
+        is_arb=is_arb, n_books=n_books)
 
 
 def scan_fixture(bybook: dict, markets: list[str],
