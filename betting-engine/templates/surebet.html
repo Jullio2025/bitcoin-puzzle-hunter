@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="hero">
+  <h1>SURE<span>BET</span></h1>
+  <p class="tagline">Compara o preço do mesmo jogo em <em>várias casas</em> e
+  acha onde a soma das chances dá <strong>menos de 100%</strong> — lucro
+  travado, dê no que der.<br>
+  Aqui não tem modelo nem palpite: é só a discrepância de preço entre as casas.</p>
+  <div class="hero-ball">⚖️</div>
+</div>
+
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+<div class="card explainer">
+  <h2>💡 Como funciona (e o que esperar)</h2>
+  <ul>
+    <li><strong>Surebet</strong> = apostar em TODOS os resultados de um
+      mercado, cada um na casa que paga melhor, de forma que você ganhe
+      aconteça o que acontecer. Ex.: <em>Mais de 1.5</em> a 2.00 numa casa e
+      <em>Menos de 1.5</em> a 2.10 noutra → soma 97,6% → <strong>+2,4%
+      garantido</strong>.</li>
+    <li><strong>A execução é sua, na mão.</strong> O ChapaFut só mostra os
+      números e em qual casa está cada odd. Confira a odd na casa antes de
+      apostar — ela pode ter mudado.</li>
+    <li><strong>Margens são pequenas</strong> (geralmente 1%–4%) e raras no
+      pré-jogo. Ligue os "quase-surebet" para ver os que faltou pouco.</li>
+    <li><strong>Atenção real:</strong> as casas limitam quem arbitra, e a odd
+      da API pode estar atrasada. Trate como apoio, não como máquina de
+      dinheiro. 18+</li>
+  </ul>
+</div>
+
+<form method="post" action="/surebet/scan" data-loading="⚖️ Comparando as casas…">
+  <div class="card form-grid">
+    <h2>Onde procurar</h2>
+    <label>Data dos jogos
+      <input type="date" name="match_date" value="{{ today }}" required></label>
+    <label>Valor que pretende apostar (R$) <span class="hint">(só p/ mostrar a divisão)</span>
+      <input type="number" step="any" name="bankroll" value="100"></label>
+    <label>Margem mínima (%) <span class="hint">(0 = mostra toda arbitragem)</span>
+      <input type="number" step="any" name="min_margin" value="0"></label>
+    <label class="inline"><input type="checkbox" name="include_near" checked>
+      Incluir "quase-surebet" (soma até ~103%)
+      <span class="hint">(não travam lucro ainda, mas viram surebet com pouco movimento)</span></label>
+    <label>Casas que você usa <span class="hint">(opcional, separadas por vírgula; vazio = todas)</span>
+      <input type="text" name="books" placeholder="ex.: Bet365, Betano, Pinnacle"></label>
+  </div>
+
+  <div class="card">
+    <h2>Mercados a comparar
+      <span class="hint">(só mercados que cobrem todos os resultados)</span></h2>
+    {% for m in all_markets %}
+    <label class="inline"><input type="checkbox" name="m_{{ m }}"
+      {{ "checked" if m in default_markets }}> {{ market_labels.get(m, m) }}</label>
+    {% endfor %}
+    <p class="hint">Linhas de gols/escanteios/cartões e handicap usam só
+    linhas .5 (sem risco de empate/devolução). Dupla chance fica de fora
+    (os resultados se sobrepõem, não serve pra arbitragem).</p>
+    <br>
+    <button type="submit" class="primary">Procurar surebets ⚖️</button>
+    <p class="hint">Custo baixo de API: 1 chamada dos jogos do dia + as odds
+    por data (sem consultar time por time, pois aqui não roda o modelo).</p>
+  </div>
+</form>
+{% endblock %}

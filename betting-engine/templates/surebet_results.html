@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>⚖️ Surebets de {{ match_date }}</h1>
+
+<p class="hint">Jogos com odds comparadas: {{ scan.fixtures_scanned }} —
+casas vistas no dia: {{ scan.books_seen }} — valor base da divisão:
+R$ {{ "%.2f"|format(bankroll) }}.</p>
+
+<div class="disclaimer">
+  Odds capturadas agora e podem ter mudado — <strong>confira na casa antes de
+  apostar</strong>. A execução é sua, na sua conta. Casas costumam limitar
+  quem arbitra. 18+
+</div>
+
+{% if not scan.bets %}
+<div class="error">Nenhuma surebet
+{% if include_near %}(nem "quase"){% endif %} encontrada nesse dia com esses
+mercados/casas. Isso é normal — arbitragem pré-jogo é rara. Tente outra data,
+mais mercados, ou ligue os "quase-surebet".</div>
+<a class="button" href="/surebet">← Ajustar busca</a>
+{% else %}
+
+{% for sb in scan.bets %}
+<div class="card">
+  <div class="card-head">
+    <h2>
+      {% if sb.hl %}<img class="team-logo" src="{{ sb.hl }}" alt="" loading="lazy">{% endif %}{% if sb.al %}<img class="team-logo" src="{{ sb.al }}" alt="" loading="lazy">{% endif %}{{ sb.fixture }}
+      {% if sb.is_arb %}<span class="badge ok">✅ SUREBET +{{ "%.2f"|format(sb.margin * 100) }}%</span>
+      {% else %}<span class="badge warn">⚠️ quase — soma {{ "%.1f"|format(sb.sum_implied * 100) }}%</span>{% endif %}
+    </h2>
+  </div>
+  <p class="meta">{{ sb.market_label }}{% if sb.line is not none %} (linha {{ "%g"|format(sb.line) }}){% endif %}
+    {% if sb.when %} — {{ sb.when }}{% endif %}
+    {% if sb.league %} — {{ sb.league }}{% if sb.country %} ({{ sb.country }}){% endif %}{% endif %}</p>
+
+  <table class="markets">
+    <thead><tr>
+      <th>Aposte em</th><th>Casa (melhor odd)</th><th>Odd</th>
+      <th title="Chance embutida no preço = 1/odd.">Implícita</th>
+      <th>Quanto apostar</th><th>Retorno se este sair</th>
+    </tr></thead>
+    <tbody>
+    {% for leg, stake, ret in sb.split(bankroll) %}
+      <tr class="pass">
+        <td><strong>{{ leg.label }}</strong></td>
+        <td>{{ leg.book }}</td>
+        <td>{{ "%.2f"|format(leg.odd) }}</td>
+        <td>{{ "%.1f"|format(leg.implied * 100) }}%</td>
+        <td>R$ {{ "%.2f"|format(stake) }}</td>
+        <td>R$ {{ "%.2f"|format(ret) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="trio">
+    <div><span>Soma das implícitas</span>
+      <strong>{{ "%.1f"|format(sb.sum_implied * 100) }}%</strong></div>
+    <div><span>{{ "Lucro travado" if sb.is_arb else "Resultado (sem trava)" }}</span>
+      <strong class="{{ 'pl-pos' if sb.margin > 0 else 'pl-neg' }}">
+        {{ "%+.2f"|format(sb.margin * 100) }}%</strong></div>
+    <div><span>{{ "Lucro em reais" if sb.is_arb else "Diferença em reais" }}</span>
+      <strong class="{{ 'pl-pos' if sb.margin > 0 else 'pl-neg' }}">
+        R$ {{ "%+.2f"|format(bankroll * sb.margin) }}</strong></div>
+    <div><span>Casas usadas</span><strong>{{ sb.n_books }}</strong></div>
+  </div>
+  {% if not sb.is_arb %}
+  <p class="hint">⚠️ "Quase": a soma passou de 100%, então hoje isto
+  <strong>não trava lucro</strong> (perderia {{ "%.2f"|format(-bankroll * sb.margin) }}
+  reais se apostasse nos dois lados). Vira surebet se alguma dessas odds subir
+  um pouco — vale ficar de olho.</p>
+  {% endif %}
+</div>
+{% endfor %}
+{% endif %}
+
+<p class="hint">Chamadas reais à API nesta busca: {{ api_calls }}.</p>
+<a class="button" href="/surebet">← Procurar de novo</a>
+{% endblock %}

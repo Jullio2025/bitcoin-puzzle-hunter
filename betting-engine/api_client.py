@@ -234,3 +234,27 @@ class ApiFootballClient:
                 break
             out.extend(rows)
         return out
+
+    def odds_all_books(self, fixture_id: int) -> list:
+        """Odds de TODAS as casas de um jogo (sem filtrar bookmaker).
+
+        Base do detector de surebet: a API devolve cada casa numa entrada
+        de `bookmakers`, então dá pra comparar preços entre elas."""
+        return self._get("odds", {"fixture": fixture_id},
+                         ttl=config.CACHE_TTL["odds"])
+
+    def odds_by_date_all(self, date: str, max_pages: int = 30) -> list:
+        """Odds de TODOS os jogos de uma data, com TODAS as casas (paginado).
+
+        Sem filtro de bookmaker: cada jogo traz a lista de casas. Usado pelo
+        surebet, que precisa comparar preços entre casas no dia inteiro."""
+        out: list = []
+        for page in range(1, max_pages + 1):
+            rows = self._get(
+                "odds", {"date": date, "page": page},
+                ttl=config.CACHE_TTL["odds"],
+            )
+            if not rows:
+                break
+            out.extend(rows)
+        return out

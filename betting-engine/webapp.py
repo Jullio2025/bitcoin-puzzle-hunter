@@ -629,6 +629,51 @@ async def scan(request: Request, user: str = Depends(current_user)):
                   impossible=impossible, api_calls=client.calls_made)
 
 
+# --------------------------------------------------------------- surebet
+@app.get("/surebet", response_class=HTMLResponse)
+def surebet_page(request: Request, user: str = Depends(current_user)):
+    import surebet
+    return render(request, "surebet.html", today=date.today().isoformat(),
+                  all_markets=surebet.ALL_MARKETS,
+                  default_markets=surebet.DEFAULT_MARKETS,
+                  market_labels=surebet.MARKET_LABELS)
+
+
+@app.post("/surebet/scan", response_class=HTMLResponse)
+async def surebet_scan(request: Request, user: str = Depends(current_user)):
+    import surebet
+    form = await request.form()
+    match_date = form.get("match_date") or date.today().isoformat()
+    markets = [m for m in surebet.ALL_MARKETS if form.get(f"m_{m}") == "on"] \
+        or list(surebet.DEFAULT_MARKETS)
+    try:
+        min_margin = float(form.get("min_margin") or 0) / 100.0
+    except ValueError:
+        min_margin = 0.0
+    include_near = form.get("include_near") == "on"
+    near_max = surebet.NEAR_MAX_DEFAULT if include_near else 1.0
+    books_raw = (form.get("books") or "").strip()
+    books = {b.strip() for b in books_raw.split(",") if b.strip()} or None
+    try:
+        bankroll = float((form.get("bankroll") or "100").replace(",", "."))
+    except ValueError:
+        bankroll = 100.0
+
+    try:
+        client = ApiFootballClient()
+        scan = surebet.scan_day(client, match_date, markets=markets,
+                                min_margin=min_margin, near_max=near_max,
+                                books=books)
+    except ApiError as e:
+        return render(request, "surebet.html", today=match_date,
+                      all_markets=surebet.ALL_MARKETS,
+                      default_markets=surebet.DEFAULT_MARKETS,
+                      market_labels=surebet.MARKET_LABELS, error=str(e))
+    return render(request, "surebet_results.html", scan=scan,
+                  match_date=match_date, bankroll=bankroll,
+                  include_near=include_near, api_calls=client.calls_made)
+
+
 # ------------------------------------------------- bilhete compartilhável
 def _combine_tolerant(legs: list) -> dict:
     """Combina pernas que podem NÃO ter odd de referência.
