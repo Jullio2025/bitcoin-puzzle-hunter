@@ -44,6 +44,11 @@ class Criterion:
             self.p_min = self.p_min / 100.0
 
     @property
+    def impossible(self) -> bool:
+        """p ≥ 100% nunca acontece no modelo (Poisson) — nada vai bater."""
+        return self.p_min >= 1.0
+
+    @property
     def label(self) -> str:
         base = MARKET_LABELS.get(self.market, self.market)
         side = ("qualquer resultado" if self.side == "any"
@@ -56,6 +61,8 @@ class Criterion:
                 f"{self.odd_max:g} | p ≥ {self.p_min:.0%}")
         if self.ev_min > -100:
             text += f" | EV ≥ {self.ev_min:+.2f}"
+        if self.impossible:
+            text += " ⚠️ (impossível: nada bate)"
         return text
 
 

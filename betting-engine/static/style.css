@@ -273,6 +273,25 @@ h2 { font-size: 1.08rem; margin-top: 0; font-weight: 700;
 .lose-tag { background: rgba(251,113,133,.15); color: var(--bad);
   border: 1px solid rgba(251,113,133,.35); }
 
+/* valor apostado + lucro/prejuízo (controle de banca) */
+.stake-row {
+  display: flex; align-items: flex-end; flex-wrap: wrap; gap: 10px;
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line);
+}
+.stake-row label { margin: 0; font-size: .82rem; }
+.stake-row input { max-width: 150px; }
+.stake-row .button { margin: 0; padding: 9px 16px; }
+.pl-tag {
+  display: inline-block; padding: 4px 12px; border-radius: 999px;
+  font-size: .82rem; font-weight: 800;
+}
+.pl-pos { color: var(--good); }
+.pl-neg { color: var(--bad); }
+.pl-tag.pl-pos { background: rgba(52,211,153,.16);
+  border: 1px solid rgba(52,211,153,.4); }
+.pl-tag.pl-neg { background: rgba(251,113,133,.14);
+  border: 1px solid rgba(251,113,133,.35); }
+
 /* escudos dos times e bandeira/logo das ligas */
 .team-logo {
   width: 20px; height: 20px; object-fit: contain; vertical-align: -5px;

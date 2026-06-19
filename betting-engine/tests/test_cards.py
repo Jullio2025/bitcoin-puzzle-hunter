@@ -107,5 +107,63 @@ class TestStore(unittest.TestCase):
                                        share_store.list_for_user("nobody")])
 
 
+class TestStakePL(unittest.TestCase):
+    def _card(self, status, stake, odd=2.0):
+        return {"combined_odd": odd, "status": status, "stake": stake}
+
+    def test_no_stake_returns_none(self):
+        pl = share_store.card_pl(self._card("ganhou", None))
+        self.assertIsNone(pl["pl"])
+        self.assertFalse(pl["settled"])
+
+    def test_win_profit(self):
+        pl = share_store.card_pl(self._card("ganhou", 10.0, odd=2.5))
+        self.assertAlmostEqual(pl["returned"], 25.0)
+        self.assertAlmostEqual(pl["pl"], 15.0)
+        self.assertTrue(pl["settled"])
+
+    def test_loss(self):
+        pl = share_store.card_pl(self._card("perdeu", 10.0))
+        self.assertAlmostEqual(pl["pl"], -10.0)
+        self.assertAlmostEqual(pl["returned"], 0.0)
+
+    def test_refund_is_zero(self):
+        pl = share_store.card_pl(self._card("devolvida", 10.0))
+        self.assertAlmostEqual(pl["pl"], 0.0)
+        self.assertAlmostEqual(pl["returned"], 10.0)
+
+    def test_pending_potential_only(self):
+        pl = share_store.card_pl(self._card("pendente", 10.0, odd=2.0))
+        self.assertIsNone(pl["pl"])
+        self.assertFalse(pl["settled"])
+        self.assertAlmostEqual(pl["potential"], 10.0)
+
+    def test_summary_aggregates_pl(self):
+        for st, stake in [("ganhou", 10.0), ("perdeu", 10.0)]:
+            code = share_store.create(
+                [{"fixture": "A x B", "market": "x", "odd": 2.0, "p": 0.5,
+                  "fid": 1, "mkt": "goals", "side": "over", "line": 1.5}],
+                2.0, 0.5, 0.5, owner="banca")
+            share_store.update(code, status=st, stake=stake)
+        s = share_store.user_summary("banca")
+        # ganhou: +10 (10*(2-1)); perdeu: -10 -> lucro 0, apostado 20
+        self.assertAlmostEqual(s["staked"], 20.0)
+        self.assertAlmostEqual(s["returned"], 20.0)
+        self.assertAlmostEqual(s["profit"], 0.0)
+        self.assertEqual(s["n_with_stake"], 2)
+
+
+class TestImpossibleCriterion(unittest.TestCase):
+    def test_p100_percent_is_impossible(self):
+        import scanner
+        self.assertTrue(scanner.Criterion("goals", "over", 1.5, p_min=100).impossible)
+        self.assertTrue(scanner.Criterion("goals", "over", 1.5, p_min=1.0).impossible)
+
+    def test_normal_p_is_possible(self):
+        import scanner
+        self.assertFalse(scanner.Criterion("goals", "over", 1.5, p_min=80).impossible)
+        self.assertFalse(scanner.Criterion("goals", "over", 1.5, p_min=0.7).impossible)
+
+
 if __name__ == "__main__":
     unittest.main()

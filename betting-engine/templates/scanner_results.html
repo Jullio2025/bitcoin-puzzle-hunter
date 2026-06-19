@@ -6,6 +6,14 @@
 diário vai usá-los e avisar no Telegram (se configurado).</div>
 {% endif %}
 
+{% if impossible %}
+<div class="error">⚠️ <strong>{{ impossible|length }} critério(s) pedem
+probabilidade ≥ 100%</strong> — isso é impossível no modelo (Poisson nunca dá
+100% de certeza), então esses mercados <strong>nunca vão bater</strong>. Volte
+ao <a href="/scanner">Scanner</a>, baixe a "probabilidade mínima" (ex.: 0.70 =
+70%) e salve de novo.</div>
+{% endif %}
+
 <p class="hint">Jogos do dia (não iniciados, com cobertura):
 {{ result.fixtures_today }} — com odds dentro dos seus critérios:
 {{ result.odds_candidates }} — analisados a fundo: {{ result.analyzed }}.

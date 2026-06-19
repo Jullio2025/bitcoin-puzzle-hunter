@@ -600,6 +600,7 @@ async def scan(request: Request, user: str = Depends(current_user)):
                       today=form.get("match_date", date.today().isoformat()),
                       preset_on=[],
                       error="Ative pelo menos um mercado para garimpar.")
+    impossible = [c for c in criteria if c.impossible]
     match_date = form.get("match_date") or date.today().isoformat()
     bookmaker = int(form.get("bookmaker") or config.DEFAULT_BOOKMAKER_ID)
     last_n = int(form.get("last_n") or config.USER_DEFAULTS["last_n"])
@@ -625,7 +626,7 @@ async def scan(request: Request, user: str = Depends(current_user)):
     return render(request, "scanner_results.html", result=result,
                   criteria=criteria, match_date=match_date,
                   match_all=match_all, preset_saved=preset_saved,
-                  api_calls=client.calls_made)
+                  impossible=impossible, api_calls=client.calls_made)
 
 
 # ------------------------------------------------- bilhete compartilhável
@@ -670,8 +671,32 @@ def cartoes(request: Request, user: str = Depends(current_user), msg: str = ""):
     cards = share_store.list_for_user(user)
     live = _live_map()
     _annotate_live(cards, live)
+    for card in cards:
+        card["pl"] = share_store.card_pl(card)
     return render(request, "cartoes.html", cards=cards, msg=msg,
                   summary=share_store.user_summary(user), live=live)
+
+
+@app.post("/cartoes/aposta")
+async def cartoes_aposta(request: Request, user: str = Depends(current_user)):
+    """Salva (ou limpa) o valor apostado num cartão, para controle de P/L."""
+    import share_store
+    form = await request.form()
+    code = (form.get("code") or "").strip()
+    raw = (form.get("stake") or "").strip().replace(",", ".")
+    card = share_store.get(code)
+    if not card or card.get("owner") != user:
+        return RedirectResponse("/cartoes?msg=Cart%C3%A3o+n%C3%A3o+encontrado",
+                                status_code=303)
+    try:
+        stake = float(raw) if raw else None
+        if stake is not None and stake < 0:
+            stake = None
+    except ValueError:
+        stake = None
+    share_store.update(code, stake=stake)
+    msg = "Valor+apostado+salvo" if stake else "Valor+apostado+removido"
+    return RedirectResponse(f"/cartoes?msg={msg}", status_code=303)
 
 
 @app.post("/cartoes/conferir")

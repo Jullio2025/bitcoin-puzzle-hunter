@@ -59,6 +59,7 @@ def create(legs: list[dict], combined_odd: float | None, combined_prob: float,
         "status": "pendente",
         "notified": False,
         "detail": [],
+        "stake": None,
     }
     _save(shared)
     return code
@@ -79,6 +80,41 @@ def update(code: str, **fields) -> None:
         _save(data)
 
 
+def card_pl(card: dict) -> dict:
+    """Lucro/prejuízo de um cartão a partir do valor apostado (stake).
+
+    - ganhou:    retorno = stake × odd combinada;  lucro = stake × (odd-1)
+    - perdeu:    retorno = 0;                        lucro = -stake
+    - devolvida: retorno = stake (reembolso);        lucro = 0
+    - pendente/conferir: ainda em aberto -> só o lucro POTENCIAL se ganhar.
+
+    Retorna stake/returned/pl = None quando não há valor apostado, ou quando
+    o cartão é parcial sem odd combinada (não dá pra calcular)."""
+    stake = card.get("stake")
+    odd = card.get("combined_odd")
+    status = card.get("status", "pendente")
+    out = {"stake": stake, "returned": None, "pl": None,
+           "potential": None, "settled": False}
+    if not stake:
+        return out
+    if odd:
+        out["potential"] = stake * (odd - 1.0)
+    if status == "ganhou":
+        if odd:
+            out["returned"] = stake * odd
+            out["pl"] = stake * (odd - 1.0)
+            out["settled"] = True
+    elif status == "perdeu":
+        out["returned"] = 0.0
+        out["pl"] = -stake
+        out["settled"] = True
+    elif status == "devolvida":
+        out["returned"] = stake
+        out["pl"] = 0.0
+        out["settled"] = True
+    return out
+
+
 def user_summary(username: str) -> dict:
     """Resumo do histórico + calibração do modelo (por perna) do usuário.
 
@@ -95,10 +131,21 @@ def user_summary(username: str) -> dict:
     buckets = [{"lo": lo, "hi": hi, "n": 0, "won": 0, "psum": 0.0}
                for lo, hi in edges]
     legs_settled = 0
+    staked = 0.0          # total apostado em cartões já resolvidos
+    returned = 0.0        # total que voltou (ganhos + devoluções)
+    n_with_stake = 0      # cartões resolvidos que tinham valor apostado
+    pending_stake = 0.0   # apostado ainda em jogo (pendente/conferir)
 
     for card in cards:
         counts[card.get("status", "pendente")] = \
             counts.get(card.get("status", "pendente"), 0) + 1
+        pl = card_pl(card)
+        if pl["stake"] and pl["settled"]:
+            staked += pl["stake"]
+            returned += pl["returned"]
+            n_with_stake += 1
+        elif pl["stake"] and card.get("status") in ("pendente", "conferir"):
+            pending_stake += pl["stake"]
         for leg, det in zip(card.get("legs", []), card.get("detail", [])):
             outcome = det.get("outcome")
             if outcome not in ("won", "lost"):
@@ -120,6 +167,7 @@ def user_summary(username: str) -> dict:
         b["real"] = (b["won"] / b["n"]) if b["n"] else None
 
     decided = counts["ganhou"] + counts["perdeu"]
+    profit = returned - staked
     return {
         "counts": counts,
         "total": len(cards),
@@ -127,4 +175,10 @@ def user_summary(username: str) -> dict:
         "buckets": [b for b in buckets if b["n"] > 0],
         "legs_settled": legs_settled,
         "enough": legs_settled >= 100,
+        "staked": staked,
+        "returned": returned,
+        "profit": profit,
+        "roi": (profit / staked) if staked else None,
+        "n_with_stake": n_with_stake,
+        "pending_stake": pending_stake,
     }

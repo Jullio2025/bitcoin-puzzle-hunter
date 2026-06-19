@@ -213,6 +213,18 @@ def check_cards_for_user(client: ApiFootballClient, username: str) -> int:
                      f"(acertou {wins} de {len(detail)})", ""]
             for d, leg in zip(detail, card["legs"]):
                 lines.append(f"{d['icon']} {leg['fixture']} — {leg['market']}")
+            pl = share_store.card_pl({**card, "status": status})
+            if pl["settled"] and pl["pl"] is not None:
+                if pl["pl"] > 0:
+                    lines += ["", f"💰 Aposta R$ {pl['stake']:.2f} → "
+                              f"retorno R$ {pl['returned']:.2f} "
+                              f"(lucro R$ {pl['pl']:.2f})"]
+                elif pl["pl"] < 0:
+                    lines += ["", f"💸 Aposta R$ {pl['stake']:.2f} → "
+                              f"prejuízo R$ {-pl['pl']:.2f}"]
+                else:
+                    lines += ["", f"↩️ Aposta R$ {pl['stake']:.2f} devolvida "
+                              f"(R$ 0,00)"]
             lines += ["", "Os números na mesa — a decisão é sua. (18+)"]
             send_telegram("\n".join(lines), chat_id=chat_id)
             notified += 1

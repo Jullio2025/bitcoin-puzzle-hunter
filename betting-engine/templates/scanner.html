@@ -188,4 +188,33 @@
     levar alguns minutos; depois o cache acelera.</p>
   </div>
 </form>
+
+<script>
+  // Avisa ANTES de enviar se alguma "probabilidade mínima" pede >= 100%
+  // (mesma convenção do servidor: valor > 1 é tratado como porcentagem).
+  (function () {
+    const form = document.querySelector('form[action="/scan"]');
+    if (!form) return;
+    form.addEventListener("submit", function (ev) {
+      const bad = [];
+      form.querySelectorAll('input[name$="_p_min"]').forEach((inp) => {
+        const raw = parseFloat(inp.value);
+        if (isNaN(raw)) return;
+        const norm = raw > 1 ? raw / 100 : raw;
+        inp.style.borderColor = "";
+        if (norm >= 1.0) {
+          bad.push(inp);
+          inp.style.borderColor = "#ff5d6c";
+        }
+      });
+      if (bad.length) {
+        ev.preventDefault();
+        alert("⚠️ Probabilidade mínima de 100% (ou mais) é impossível: o "
+          + "modelo nunca dá 100% de certeza, então nada vai bater.\n\n"
+          + "Use um valor abaixo de 100% — ex.: 0.70 (70%) ou 90.");
+        bad[0].focus();
+      }
+    });
+  })();
+</script>
 {% endblock %}

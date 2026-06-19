@@ -14,6 +14,27 @@
       <strong>{{ "%.0f"|format(summary.card_hit_rate * 100) ~ "%" if summary.card_hit_rate is not none else "—" }}</strong></div>
   </div>
 
+  {% if summary.staked or summary.pending_stake %}
+  <h2 style="margin-top:1.2rem">💰 Controle de banca (lucro/prejuízo)</h2>
+  <div class="trio">
+    <div><span>Apostado (resolvidos)</span>
+      <strong>R$ {{ "%.2f"|format(summary.staked) }}</strong></div>
+    <div><span>Retorno</span>
+      <strong>R$ {{ "%.2f"|format(summary.returned) }}</strong></div>
+    <div><span>Lucro / prejuízo</span>
+      <strong class="{{ 'pl-pos' if summary.profit > 0 else ('pl-neg' if summary.profit < 0 else '') }}">
+        R$ {{ "%+.2f"|format(summary.profit) }}</strong></div>
+    <div><span>ROI</span>
+      <strong class="{{ 'pl-pos' if summary.roi and summary.roi > 0 else ('pl-neg' if summary.roi and summary.roi < 0 else '') }}">
+        {{ "%+.0f"|format(summary.roi * 100) ~ "%" if summary.roi is not none else "—" }}</strong></div>
+  </div>
+  <p class="hint">Soma só os {{ summary.n_with_stake }} cartão(ões) já
+  resolvido(s) em que você informou o valor apostado.
+  {% if summary.pending_stake %} Ainda em jogo:
+  <strong>R$ {{ "%.2f"|format(summary.pending_stake) }}</strong>.{% endif %}
+  ROI = lucro ÷ total apostado.</p>
+  {% endif %}
+
   <p class="hint">Calibração: quando o modelo diz X%, ele acerta X% de
   verdade? (mede perna por perna, nas {{ summary.legs_settled }} já
   resolvidas)</p>
@@ -100,7 +121,38 @@ aparecem aqui quando o bot monta o garimpo diário.</p></div>
     <div><span>Chance de perder</span>
       <strong>{{ "%.0f"|format(card.lose_prob * 100) }}%</strong></div>
   </div>
+
+  <form method="post" action="/cartoes/aposta" class="stake-row">
+    <input type="hidden" name="code" value="{{ card.code }}">
+    <label>💵 Valor que apostei (R$)
+      <input type="number" step="any" min="0" name="stake"
+             value="{{ '%.2f'|format(card.stake) if card.stake else '' }}"
+             placeholder="ex.: 10"></label>
+    <button type="submit" class="button">salvar</button>
+    {% if card.pl.settled %}
+      <span class="pl-tag {{ 'pl-pos' if card.pl.pl > 0 else ('pl-neg' if card.pl.pl < 0 else '') }}">
+        {% if card.pl.pl > 0 %}lucro de R$ {{ "%.2f"|format(card.pl.pl) }}
+        {% elif card.pl.pl < 0 %}prejuízo de R$ {{ "%.2f"|format(-card.pl.pl) }}
+        {% else %}devolvido (R$ 0,00){% endif %}</span>
+    {% elif card.stake and card.pl.potential %}
+      <span class="hint">se ganhar: +R$ {{ "%.2f"|format(card.pl.potential) }}</span>
+    {% endif %}
+  </form>
 </div>
 {% endfor %}
 {% endif %}
+
+<script>
+  // Atualiza sozinho a cada 60s enquanto houver jogo ao vivo num cartão,
+  // para os indicadores "🟢 vencendo" se mexerem sem F5 — igual ao Ao Vivo.
+  // Não recarrega se você estiver digitando (ex.: no valor da aposta).
+  (function () {
+    if (!document.querySelector(".live-tag")) return;
+    setInterval(function () {
+      const tag = (document.activeElement || {}).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      location.reload();
+    }, 60000);
+  })();
+</script>
 {% endblock %}
