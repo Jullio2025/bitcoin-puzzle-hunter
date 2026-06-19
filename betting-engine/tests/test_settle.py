@@ -44,7 +44,7 @@ class TestDecide(unittest.TestCase):
 class FakeSettleClient:
     """Jogo 1 terminou 2x0; jogo 2 ainda não começou."""
 
-    def fixture_by_id(self, fid):
+    def fixture_by_id(self, fid, ttl=None):
         if fid == 1:
             return {"fixture": {"id": 1, "status": {"short": "FT"}},
                     "goals": {"home": 2, "away": 0}}

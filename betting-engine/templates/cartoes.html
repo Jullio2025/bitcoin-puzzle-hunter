@@ -104,7 +104,11 @@ aparecem aqui quando o bot monta o garimpo diário.</p></div>
       <td>{% if leg.hl %}<img class="team-logo" src="{{ leg.hl }}" alt="" loading="lazy">{% endif %}{% if leg.al %}<img class="team-logo" src="{{ leg.al }}" alt="" loading="lazy">{% endif %}{{ leg.fixture }}
         {% set lv = live.get(leg.fid) if live else none %}
         {% if lv %}<span class="live-tag">🔴 {{ lv.gh if lv.gh is not none else 0 }}-{{ lv.ga if lv.ga is not none else 0 }} {{ "INT" if lv.status == "HT" else (lv.min ~ "'" if lv.min) }}</span>{% endif %}
-        {% if leg.live_status == "winning" %}<span class="win-tag">🟢 vencendo</span>
+        {% set d = card.detail[loop.index0] if card.detail and card.detail|length > loop.index0 else none %}
+        {% if d and d.outcome == "won" %}<span class="win-tag">✅ bateu</span>
+        {% elif d and d.outcome == "lost" %}<span class="lose-tag">❌ não bateu</span>
+        {% elif d and d.outcome == "push" %}<span class="lose-tag">↩️ devolvida</span>
+        {% elif leg.live_status == "winning" %}<span class="win-tag">🟢 vencendo</span>
         {% elif leg.live_status == "losing" %}<span class="lose-tag">🔴 perdendo</span>
         {% elif leg.live_status == "push" %}<span class="lose-tag">↩️ devolveria</span>{% endif %}
         <br><span class="hint">{{ leg.market }}</span></td>

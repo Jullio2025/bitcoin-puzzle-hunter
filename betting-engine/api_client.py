@@ -141,9 +141,10 @@ class ApiFootballClient:
             ttl=config.CACHE_TTL["fixtures_day"],
         )
 
-    def fixture_by_id(self, fixture_id: int) -> dict | None:
+    def fixture_by_id(self, fixture_id: int, ttl: int | None = None) -> dict | None:
         rows = self._get("fixtures", {"id": fixture_id},
-                         ttl=config.CACHE_TTL["fixtures_day"])
+                         ttl=ttl if ttl is not None
+                         else config.CACHE_TTL["fixtures_day"])
         return rows[0] if rows else None
 
     def live_fixtures(self) -> list:

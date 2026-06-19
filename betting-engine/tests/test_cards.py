@@ -16,7 +16,7 @@ share_store.SHARED_FILE = config.DATA_DIR / "cards.json"
 
 class FinishedClient:
     """Jogo 1 terminou 2x0."""
-    def fixture_by_id(self, fid):
+    def fixture_by_id(self, fid, ttl=None):
         return {"fixture": {"id": fid, "status": {"short": "FT"}},
                 "goals": {"home": 2, "away": 0}}
     def fixture_statistics(self, fid):
@@ -24,7 +24,7 @@ class FinishedClient:
 
 
 class PendingClient:
-    def fixture_by_id(self, fid):
+    def fixture_by_id(self, fid, ttl=None):
         return {"fixture": {"id": fid, "status": {"short": "NS"}},
                 "goals": {"home": None, "away": None}}
     def fixture_statistics(self, fid):
@@ -82,6 +82,37 @@ class TestSettleCard(unittest.TestCase):
                            "line": 9.5})
         status, _ = settle.settle_card(FinishedClient(), card)
         self.assertEqual(status, "conferir")  # sem estatística de escanteios
+
+
+class MixedClient:
+    """fid 1 terminou 2x0; fid 2 ainda não começou."""
+    def fixture_by_id(self, fid, ttl=None):
+        if fid == 1:
+            return {"fixture": {"id": 1, "status": {"short": "FT"}},
+                    "goals": {"home": 2, "away": 0}}
+        return {"fixture": {"id": 2, "status": {"short": "NS"}},
+                "goals": {"home": None, "away": None}}
+    def fixture_statistics(self, fid):
+        return []
+
+
+class TestPartialDetail(unittest.TestCase):
+    def test_refresh_saves_partial_without_finalizing(self):
+        import daily_scan
+        code = share_store.create(
+            [{"fixture": "A x B", "market": "Gols +1.5", "odd": 1.5, "p": 0.8,
+              "fid": 1, "mkt": "goals", "side": "over", "line": 1.5},
+             {"fixture": "C x D", "market": "Gols +1.5", "odd": 1.5, "p": 0.8,
+              "fid": 2, "mkt": "goals", "side": "over", "line": 1.5}],
+            2.25, 0.64, 0.36, owner="parcial")
+        daily_scan.refresh_card_details(MixedClient(), "parcial")
+        card = share_store.get(code)
+        # perna 1 (encerrada) já mostra resultado; perna 2 segue pendente
+        self.assertEqual(card["detail"][0]["outcome"], "won")
+        self.assertEqual(card["detail"][1]["outcome"], "pending")
+        # status NÃO foi finalizado e o cartão NÃO foi marcado como notificado
+        self.assertEqual(card["status"], "pendente")
+        self.assertFalse(card.get("notified"))
 
 
 class TestStore(unittest.TestCase):

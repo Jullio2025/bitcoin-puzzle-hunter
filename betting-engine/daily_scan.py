@@ -191,6 +191,46 @@ _CARD_STATUS_PT = {"ganhou": "✅ GANHOU", "perdeu": "❌ PERDEU",
                    "conferir": "❔ CONFERIR (sem estatística de alguma perna)"}
 
 
+def refresh_card_details(client: ApiFootballClient, username: str,
+                         ttl: int | None = None) -> None:
+    """Atualiza SÓ o detalhe por perna (✅/❌/⏳) dos cartões pendentes.
+
+    Serve para a tela mostrar os resultados parciais assim que cada jogo
+    termina, sem esperar o cartão inteiro fechar. NÃO altera o status nem
+    envia Telegram — isso continua a cargo de check_cards_for_user (job de
+    hora em hora). Pernas já decididas (jogo encerrado) não são reconsultadas.
+    """
+    import share_store
+    for card in share_store.list_for_user(username):
+        if card.get("status") not in (None, "pendente"):
+            continue
+        legs = card.get("legs", [])
+        prev = card.get("detail") or []
+        detail, changed = [], False
+        for i, leg in enumerate(legs):
+            old = prev[i] if i < len(prev) else None
+            if old and old.get("outcome") in ("won", "lost", "push"):
+                detail.append(old)  # jogo encerrado não muda — reaproveita
+                continue
+            if not leg.get("fid") or not leg.get("mkt"):
+                detail.append({"label": leg.get("market", "?"), "icon": "❔"})
+                continue
+            try:
+                o = settle.leg_outcome(
+                    client, {"fid": leg["fid"], "market": leg["mkt"],
+                             "side": leg["side"], "line": leg.get("line")},
+                    ttl=ttl)
+            except Exception:
+                o = "pending"
+            detail.append({"label": leg.get("market", leg["mkt"]),
+                           "icon": settle._OUTCOME_PT.get(o, "❔"),
+                           "outcome": o})
+            if not old or old.get("outcome") != o:
+                changed = True
+        if changed:
+            share_store.update(card["code"], detail=detail)
+
+
 def check_cards_for_user(client: ApiFootballClient, username: str) -> int:
     """Confere os cartões pendentes do usuário cujos jogos já terminaram e
     manda o resultado no Telegram assim que fecham. Retorna nº notificados."""
@@ -202,6 +242,10 @@ def check_cards_for_user(client: ApiFootballClient, username: str) -> int:
         if card.get("notified") or card.get("status") not in (None, "pendente"):
             continue
         status, detail = settle.settle_card(client, card)
+        # Salva detalhe parcial mesmo quando pendente: pernas já encerradas
+        # ficam visíveis (✅/❌/⏳) sem esperar o cartão inteiro fechar.
+        if detail and detail != card.get("detail"):
+            share_store.update(card["code"], detail=detail)
         if status == "pendente":
             continue  # ainda tem jogo rolando
         share_store.update(card["code"], status=status, detail=detail,

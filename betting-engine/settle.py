@@ -72,9 +72,13 @@ def _count_total(client: ApiFootballClient, fixture_id: int,
     return sum(values) if values else None
 
 
-def leg_outcome(client: ApiFootballClient, leg: dict) -> str:
-    """'won'|'lost'|'push'|'pending'|'unknown' para uma perna estruturada."""
-    fx = client.fixture_by_id(leg["fid"])
+def leg_outcome(client: ApiFootballClient, leg: dict,
+                ttl: int | None = None) -> str:
+    """'won'|'lost'|'push'|'pending'|'unknown' para uma perna estruturada.
+
+    ttl: TTL de cache do jogo (em s). Use um valor curto na tela para captar
+    rápido o fim do jogo; deixe None nos jobs (cache padrão de 1h)."""
+    fx = client.fixture_by_id(leg["fid"], ttl=ttl)
     if not fx or fx["fixture"]["status"]["short"] not in FINISHED:
         return "pending"
     gh = fx["goals"]["home"] or 0
@@ -89,13 +93,14 @@ _OUTCOME_PT = {"won": "✅", "lost": "❌", "push": "↩️",
                "unknown": "❔", "pending": "⏳"}
 
 
-def settle_card(client: ApiFootballClient, card: dict) -> tuple[str, list]:
+def settle_card(client: ApiFootballClient, card: dict,
+                ttl: int | None = None) -> tuple[str, list]:
     """Confere um cartão. Retorna (status, detalhe_por_perna).
 
     status: 'pendente' (algum jogo não acabou) | 'ganhou' | 'perdeu' |
     'devolvida' (todas push) | 'conferir' (alguma perna sem estatística).
     Cada perna do cartão tem fid, mkt, side, line, market(label).
-    """
+    ttl: TTL de cache do jogo (curto na tela, padrão nos jobs)."""
     outcomes, detail = [], []
     for leg in card.get("legs", []):
         if not leg.get("fid") or not leg.get("mkt"):
@@ -103,7 +108,8 @@ def settle_card(client: ApiFootballClient, card: dict) -> tuple[str, list]:
             detail.append({"label": leg.get("market", "?"), "icon": "❔"})
             continue
         o = leg_outcome(client, {"fid": leg["fid"], "market": leg["mkt"],
-                                 "side": leg["side"], "line": leg.get("line")})
+                                 "side": leg["side"], "line": leg.get("line")},
+                        ttl=ttl)
         outcomes.append(o)
         detail.append({"label": leg.get("market", leg["mkt"]),
                        "icon": _OUTCOME_PT.get(o, "❔"), "outcome": o})

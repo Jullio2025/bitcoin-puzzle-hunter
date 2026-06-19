@@ -668,6 +668,14 @@ def ticket_share(request: Request, user: str = Depends(current_user),
 @app.get("/cartoes", response_class=HTMLResponse)
 def cartoes(request: Request, user: str = Depends(current_user), msg: str = ""):
     import share_store
+    # Atualiza o resultado das pernas já encerradas (cache curto) para os
+    # ✅/❌ aparecerem assim que cada jogo fecha, sem esperar a hora cheia.
+    try:
+        import daily_scan
+        daily_scan.refresh_card_details(ApiFootballClient(), user,
+                                        ttl=config.CACHE_TTL["live"])
+    except Exception:
+        logging.exception("refresh_card_details falhou em /cartoes")
     cards = share_store.list_for_user(user)
     live = _live_map()
     _annotate_live(cards, live)
