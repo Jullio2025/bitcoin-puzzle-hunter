@@ -290,16 +290,23 @@ def _save_sent(data: dict) -> None:
     SUREBET_SENT_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2))
 
 
+# reavisa a mesma oportunidade se a margem subir pelo menos isto (2 p.p.)
+REALERT_STEP = 0.02
+
+
 def _surebet_sig(sb, today: str) -> str:
-    """Assinatura de uma oportunidade (1 alerta por jogo+mercado+linha/dia)."""
+    """Assinatura de uma oportunidade (jogo+mercado+linha, por dia)."""
     return f"{today}|{sb.fid}|{sb.market}|{sb.line}"
 
 
-def _format_surebets(bets: list, today: str) -> str:
-    lines = [f"⚖️ Surebets de hoje ({len(bets)} nova(s)):", ""]
-    for sb in bets:
+def _format_surebets(items: list, today: str) -> str:
+    """`items`: lista de (SureBet, melhorou?) — melhorou = reaviso de subida."""
+    lines = [f"⚖️ Surebets de hoje ({len(items)}):", ""]
+    for sb, improved in items:
         line_txt = f" {sb.line:g}" if sb.line is not None else ""
-        lines.append(f"🟢 {sb.fixture} — {sb.market_label}{line_txt}")
+        tag = "🟢📈" if improved else "🟢"
+        extra = " — margem SUBIU!" if improved else ""
+        lines.append(f"{tag} {sb.fixture} — {sb.market_label}{line_txt}{extra}")
         lines.append(f"   lucro travado +{sb.margin * 100:.2f}% "
                      f"(soma {sb.sum_implied * 100:.1f}%)")
         for leg in sb.legs:
@@ -330,20 +337,30 @@ def surebet_alerts_run(client: ApiFootballClient, today: str) -> int:
         return 0
 
     sent = _load_sent()
-    sent = {u: {s: d for s, d in sigs.items() if d == today}  # poda dias velhos
+    # poda dias velhos (a assinatura começa com a data)
+    sent = {u: {s: m for s, m in sigs.items() if s.split("|", 1)[0] == today}
             for u, sigs in sent.items()}
     notified = 0
     for username, info in subs:
         chat_id = info["telegram_chat_id"]
         thr = info.get("surebet_min_margin", 0.5) / 100.0
         mine = sent.setdefault(username, {})
-        new = [sb for sb in scan.bets
-               if sb.margin >= thr and _surebet_sig(sb, today) not in mine]
-        if not new:
+        to_send = []  # (SureBet, melhorou?)
+        for sb in scan.bets:
+            if sb.margin < thr:
+                continue
+            sig = _surebet_sig(sb, today)
+            prev = mine.get(sig)
+            prev = prev if isinstance(prev, (int, float)) else None
+            if prev is None:
+                to_send.append((sb, False))            # oportunidade nova
+            elif sb.margin >= prev + REALERT_STEP:
+                to_send.append((sb, True))             # margem subiu bastante
+        if not to_send:
             continue
-        send_telegram(_format_surebets(new[:8], today), chat_id=chat_id)
-        for sb in new:
-            mine[_surebet_sig(sb, today)] = today
+        send_telegram(_format_surebets(to_send[:8], today), chat_id=chat_id)
+        for sb, _imp in to_send:
+            mine[_surebet_sig(sb, today)] = sb.margin  # guarda a última avisada
         notified += 1
     _save_sent(sent)
     return notified

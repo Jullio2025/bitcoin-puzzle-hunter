@@ -67,13 +67,33 @@ class TestSurebetAlerts(unittest.TestCase):
         self.assertIn("999", self.sent[0][0])
         # só a de 5% entrou (a de 1% ficou abaixo do threshold de 2%)
         self.assertIn("+5.00%", self.sent[0][1])
-        self.assertNotIn("A x B — Gols 1.5\n   lucro travado +1.00%",
-                         self.sent[0][1])
+        self.assertNotIn("+1.00%", self.sent[0][1])
 
-        # rodar de novo no mesmo dia NÃO reenvia (dedupe)
+        # rodar de novo no mesmo dia com a MESMA margem NÃO reenvia (dedupe)
         n2 = daily_scan.surebet_alerts_run(self._client(), "2026-06-20")
         self.assertEqual(n2, 0)
         self.assertEqual(len(self.sent), 1)
+
+    def test_realerts_when_margin_improves(self):
+        users.create_user("rita", "pw1234")
+        users.set_telegram("rita", "222")
+        users.set_surebet_alerts("rita", True, min_margin=0.5)
+        # 1ª rodada: margem 3% -> avisa
+        surebet.scan_day = lambda *a, **k: surebet.SureScan(
+            bets=[_fake_bet(1, 0.03)], suspects=[], fixtures_scanned=1, books_seen=2)
+        self.assertEqual(
+            daily_scan.surebet_alerts_run(self._client(), "2026-06-20"), 1)
+        # subiu pouco (3.5%, +0.5 p.p.) -> NÃO reavisa
+        surebet.scan_day = lambda *a, **k: surebet.SureScan(
+            bets=[_fake_bet(1, 0.035)], suspects=[], fixtures_scanned=1, books_seen=2)
+        self.assertEqual(
+            daily_scan.surebet_alerts_run(self._client(), "2026-06-20"), 0)
+        # subiu bastante (6%, +3 p.p. da última avisada) -> reavisa
+        surebet.scan_day = lambda *a, **k: surebet.SureScan(
+            bets=[_fake_bet(1, 0.06)], suspects=[], fixtures_scanned=1, books_seen=2)
+        self.assertEqual(
+            daily_scan.surebet_alerts_run(self._client(), "2026-06-20"), 1)
+        self.assertIn("SUBIU", self.sent[-1][1])
 
     def test_disabled_user_gets_nothing(self):
         users.create_user("maria", "pw1234")

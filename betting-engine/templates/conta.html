@@ -36,8 +36,9 @@
 <div class="card">
   <h2>⚖️ Alertas de surebet no Telegram</h2>
   <p class="hint">De hora em hora o bot procura arbitragens (lucro travado
-  entre casas) e te avisa quando achar — só as confiáveis, no máximo 1 aviso
-  por oportunidade no dia. Precisa do chat_id cadastrado acima.</p>
+  entre casas) e te avisa quando achar — só as confiáveis. Avisa 1 vez por
+  oportunidade e <strong>reavisa se a margem subir bastante</strong> (≥ 2
+  pontos). Precisa do chat_id cadastrado acima.</p>
   <form method="post" action="/conta/surebet" class="form-inline">
     <label class="inline"><input type="checkbox" name="surebet_alerts"
       {{ "checked" if surebet_alerts }}> Receber alertas de surebet</label>
