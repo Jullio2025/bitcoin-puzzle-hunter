@@ -112,6 +112,18 @@ def set_send_hour(username: str, hour: int) -> None:
         _save(data)
 
 
+def set_surebet_alerts(username: str, enabled: bool,
+                       min_margin: float = 0.5) -> None:
+    """Liga/desliga os alertas de surebet no Telegram e a margem mínima (%)
+    a partir da qual avisar. Roda de hora em hora, independente do send_hour."""
+    data = _load()
+    if username.lower() in data:
+        u = data[username.lower()]
+        u["surebet_alerts"] = bool(enabled)
+        u["surebet_min_margin"] = max(0.0, float(min_margin))
+        _save(data)
+
+
 def set_password(username: str, new_password: str) -> tuple[bool, str]:
     if len(new_password or "") < 6:
         return False, "Senha muito curta (mínimo 6 caracteres)."

@@ -32,6 +32,27 @@
   {% endif %}
 </div>
 
+{% if bot_ready %}
+<div class="card">
+  <h2>⚖️ Alertas de surebet no Telegram</h2>
+  <p class="hint">De hora em hora o bot procura arbitragens (lucro travado
+  entre casas) e te avisa quando achar — só as confiáveis, no máximo 1 aviso
+  por oportunidade no dia. Precisa do chat_id cadastrado acima.</p>
+  <form method="post" action="/conta/surebet" class="form-inline">
+    <label class="inline"><input type="checkbox" name="surebet_alerts"
+      {{ "checked" if surebet_alerts }}> Receber alertas de surebet</label>
+    <label>Margem mínima (%)
+      <input type="number" step="any" name="surebet_min_margin"
+             value="{{ "%g"|format(surebet_min_margin) }}" style="max-width:90px"></label>
+    <button type="submit" class="primary">Salvar</button>
+  </form>
+  <p class="hint">Margem = lucro travado. Surebet real costuma ficar em 1%–4%,
+  então 0.5 já pega quase tudo. ⚠️ Confira a odd na casa antes de apostar — as
+  odds mudam rápido.
+  {% if not telegram_chat_id %}<br>⚠️ Cadastre seu chat_id acima primeiro.{% endif %}</p>
+</div>
+{% endif %}
+
 <div class="card">
   <h2>⛏️ Critérios do garimpo automático</h2>
   {% if criteria_labels %}

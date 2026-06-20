@@ -275,6 +275,80 @@ def check_cards_for_user(client: ApiFootballClient, username: str) -> int:
     return notified
 
 
+# ---------------------------------------------------------- alertas de surebet
+SUREBET_SENT_FILE = config.DATA_DIR / "surebet_sent.json"
+
+
+def _load_sent() -> dict:
+    if SUREBET_SENT_FILE.exists():
+        return json.loads(SUREBET_SENT_FILE.read_text())
+    return {}
+
+
+def _save_sent(data: dict) -> None:
+    SUREBET_SENT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    SUREBET_SENT_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+
+
+def _surebet_sig(sb, today: str) -> str:
+    """Assinatura de uma oportunidade (1 alerta por jogo+mercado+linha/dia)."""
+    return f"{today}|{sb.fid}|{sb.market}|{sb.line}"
+
+
+def _format_surebets(bets: list, today: str) -> str:
+    lines = [f"⚖️ Surebets de hoje ({len(bets)} nova(s)):", ""]
+    for sb in bets:
+        line_txt = f" {sb.line:g}" if sb.line is not None else ""
+        lines.append(f"🟢 {sb.fixture} — {sb.market_label}{line_txt}")
+        lines.append(f"   lucro travado +{sb.margin * 100:.2f}% "
+                     f"(soma {sb.sum_implied * 100:.1f}%)")
+        for leg in sb.legs:
+            lines.append(f"   • {leg.label}: {leg.odd:.2f} na {leg.book}")
+        lines.append("")
+    lines.append(f"Divisão do valor e detalhes: {panel_url()}/surebet")
+    lines.append("⚠️ Confirme a odd na casa antes de apostar — elas mudam "
+                 "rápido. Cada um aposta na própria conta. 18+")
+    return "\n".join(lines)
+
+
+def surebet_alerts_run(client: ApiFootballClient, today: str) -> int:
+    """Escaneia surebets do dia e avisa no Telegram quem ativou. Roda de hora
+    em hora (sensível ao tempo). Dedupe: 1 aviso por oportunidade por dia.
+    Retorna nº de usuários notificados."""
+    import surebet
+    subs = [(u, users.get_user(u) or {}) for u in users.all_usernames()]
+    subs = [(u, info) for (u, info) in subs
+            if info.get("surebet_alerts") and info.get("telegram_chat_id")]
+    if not subs or not bot_configured():
+        return 0
+
+    # escaneia UMA vez na menor margem pedida entre os inscritos (só os limpos)
+    floor = min(info.get("surebet_min_margin", 0.5) for _u, info in subs) / 100.0
+    scan = surebet.scan_day(client, today, markets=list(surebet.ALL_MARKETS),
+                            min_margin=floor, near_max=1.0)
+    if not scan.bets:
+        return 0
+
+    sent = _load_sent()
+    sent = {u: {s: d for s, d in sigs.items() if d == today}  # poda dias velhos
+            for u, sigs in sent.items()}
+    notified = 0
+    for username, info in subs:
+        chat_id = info["telegram_chat_id"]
+        thr = info.get("surebet_min_margin", 0.5) / 100.0
+        mine = sent.setdefault(username, {})
+        new = [sb for sb in scan.bets
+               if sb.margin >= thr and _surebet_sig(sb, today) not in mine]
+        if not new:
+            continue
+        send_telegram(_format_surebets(new[:8], today), chat_id=chat_id)
+        for sb in new:
+            mine[_surebet_sig(sb, today)] = today
+        notified += 1
+    _save_sent(sent)
+    return notified
+
+
 def main(force: bool = False) -> None:
     """Roda o garimpo. Por padrão, só dos usuários cuja hora escolhida
     bate com a hora atual do servidor (o timer chama de hora em hora).
@@ -303,7 +377,15 @@ def main(force: bool = False) -> None:
             print(f"[erro conferindo cartões de {username}] "
                   f"{type(e).__name__}: {e}")
 
-    # 2) garimpo do dia: só usuários cuja hora escolhida bate com agora.
+    # 2) alertas de surebet: de hora em hora p/ quem ativou (sensível ao
+    #    tempo — independe do send_hour). Só roda se houver inscrito.
+    sure_notified = 0
+    try:
+        sure_notified = surebet_alerts_run(client, today)
+    except Exception as e:
+        print(f"[erro nos alertas de surebet] {type(e).__name__}: {e}")
+
+    # 3) garimpo do dia: só usuários cuja hora escolhida bate com agora.
     due = [u for u in usernames
            if force or (users.get_user(u) or {}).get("send_hour", 9) == now_hour]
     for username in due:
@@ -313,6 +395,7 @@ def main(force: bool = False) -> None:
             print(f"[erro em {username}] {type(e).__name__}: {e}")
     print(f"\n[concluído: garimpo p/ {len(due)} usuário(s) nesta hora | "
           f"{cards_notified} resultado(s) de cartão enviado(s) | "
+          f"{sure_notified} alerta(s) de surebet enviado(s) | "
           f"{client.calls_made} chamadas à API no total]")
 
 

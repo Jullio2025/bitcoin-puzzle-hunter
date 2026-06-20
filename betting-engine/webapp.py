@@ -185,6 +185,8 @@ def conta(request: Request, user: str = Depends(current_user), msg: str = ""):
     return render(request, "conta.html", conta_user=user,
                   telegram_chat_id=u.get("telegram_chat_id", ""),
                   send_hour=u.get("send_hour", 9),
+                  surebet_alerts=u.get("surebet_alerts", False),
+                  surebet_min_margin=u.get("surebet_min_margin", 0.5),
                   server_time=datetime.now(config.BR_TZ).strftime("%H:%M"),
                   bot_ready=notify.bot_configured(),
                   criteria_labels=criteria_labels, msg=msg)
@@ -196,6 +198,15 @@ def conta_telegram(user: str = Depends(current_user),
     users.set_telegram(user, chat_id)
     users.set_send_hour(user, send_hour)
     return RedirectResponse("/conta?msg=Telegram+e+hor%C3%A1rio+salvos",
+                            status_code=303)
+
+
+@app.post("/conta/surebet")
+def conta_surebet(user: str = Depends(current_user),
+                  surebet_alerts: str = Form(""),
+                  surebet_min_margin: float = Form(0.5)):
+    users.set_surebet_alerts(user, surebet_alerts == "on", surebet_min_margin)
+    return RedirectResponse("/conta?msg=Alertas+de+surebet+salvos",
                             status_code=303)
 
 
