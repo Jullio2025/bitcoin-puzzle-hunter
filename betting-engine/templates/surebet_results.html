@@ -2,7 +2,8 @@
 {% block content %}
 <h1>⚖️ Surebets de {{ match_date }}</h1>
 
-<p class="hint">Jogos com odds comparadas: {{ scan.fixtures_scanned }} —
+<p class="hint">Jogos com odds comparadas: {{ scan.fixtures_scanned }}
+(só os que <strong>ainda não começaram</strong> — surebet é pré-jogo) —
 casas vistas no dia: {{ scan.books_seen }} — valor base da divisão:
 R$ {{ "%.2f"|format(bankroll) }}.</p>
 

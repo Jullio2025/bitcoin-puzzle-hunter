@@ -179,7 +179,8 @@ class TestScanDay(unittest.TestCase):
 
     def test_attaches_fixture_info(self):
         scan = surebet.scan_day(self.FakeClient(), "2026-06-19",
-                                markets=["goals"], near_max=1.0)
+                                markets=["goals"], near_max=1.0,
+                                only_upcoming=False)
         self.assertEqual(len(scan.bets), 1)
         self.assertEqual(scan.suspects, [])
         sb = scan.bets[0]
@@ -187,6 +188,39 @@ class TestScanDay(unittest.TestCase):
         self.assertEqual(sb.fid, 1)
         self.assertEqual(sb.hl, "h.png")
         self.assertTrue(sb.is_arb)
+
+    class FutureAndPastClient:
+        def fixtures_by_date(self, date):
+            return [
+                {"fixture": {"id": 1, "date": "2020-01-01T00:00:00+00:00"},
+                 "league": {"name": "L", "country": "BR"},
+                 "teams": {"home": {"name": "Velho"}, "away": {"name": "Jogo"}}},
+                {"fixture": {"id": 2, "date": "2099-01-01T00:00:00+00:00"},
+                 "league": {"name": "L", "country": "BR"},
+                 "teams": {"home": {"name": "Futuro"}, "away": {"name": "Jogo"}}},
+            ]
+        def odds_by_date_all(self, date, max_pages=30):
+            def book(name, over, under):
+                return {"id": hash(name) % 99, "name": name, "bets": [
+                    {"name": "Goals Over/Under",
+                     "values": [{"value": "Over 1.5", "odd": str(over)},
+                                {"value": "Under 1.5", "odd": str(under)}]}]}
+            # arb real (2 casas: melhor over em A, melhor under em B)
+            books = [book("A", 2.00, 1.80), book("B", 1.85, 2.10)]
+            return [
+                {"fixture": {"id": 1}, "league": {"name": "L", "country": "BR"},
+                 "bookmakers": books},
+                {"fixture": {"id": 2}, "league": {"name": "L", "country": "BR"},
+                 "bookmakers": books},
+            ]
+
+    def test_skips_already_started_games(self):
+        # padrão only_upcoming=True: o jogo de 2020 sai, só o de 2099 fica
+        scan = surebet.scan_day(self.FutureAndPastClient(), "2026-06-20",
+                                markets=["goals"], near_max=1.0)
+        labels = [b.fixture for b in scan.bets]
+        self.assertEqual(labels, ["Futuro x Jogo"])
+        self.assertEqual(scan.fixtures_scanned, 1)
 
     class MixedClient(FakeClient):
         def odds_by_date_all(self, date, max_pages=30):
@@ -199,7 +233,8 @@ class TestScanDay(unittest.TestCase):
 
     def test_separates_clean_from_suspect(self):
         scan = surebet.scan_day(self.MixedClient(), "2026-06-19",
-                                markets=["goals", "handicap"], near_max=1.0)
+                                markets=["goals", "handicap"], near_max=1.0,
+                                only_upcoming=False)
         self.assertEqual(len(scan.bets), 1)       # gols: arb limpa
         self.assertFalse(scan.bets[0].suspect)
         self.assertEqual(len(scan.suspects), 1)   # handicap numa casa só

@@ -16,6 +16,7 @@ o ChapaFut só mostra os números.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 
 import config
 from odds_parser import _bet_name_to_market, _parse_value_label
@@ -236,15 +237,32 @@ class SureScan:
     books_seen: int
 
 
+def _is_upcoming(fx: dict, now) -> bool:
+    """True só se o jogo ainda NÃO começou (kickoff no futuro).
+
+    Surebet é pré-jogo: jogo que já rolou/está rolando não serve (não dá pra
+    apostar, e a odd mostrada é velha)."""
+    raw = (fx.get("fixture", {}) or {}).get("date") if fx else None
+    if not raw:
+        return False
+    try:
+        return datetime.fromisoformat(raw) > now
+    except ValueError:
+        return False
+
+
 def scan_day(client, date: str, markets: list[str] | None = None,
              min_margin: float = 0.0, near_max: float = NEAR_MAX_DEFAULT,
              books: set[str] | None = None,
-             max_fixtures: int | None = None) -> SureScan:
+             max_fixtures: int | None = None,
+             only_upcoming: bool = True) -> SureScan:
     """Varre um dia inteiro: odds de todas as casas + nomes dos jogos.
 
     Barato: 1 chamada de jogos do dia (cache) + odds paginadas por data
-    (sem chamadas por time, pois surebet não usa o modelo)."""
+    (sem chamadas por time, pois surebet não usa o modelo).
+    only_upcoming: ignora jogos que já começaram (padrão — surebet é pré-jogo)."""
     markets = list(markets or DEFAULT_MARKETS)
+    now = datetime.now(timezone.utc)
 
     fx_map = {}
     for fx in client.fixtures_by_date(date):
@@ -258,16 +276,18 @@ def scan_day(client, date: str, markets: list[str] | None = None,
 
     for item in odds_response:
         fid = item.get("fixture", {}).get("id")
-        bybook = parse_odds_by_book([item], books=books)
         for bm in item.get("bookmakers", []):
             all_books.add(bm.get("name") or str(bm.get("id")))
+        fx = fx_map.get(fid, {})
+        if only_upcoming and not _is_upcoming(fx, now):
+            continue  # jogo já começou/acabou -> fora (surebet é pré-jogo)
+        bybook = parse_odds_by_book([item], books=books)
         if not bybook:
             continue
         scanned += 1
         found = scan_fixture(bybook, markets, min_margin, near_max)
         if not found:
             continue
-        fx = fx_map.get(fid, {})
         teams = fx.get("teams", {})
         league = fx.get("league", {})
         home = teams.get("home", {})
