@@ -132,6 +132,23 @@ class TestArbDetection(unittest.TestCase):
         by = surebet.parse_odds_by_book(resp)
         self.assertEqual(surebet.scan_fixture(by, ["goals"], near_max=1.5), [])
 
+    def test_team_goals_in_all_markets(self):
+        self.assertIn("team_goals_home", surebet.ALL_MARKETS)
+        self.assertIn("team_goals_away", surebet.ALL_MARKETS)
+
+    def test_team_goals_arb(self):
+        # gols do mandante: Mais de 1.5 @2.05 (A) + Menos de 1.5 @2.00 (B)
+        resp = _resp(
+            ("A", [("Total - Home", [("Over 1.5", 2.05), ("Under 1.5", 1.85)])]),
+            ("B", [("Total - Home", [("Over 1.5", 1.90), ("Under 1.5", 2.00)])]),
+        )
+        by = surebet.parse_odds_by_book(resp)
+        bets = surebet.scan_fixture(by, ["team_goals_home"], near_max=1.0)
+        self.assertEqual(len(bets), 1)
+        self.assertTrue(bets[0].is_arb)
+        self.assertEqual(bets[0].market, "team_goals_home")
+        self.assertEqual(bets[0].market_label, "Gols do mandante")
+
     def test_1x2_three_way_arb(self):
         # melhor odd de cada via vem de casas diferentes -> arb plausível ~8%
         resp = _resp(

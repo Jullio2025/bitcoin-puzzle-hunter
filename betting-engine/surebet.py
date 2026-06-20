@@ -26,7 +26,8 @@ from recommender import MARKET_LABELS, SIDE_LABELS
 OVER_UNDER_MARKETS = ("goals", "corners", "cards",
                       "team_goals_home", "team_goals_away")
 DEFAULT_MARKETS = ("goals", "1x2", "btts")
-ALL_MARKETS = ("goals", "1x2", "btts", "corners", "cards", "handicap")
+ALL_MARKETS = ("goals", "team_goals_home", "team_goals_away", "1x2", "btts",
+               "corners", "cards", "handicap")
 
 # soma das implícitas até este teto entra como "quase-surebet" (não garantido)
 NEAR_MAX_DEFAULT = 1.03
