@@ -88,6 +88,24 @@ def update(code: str, **fields) -> None:
         _save(data)
 
 
+def same_fixture_warning(legs: list) -> list:
+    """Jogos com mais de UMA perna no mesmo bilhete (pernas correlacionadas).
+
+    Retorna [(rótulo_do_jogo, n_pernas)] — vazio se cada jogo aparece 1x.
+    A probabilidade combinada assume INDEPENDÊNCIA entre as pernas; quando
+    há pernas do mesmo jogo (ex.: "Mais de 1.5" + "Ambas marcam"), elas são
+    correlacionadas e o número combinado fica IMPRECISO (em geral subestima)."""
+    counts: dict = {}
+    labels: dict = {}
+    for leg in legs:
+        fid = leg.get("fid")
+        if not fid:
+            continue
+        counts[fid] = counts.get(fid, 0) + 1
+        labels[fid] = leg.get("fixture", "jogo")
+    return [(labels[fid], n) for fid, n in counts.items() if n > 1]
+
+
 def card_pl(card: dict) -> dict:
     """Lucro/prejuízo de um cartão a partir do valor apostado (stake).
 

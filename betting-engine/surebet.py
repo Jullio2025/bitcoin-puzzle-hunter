@@ -117,6 +117,7 @@ class SureBet:
     margin: float        # 1/soma - 1 (positivo = lucro garantido por unidade)
     is_arb: bool         # soma < 100%
     n_books: int         # quantas casas distintas a operação usa
+    depth: int = 0       # casas que cotam a perna MAIS RASA (liquidez/limite)
     suspect: bool = False        # parece arb mas cheira a erro de dado
     suspect_reason: str = ""     # por que é suspeita (mostrado ao usuário)
     # preenchidos depois com dados do jogo (para exibir)
@@ -135,6 +136,18 @@ class SureBet:
             rows.append((leg, stake, stake * leg.odd))
         return rows
 
+    @property
+    def liquidity(self) -> str:
+        """Quão líquido/confiável é o mercado, pela profundidade de casas.
+
+        Mercado raso = poucas casas cotam = limite de aposta provavelmente
+        baixo e maior chance de a odd estar velha."""
+        if self.depth <= 2:
+            return "raso"      # ⚠️ limite provavelmente baixo
+        if self.depth <= 4:
+            return "médio"
+        return "líquido"
+
 
 def _evaluate_group(bybook: dict, market: str, line: float | None,
                     outcomes: list[tuple[str, str, float | None]],
@@ -152,6 +165,8 @@ def _evaluate_group(bybook: dict, market: str, line: float | None,
     margin = (1.0 / sum_implied) - 1.0
     is_arb = sum_implied < 1.0
     n_books = len({bk for *_x, bk, _od in best})
+    # profundidade = casas que cotam a perna MAIS RASA (gargalo de liquidez)
+    depth = min(len(bybook.get(key, {})) for key in outcomes)
 
     # Classifica em: arb limpa | quase | SUSPEITA (nada é descartado em
     # silêncio — o que cheira a erro vai pra uma lista separada e marcada).
@@ -184,7 +199,8 @@ def _evaluate_group(bybook: dict, market: str, line: float | None,
     return SureBet(
         fid=0, market=market, market_label=MARKET_LABELS.get(market, market),
         line=line, legs=legs, sum_implied=sum_implied, margin=margin,
-        is_arb=is_arb, n_books=n_books, suspect=suspect, suspect_reason=reason)
+        is_arb=is_arb, n_books=n_books, depth=depth,
+        suspect=suspect, suspect_reason=reason)
 
 
 def scan_fixture(bybook: dict, markets: list[str],

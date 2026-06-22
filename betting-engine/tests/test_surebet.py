@@ -149,6 +149,29 @@ class TestArbDetection(unittest.TestCase):
         self.assertEqual(bets[0].market, "team_goals_home")
         self.assertEqual(bets[0].market_label, "Gols do mandante")
 
+    def test_depth_marks_thin_market(self):
+        # só 2 casas cotam over/under -> perna mais rasa tem profundidade 2
+        resp = _resp(
+            ("A", [("Goals Over/Under", [("Over 1.5", 2.00), ("Under 1.5", 1.80)])]),
+            ("B", [("Goals Over/Under", [("Over 1.5", 1.85), ("Under 1.5", 2.10)])]),
+        )
+        by = surebet.parse_odds_by_book(resp)
+        sb = surebet.scan_fixture(by, ["goals"], near_max=1.0)[0]
+        self.assertEqual(sb.depth, 2)
+        self.assertEqual(sb.liquidity, "raso")
+
+    def test_depth_liquid_market(self):
+        # 5 casas cotam os dois lados -> mercado líquido
+        books = [(c, [("Goals Over/Under",
+                       [("Over 1.5", o), ("Under 1.5", u)])])
+                 for c, o, u in [("A", 2.00, 1.80), ("B", 1.85, 2.10),
+                                 ("C", 1.90, 1.95), ("D", 1.88, 1.98),
+                                 ("E", 1.92, 1.93)]]
+        by = surebet.parse_odds_by_book(_resp(*books))
+        sb = surebet.scan_fixture(by, ["goals"], near_max=2.0)[0]
+        self.assertEqual(sb.depth, 5)
+        self.assertEqual(sb.liquidity, "líquido")
+
     def test_1x2_three_way_arb(self):
         # melhor odd de cada via vem de casas diferentes -> arb plausível ~8%
         resp = _resp(

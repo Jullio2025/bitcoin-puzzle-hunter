@@ -125,6 +125,14 @@ aparecem aqui quando o bot monta o garimpo diário.</p></div>
     <div><span>Chance de perder</span>
       <strong>{{ "%.0f"|format(card.lose_prob * 100) }}%</strong></div>
   </div>
+  {% if card.corr %}
+  <p class="hint">⚠️ <strong>Pernas do mesmo jogo</strong>
+    ({% for f, n in card.corr %}{{ f }}: {{ n }} pernas{{ "; " if not loop.last }}{% endfor %}).
+    A probabilidade acima assume que as pernas são independentes — mas as do
+    mesmo jogo são <strong>correlacionadas</strong>, então o número real
+    costuma ser diferente (em geral a chance verdadeira é maior). Trate como
+    estimativa, não como valor exato.</p>
+  {% endif %}
 
   <form method="post" action="/cartoes/aposta" class="stake-row">
     <input type="hidden" name="code" value="{{ card.code }}">

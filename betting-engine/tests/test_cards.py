@@ -196,6 +196,19 @@ class TestImpossibleCriterion(unittest.TestCase):
         self.assertFalse(scanner.Criterion("goals", "over", 1.5, p_min=0.7).impossible)
 
 
+class TestCorrelation(unittest.TestCase):
+    def test_detects_same_fixture(self):
+        legs = [{"fid": 1, "fixture": "A x B", "market": "Gols +1.5"},
+                {"fid": 1, "fixture": "A x B", "market": "Ambas marcam"},
+                {"fid": 2, "fixture": "C x D", "market": "Casa"}]
+        warn = share_store.same_fixture_warning(legs)
+        self.assertEqual(warn, [("A x B", 2)])
+
+    def test_no_warning_when_all_distinct(self):
+        legs = [{"fid": 1, "fixture": "A x B"}, {"fid": 2, "fixture": "C x D"}]
+        self.assertEqual(share_store.same_fixture_warning(legs), [])
+
+
 class TestRobustness(unittest.TestCase):
     def test_handicap_without_line_is_unknown(self):
         # cartão com handicap sem linha não pode liquidar (antes dava crash)

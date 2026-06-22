@@ -741,6 +741,7 @@ def cartoes(request: Request, user: str = Depends(current_user), msg: str = ""):
     _annotate_live(cards, live)
     for card in cards:
         card["pl"] = share_store.card_pl(card)
+        card["corr"] = share_store.same_fixture_warning(card.get("legs", []))
     return render(request, "cartoes.html", cards=cards, msg=msg,
                   summary=share_store.user_summary(user), live=live)
 
@@ -792,8 +793,9 @@ def shared_ticket(request: Request, code: str):
             "</body></html>", status_code=404)
     live = _live_map()
     _annotate_live([ticket], live)
+    corr = share_store.same_fixture_warning(ticket.get("legs", []))
     return render(request, "share.html", ticket=ticket, code=code,
-                  live=live,
+                  live=live, corr=corr,
                   share_url=str(request.base_url).rstrip("/") + f"/b/{code}")
 @app.get("/tracker", response_class=HTMLResponse)
 def tracker_page(request: Request, user: str = Depends(current_user), msg: str = ""):

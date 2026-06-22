@@ -63,6 +63,14 @@
       sua casa de apostas.</p>
       {% endif %}
 
+      {% if corr %}
+      <p class="hint">⚠️ <strong>Pernas do mesmo jogo</strong>
+        ({% for f, n in corr %}{{ f }}: {{ n }} pernas{{ "; " if not loop.last }}{% endfor %}).
+        Elas são <strong>correlacionadas</strong> — a probabilidade combinada
+        (que assume independência) fica imprecisa, geralmente subestimando a
+        chance real. Trate como estimativa.</p>
+      {% endif %}
+
       <p class="hint">A probabilidade combinada assume
       <strong>independência</strong> entre as pernas (aproximação). Odds
       capturadas em {{ ticket.created }} — <strong>confira na sua casa de

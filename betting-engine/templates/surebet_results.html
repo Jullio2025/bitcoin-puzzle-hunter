@@ -70,6 +70,16 @@ apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
         R$ {{ "%+.2f"|format(bankroll * sb.margin) }}</strong></div>
     <div><span>Casas usadas</span><strong>{{ sb.n_books }}</strong></div>
   </div>
+  <p class="hint">💧 Liquidez:
+    {% if sb.liquidity == "raso" %}<strong class="pl-neg">mercado raso</strong>
+    — só {{ sb.depth }} casa(s) cotam a perna mais disputada. Limite de aposta
+    provavelmente <strong>baixo</strong> e maior chance de a odd estar velha —
+    confira o valor máximo aceito na casa.
+    {% elif sb.liquidity == "médio" %}média ({{ sb.depth }} casas cotam a perna
+    mais rasa) — dá pra apostar valores moderados.
+    {% else %}<strong class="pl-pos">mercado líquido</strong>
+    ({{ sb.depth }} casas cotam) — aceita apostas maiores com mais segurança.
+    {% endif %}</p>
   {% if not sb.is_arb %}
   <p class="hint">⚠️ "Quase": a soma passou de 100%, então hoje isto
   <strong>não trava lucro</strong> (perderia {{ "%.2f"|format(-bankroll * sb.margin) }}
