@@ -3,9 +3,8 @@
 <div class="hero">
   <h1>SURE<span>BET</span></h1>
   <p class="tagline">Compara o preço do mesmo jogo em <em>várias casas</em> e
-  acha onde a soma das chances dá <strong>menos de 100%</strong> — lucro
-  travado, dê no que der.<br>
-  Aqui não tem modelo nem palpite: é só a discrepância de preço entre as casas.</p>
+  acha onde dá pra ganhar <strong>dê no que der</strong> — lucro travado.<br>
+  Aqui não tem palpite: é só a diferença de preço entre as casas.</p>
   <div class="hero-ball">⚖️</div>
 </div>
 
@@ -15,9 +14,9 @@
   <h2>💡 Como funciona (e o que esperar)</h2>
   <ul>
     <li><strong>Surebet</strong> = apostar em TODOS os resultados de um
-      mercado, cada um na casa que paga melhor, de forma que você ganhe
+      jogo, cada um na casa que paga melhor, de um jeito que você ganhe
       aconteça o que acontecer. Ex.: <em>Mais de 1.5</em> a 2.00 numa casa e
-      <em>Menos de 1.5</em> a 2.10 noutra → soma 97,6% → <strong>+2,4%
+      <em>Menos de 1.5</em> a 2.10 noutra → dá <strong>+2,4%
       garantido</strong>.</li>
     <li><strong>A execução é sua, na mão.</strong> O ChapaFut só mostra os
       números e em qual casa está cada odd. Confira a odd na casa antes de
@@ -53,19 +52,19 @@
   </div>
 
   <div class="card">
-    <h2>Mercados a comparar
-      <span class="hint">(só mercados que cobrem todos os resultados)</span></h2>
+    <h2>O que comparar
+      <span class="hint">(só apostas que cobrem todos os resultados)</span></h2>
     {% for m in all_markets %}
     <label class="inline"><input type="checkbox" name="m_{{ m }}"
       {{ "checked" if m in default_markets }}> {{ market_labels.get(m, m) }}</label>
     {% endfor %}
     <p class="hint">Linhas de gols/escanteios/cartões e handicap usam só
     linhas .5 (sem risco de empate/devolução). Dupla chance fica de fora
-    (os resultados se sobrepõem, não serve pra arbitragem).</p>
+    (os resultados se sobrepõem, não dá pra travar lucro).</p>
     <br>
     <button type="submit" class="primary">Procurar surebets ⚖️</button>
-    <p class="hint">Custo baixo de API: 1 chamada dos jogos do dia + as odds
-    por data (sem consultar time por time, pois aqui não roda o modelo).</p>
+    <p class="hint">É rápido: o ChapaFut só pega os jogos do dia e as odds
+    da data, sem precisar olhar time por time.</p>
   </div>
 </form>
 {% endblock %}

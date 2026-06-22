@@ -119,10 +119,12 @@ def format_message(today: str, result, criteria: list[Criterion],
                      f"em {len(result.groups)} jogo(s):")
         for g, _crit, ma in hits[:MAX_HITS_IN_MESSAGE]:
             mt = ma.metrics
+            vale = "vale a pena ✅" if (mt.ev is not None and mt.ev > 0) \
+                else "fraca"
             lines.append(
                 f"• {g.ctx.fixture['fixture']['date'][11:16]} {g.ctx.label}\n"
-                f"  {ma.label} — odd {mt.odd:.2f} | p {mt.p_model:.0%} | "
-                f"EV {mt.ev:+.2f}")
+                f"  {ma.label} — odd {mt.odd:.2f} · {mt.p_model:.0%} de "
+                f"chance · {vale}")
         if len(hits) > MAX_HITS_IN_MESSAGE:
             lines.append(f"... e mais {len(hits) - MAX_HITS_IN_MESSAGE} "
                          "(veja no painel).")
@@ -134,16 +136,16 @@ def format_message(today: str, result, criteria: list[Criterion],
         t = share_store.get(ticket_code)
         lines += ["",
                   f"🎫 Bilhete montado com o garimpo "
-                  f"({len(t['legs'])} perna(s), 1 por jogo, maior EV):",
-                  f"   Odd combinada {t['combined_odd']:.2f} | "
-                  f"prob. {t['combined_prob']:.0%} | "
-                  f"chance de PERDER {t['lose_prob']:.0%}",
+                  f"({len(t['legs'])} jogo(s), a melhor aposta de cada):",
+                  f"   Odd combinada {t['combined_odd']:.2f} · "
+                  f"{t['combined_prob']:.0%} de chance · "
+                  f"risco de perder {t['lose_prob']:.0%}",
                   f"   Ver/compartilhar: {panel_url()}/b/{ticket_code}"]
 
-    lines += ["", f"Tracker: {settle_summary['ganhou']} ganhas, "
+    lines += ["", f"Resultados de hoje: {settle_summary['ganhou']} ganhas, "
                   f"{settle_summary['perdeu']} perdidas, "
                   f"{settle_summary['devolvida']} devolvidas "
-                  f"(liquidação automática)."]
+                  f"(conferência automática)."]
     if report["hit_rate"] is not None:
         lines.append(f"Hit rate real: {report['hit_rate']:.0%} | "
                      f"ROI: {report['roi']:+.1%}" if report["roi"] is not None

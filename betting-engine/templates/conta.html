@@ -35,10 +35,10 @@
 {% if bot_ready %}
 <div class="card">
   <h2>⚖️ Alertas de surebet no Telegram</h2>
-  <p class="hint">De hora em hora o bot procura arbitragens (lucro travado
+  <p class="hint">De hora em hora o bot procura surebets (lucro travado
   entre casas) e te avisa quando achar — só as confiáveis. Avisa 1 vez por
-  oportunidade e <strong>reavisa se a margem subir bastante</strong> (≥ 2
-  pontos). Precisa do chat_id cadastrado acima.</p>
+  oportunidade e <strong>avisa de novo se a margem subir bastante</strong> (pelo
+  menos 2 pontos). Precisa do chat_id cadastrado acima.</p>
   <form method="post" action="/conta/surebet" class="form-inline">
     <label class="inline"><input type="checkbox" name="surebet_alerts"
       {{ "checked" if surebet_alerts }}> Receber alertas de surebet</label>
@@ -55,7 +55,7 @@
 {% endif %}
 
 <div class="card">
-  <h2>⛏️ Critérios do garimpo automático</h2>
+  <h2>⛏️ O que o garimpo automático procura</h2>
   {% if criteria_labels %}
   <p class="hint">É isto que o bot procura todo dia pra você:</p>
   <ul class="crit-list">
@@ -63,12 +63,12 @@
   </ul>
   <a class="button" href="/scanner">✏️ Editar no Scanner</a>
   <form method="post" action="/conta/preset/limpar" style="display:inline">
-    <button type="submit">🗑️ Limpar critérios</button>
+    <button type="submit">🗑️ Limpar</button>
   </form>
   <p class="hint">Pra trocar, ajuste no Scanner e marque "💾 Salvar como
   padrão" — substitui estes.</p>
   {% else %}
-  <p class="hint">Você ainda não salvou critérios. Vá ao
+  <p class="hint">Você ainda não salvou nada. Vá ao
   <a href="/scanner">Scanner</a>, monte o que quer garimpar e marque
   <strong>"💾 Salvar como padrão"</strong>.</p>
   <a class="button primary" href="/scanner">Ir ao Scanner</a>

@@ -5,7 +5,7 @@
 
 {% if summary.total %}
 <div class="card">
-  <h2>📊 Histórico & calibração do modelo</h2>
+  <h2>📊 Seu histórico</h2>
   <div class="trio">
     <div><span>Cartões</span><strong>{{ summary.total }}</strong></div>
     <div><span>Ganhos</span><strong>{{ summary.counts.ganhou }}</strong></div>
@@ -32,15 +32,15 @@
   resolvido(s) em que você informou o valor apostado.
   {% if summary.pending_stake %} Ainda em jogo:
   <strong>R$ {{ "%.2f"|format(summary.pending_stake) }}</strong>.{% endif %}
-  ROI = lucro ÷ total apostado.</p>
+  ROI = quanto você lucrou em cima do que apostou.</p>
   {% endif %}
 
-  <p class="hint">Calibração: quando o modelo diz X%, ele acerta X% de
-  verdade? (mede perna por perna, nas {{ summary.legs_settled }} já
+  <p class="hint">O quanto o ChapaFut acerta: quando ele diz X%, acontece
+  X% de verdade? (conta aposta por aposta, nas {{ summary.legs_settled }} já
   resolvidas)</p>
   {% if summary.buckets %}
   <table class="markets calib">
-    <thead><tr><th>Modelo dizia</th><th>Acertou de verdade</th><th>Amostra</th></tr></thead>
+    <thead><tr><th>ChapaFut dizia</th><th>Aconteceu de verdade</th><th>Amostra</th></tr></thead>
     <tbody>
     {% for b in summary.buckets %}
       <tr>
@@ -56,14 +56,14 @@
     {% endfor %}
     </tbody>
   </table>
-  <p class="hint">Barra = acerto real · risco branco = o que o modelo previu.
-  Quanto mais perto, mais calibrado.</p>
+  <p class="hint">Barra = o que aconteceu de verdade · risco branco = o que o
+  ChapaFut tinha dito. Quanto mais perto, melhor o ChapaFut está acertando.</p>
   {% endif %}
 
   {% if not summary.enough %}
-  <div class="error">⚠️ AMOSTRA PEQUENA: {{ summary.legs_settled }} pernas
-  resolvidas (&lt; 100). A variância ainda domina — ainda NÃO dá pra concluir
-  se o modelo é bem calibrado. Siga registrando.</div>
+  <div class="error">⚠️ POUCAS APOSTAS: {{ summary.legs_settled }} já
+  resolvidas (menos de 100). Ainda é pouco pra dizer se o ChapaFut está
+  acertando bem. Siga registrando.</div>
   {% endif %}
 </div>
 {% endif %}
@@ -120,17 +120,17 @@ aparecem aqui quando o bot monta o garimpo diário.</p></div>
   <div class="trio">
     <div><span>Odd combinada{% if card.partial %} (parcial){% endif %}</span>
       <strong>{{ "%.2f"|format(card.combined_odd) if card.combined_odd else "—" }}</strong></div>
-    <div><span>Probabilidade</span>
+    <div><span>Chance de ganhar</span>
       <strong>{{ "%.0f"|format(card.combined_prob * 100) }}%</strong></div>
     <div><span>Chance de perder</span>
       <strong>{{ "%.0f"|format(card.lose_prob * 100) }}%</strong></div>
   </div>
   {% if card.corr %}
-  <p class="hint">⚠️ <strong>Pernas do mesmo jogo</strong>
-    ({% for f, n in card.corr %}{{ f }}: {{ n }} pernas{{ "; " if not loop.last }}{% endfor %}).
-    A probabilidade acima assume que as pernas são independentes — mas as do
-    mesmo jogo são <strong>correlacionadas</strong>, então o número real
-    costuma ser diferente (em geral a chance verdadeira é maior). Trate como
+  <p class="hint">⚠️ <strong>Apostas do mesmo jogo</strong>
+    ({% for f, n in card.corr %}{{ f }}: {{ n }} apostas{{ "; " if not loop.last }}{% endfor %}).
+    A chance acima faz de conta que cada aposta é separada — mas as do
+    mesmo jogo <strong>andam juntas</strong>, então o número real
+    costuma ser diferente (a chance de verdade costuma ser maior). Trate como
     estimativa, não como valor exato.</p>
   {% endif %}
 

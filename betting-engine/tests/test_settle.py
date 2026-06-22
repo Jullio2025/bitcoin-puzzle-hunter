@@ -128,7 +128,7 @@ class TestDailyMessage(unittest.TestCase):
             {"hit_rate": 0.6, "roi": 0.05, "warning": "AMOSTRA PEQUENA: x"})
         self.assertIn("Time Casa x Time Fora", msg)
         self.assertIn("odd 1.52", msg)
-        self.assertIn("EV +0.19", msg)
+        self.assertIn("vale a pena", msg)  # EV>0 vira veredito simples
         self.assertIn("1 ganhas", msg)
         self.assertIn("⚠️", msg)
         self.assertIn("a decisão é sua", msg)

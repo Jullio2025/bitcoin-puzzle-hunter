@@ -3,8 +3,8 @@
 <div class="hero">
   <h1>RA<span>DAR</span></h1>
   <p class="tagline">Diga só a <strong>chance mínima</strong> que você quer.
-  O ChapaFut varre os jogos do dia e mostra <em>todos</em> os mercados que
-  atingem isso — a odd é só informação extra.</p>
+  O ChapaFut varre os jogos do dia e mostra <em>todas</em> as apostas que
+  batem isso — a odd é só informação extra.</p>
   <div class="hero-ball">📡</div>
 </div>
 
@@ -18,14 +18,13 @@
              value="85" oninput="document.getElementById('pv').textContent=this.value+'%'">
       <span class="radar-prob-val" id="pv">85%</span>
     </div>
-    <p class="hint">Ex.: 85% = só mercados que o modelo dá 85% ou mais de
+    <p class="hint">Ex.: 85% = só apostas que o ChapaFut dá 85% ou mais de
     chance de acontecer. Quanto mais alto, menos resultados (e mais
-    "seguros" na visão do modelo).</p>
+    "seguros" na conta do ChapaFut).</p>
 
     <label>Data dos jogos
       <input type="date" name="match_date" value="{{ today }}" required></label>
     <label>Máx. de jogos varridos
-      <span class="hint">(protege sua cota da API)</span>
       <input type="number" name="deep_limit" value="15"></label>
     {% include "_bookmaker_field.html" %}
     <label class="inline"><input type="checkbox" name="with_odds" checked>
@@ -33,8 +32,8 @@
   </div>
 
   <div class="card">
-    <h2>2. Em quais mercados procurar
-      <span class="hint">(todos ligados por padrão)</span></h2>
+    <h2>2. Em quais apostas procurar
+      <span class="hint">(todas ligadas por padrão)</span></h2>
     {% for val, lbl in [("goals","⚽ Gols"),
                         ("team_goals_home","🏠 Gols mandante"),
                         ("team_goals_away","🛫 Gols visitante"),
@@ -47,7 +46,7 @@
     <br><br>
     <button type="submit" class="primary">📡 Ativar o radar</button>
     <p class="hint">A primeira varredura do dia pode levar alguns minutos
-    (coleta o histórico dos times); depois o cache deixa rápido.</p>
+    (pega o histórico dos times); depois fica rápido.</p>
   </div>
 </form>
 {% endblock %}

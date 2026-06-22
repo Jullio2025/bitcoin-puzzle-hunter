@@ -51,16 +51,13 @@ class Criterion:
     @property
     def label(self) -> str:
         base = MARKET_LABELS.get(self.market, self.market)
-        side = ("qualquer resultado" if self.side == "any"
+        side = ("qualquer" if self.side == "any"
                 else SIDE_LABELS.get(self.side, self.side))
-        line = (f" {self.line:g}" if self.line is not None
-                else " (qualquer linha)")
+        line = f" {self.line:g}" if self.line is not None else ""
         if self.market == "1x2":
             line = ""
-        text = (f"{base}: {side}{line} | odd {self.odd_min:g}–"
-                f"{self.odd_max:g} | p ≥ {self.p_min:.0%}")
-        if self.ev_min > -100:
-            text += f" | EV ≥ {self.ev_min:+.2f}"
+        text = (f"{base}: {side}{line} · odd {self.odd_min:g} a "
+                f"{self.odd_max:g} · chance mín. {self.p_min:.0%}")
         if self.impossible:
             text += " ⚠️ (impossível: nada bate)"
         return text

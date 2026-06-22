@@ -19,13 +19,13 @@
     {% include "_bookmaker_field.html" %}
     <label>Últimos N jogos por mando
       <input type="number" name="last_n" value="{{ defaults.last_n }}"></label>
-    <label>Máx. de jogos analisados a fundo
-      <span class="hint">(protege sua cota da API; o resultado avisa se sobraram candidatos)</span>
+    <label>Máx. de jogos olhados a fundo
+      <span class="hint">(o resultado avisa se sobraram jogos pra olhar)</span>
       <input type="number" name="deep_limit" value="20"></label>
     <label class="inline"><input type="checkbox" name="match_all">
-      Só jogos onde TODOS os critérios batem juntos
-      <span class="hint">(múltipla no mesmo jogo — atenção: pernas do mesmo
-      jogo são correlacionadas)</span></label>
+      Só jogos onde TODOS os pedidos batem juntos
+      <span class="hint">(várias apostas no mesmo jogo — cuidado: apostas do
+      mesmo jogo costumam andar juntas)</span></label>
   </div>
 
   <div class="card explainer">
@@ -40,27 +40,26 @@
         <em>Menos de</em>, linha <code>4.5</code>.</li>
       <li><strong>Faixa de odd</strong> = quanto a casa paga. Ex.: quer odd
         "na casa de 1.50"? Use mín <code>1.40</code> e máx <code>1.60</code>.</li>
-      <li><strong>Probabilidade mínima</strong> = nota de corte da chance que
-        o ChapaFut calcula (0.60 = 60%). Dica de ouro: usar
-        <code>1 ÷ odd máxima</code> (ex.: odd máx 1.60 → 0.63) traz só
-        mercados onde o modelo vê MAIS chance do que o preço cobra.</li>
+      <li><strong>Chance mínima</strong> = a nota de corte da chance que
+        o ChapaFut calcula (0.60 = 60%). Quanto mais alto, menos jogos
+        aparecem, mas mais "seguros" na conta do ChapaFut.</li>
       <li><strong>Dupla chance</strong> = você ganha em 2 dos 3 resultados
         (ex.: "Casa ou empate" só perde se o visitante vencer). Odds baixas,
         perfeita pra bilhete acumulado seguro.</li>
       <li><strong>Ambas marcam</strong> = os dois times precisam fazer gol.
         Bom em jogos de ataques parelhos.</li>
-      <li><strong>Bilhete de odds baixas (muitas pernas "quase certas")</strong>:
+      <li><strong>Bilhete de odds baixas (muitas apostas "quase certas")</strong>:
         em cada mercado, use odd mín <code>1.01</code>, odd máx
-        <code>1.20</code> e probabilidade mínima <code>0.90</code>. O
-        garimpo devolve as pernas; ao marcar, o bilhete mostra a odd
+        <code>1.20</code> e chance mínima <code>0.90</code>. O
+        garimpo te traz as apostas; ao marcar, o bilhete mostra a odd
         combinada E a chance real de perder — confira antes de copiar
         pra casa de apostas.</li>
     </ul>
   </div>
 
   <div class="card">
-    <h2>As peças do seu bilhete
-      <span class="hint">(ative só as que quiser; qualquer valor é aceito)</span></h2>
+    <h2>O que você quer no bilhete
+      <span class="hint">(ative só o que quiser; qualquer valor é aceito)</span></h2>
 
     {% for m in [("goals", "⚽ Gols (total do jogo)"),
                  ("team_goals_home", "🏠 Gols do MANDANTE"),
@@ -82,9 +81,9 @@
           <input type="number" step="any" name="{{ m[0] }}_odd_min" value="1.20"></label>
         <label>Odd máxima
           <input type="number" step="any" name="{{ m[0] }}_odd_max" value="2.00"></label>
-        <label>Probabilidade mínima (ex.: 0.80 ou 80)
+        <label>Chance mínima (ex.: 0.80 ou 80)
           <input type="number" step="any" name="{{ m[0] }}_p_min" value="0.60"></label>
-        <label>EV mínimo <span class="hint">(0 = só valor positivo)</span>
+        <label>Valor (vale a pena?) <span class="hint">(0 = só o que tem valor)</span>
           <input type="number" step="any" name="{{ m[0] }}_ev_min" value="0.00"></label>
       </div>
     </fieldset>
@@ -106,9 +105,9 @@
           <input type="number" step="any" name="handicap_odd_min" value="1.01"></label>
         <label>Odd máxima
           <input type="number" step="any" name="handicap_odd_max" value="1.20"></label>
-        <label>Probabilidade mínima (ex.: 0.80 ou 80)
+        <label>Chance mínima (ex.: 0.80 ou 80)
           <input type="number" step="any" name="handicap_p_min" value="0.90"></label>
-        <label>EV mínimo <span class="hint">(0 = só valor positivo)</span>
+        <label>Valor (vale a pena?) <span class="hint">(0 = só o que tem valor)</span>
           <input type="number" step="any" name="handicap_ev_min" value="0.00"></label>
       </div>
     </fieldset>
@@ -128,9 +127,9 @@
           <input type="number" step="any" name="1x2_odd_min" value="1.20"></label>
         <label>Odd máxima
           <input type="number" step="any" name="1x2_odd_max" value="2.50"></label>
-        <label>Probabilidade mínima (ex.: 0.80 ou 80)
+        <label>Chance mínima (ex.: 0.80 ou 80)
           <input type="number" step="any" name="1x2_p_min" value="0.50"></label>
-        <label>EV mínimo <span class="hint">(0 = só valor positivo)</span>
+        <label>Valor (vale a pena?) <span class="hint">(0 = só o que tem valor)</span>
           <input type="number" step="any" name="1x2_ev_min" value="0.00"></label>
       </div>
     </fieldset>
@@ -148,9 +147,9 @@
           <input type="number" step="any" name="btts_odd_min" value="1.20"></label>
         <label>Odd máxima
           <input type="number" step="any" name="btts_odd_max" value="2.00"></label>
-        <label>Probabilidade mínima (ex.: 0.80 ou 80)
+        <label>Chance mínima (ex.: 0.80 ou 80)
           <input type="number" step="any" name="btts_p_min" value="0.55"></label>
-        <label>EV mínimo <span class="hint">(0 = só valor positivo)</span>
+        <label>Valor (vale a pena?) <span class="hint">(0 = só o que tem valor)</span>
           <input type="number" step="any" name="btts_ev_min" value="0.00"></label>
       </div>
     </fieldset>
@@ -170,22 +169,22 @@
           <input type="number" step="any" name="double_chance_odd_min" value="1.01"></label>
         <label>Odd máxima
           <input type="number" step="any" name="double_chance_odd_max" value="1.50"></label>
-        <label>Probabilidade mínima (ex.: 0.80 ou 80)
+        <label>Chance mínima (ex.: 0.80 ou 80)
           <input type="number" step="any" name="double_chance_p_min" value="0.70"></label>
-        <label>EV mínimo <span class="hint">(0 = só valor positivo)</span>
+        <label>Valor (vale a pena?) <span class="hint">(0 = só o que tem valor)</span>
           <input type="number" step="any" name="double_chance_ev_min" value="0.00"></label>
       </div>
     </fieldset>
 
     <label class="inline"><input type="checkbox" name="save_preset">
-      💾 Salvar estes critérios como padrão
-      <span class="hint">(usados pelo garimpo automático diário com aviso
+      💾 Salvar estes pedidos como padrão
+      <span class="hint">(o ChapaFut garimpa isso pra você todo dia e avisa
       no Telegram)</span></label>
     <br>
     <button type="submit" class="primary">Garimpar jogos ⛏️</button>
-    <p class="hint">A varredura pré-filtra pelas odds do dia inteiro (barato)
-    e roda o modelo completo só nos candidatos. Primeira vez do dia pode
-    levar alguns minutos; depois o cache acelera.</p>
+    <p class="hint">Primeiro o ChapaFut filtra pelas odds do dia inteiro e
+    só depois faz a conta completa nos jogos que sobraram. A primeira vez
+    do dia pode levar alguns minutos; depois fica rápido.</p>
   </div>
 </form>
 
@@ -209,8 +208,8 @@
       });
       if (bad.length) {
         ev.preventDefault();
-        alert("⚠️ Probabilidade mínima de 100% (ou mais) é impossível: o "
-          + "modelo nunca dá 100% de certeza, então nada vai bater.\n\n"
+        alert("⚠️ Chance mínima de 100% (ou mais) é impossível: o "
+          + "ChapaFut nunca dá 100% de certeza, então nada vai bater.\n\n"
           + "Use um valor abaixo de 100% — ex.: 0.70 (70%) ou 90.");
         bad[0].focus();
       }

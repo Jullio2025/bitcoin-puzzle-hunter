@@ -34,9 +34,9 @@ STRATEGIES: dict[str, dict] = {
     },
     "valor": {
         "icon": "💎",
-        "nome": "Caça-valor (EV+)",
-        "desc": "Onde o modelo vê MAIS chance do que o preço cobra. "
-                "Qualquer mercado com vantagem matemática (EV alto).",
+        "nome": "Caça-valor",
+        "desc": "Onde o ChapaFut vê MAIS chance do que a odd está pagando — "
+                "ou seja, a casa pode estar pagando bem demais.",
         "criteria": [
             _c(m, s, None, 1.30, 4.0, 0.50, 0.10)
             for m, s in (("goals", "over"), ("corners", "over"),
@@ -73,8 +73,8 @@ STRATEGIES: dict[str, dict] = {
     "multipla_baixa": {
         "icon": "🎯",
         "nome": "Múltipla de odds baixas",
-        "desc": "Pernas 'quase certas' pra montar acumulado seguro "
-                "(odd 1.01–1.25, probabilidade ≥ 85%).",
+        "desc": "Apostas 'quase certas' pra montar um acumulado mais seguro "
+                "(odd baixinha, de 1.01 a 1.25, e chance de pelo menos 85%).",
         "criteria": [
             _c(m, s, ln, 1.01, 1.25, 0.85, -100)
             for m, s, ln in (("goals", "over", 0.5), ("goals", "over", 1.5),

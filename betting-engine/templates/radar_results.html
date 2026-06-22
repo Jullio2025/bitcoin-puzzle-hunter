@@ -19,7 +19,7 @@ nos jogos varridos. Baixe a chance mínima e tente de novo.</div>
 {% for g in result.groups %}
 <div class="card">
   <h2>{% with fxx = g.ctx.fixture %}{% include "_matchup.html" %}{% endwith %}
-    <span class="badge ok">{{ g.hits|length }} mercado(s) ≥ alvo</span></h2>
+    <span class="badge ok">{{ g.hits|length }} aposta(s) na faixa</span></h2>
   <p class="meta">{{ g.ctx.fixture.fixture.date[:16] }} —
     {{ g.ctx.fixture.league.name }} ({{ g.ctx.fixture.league.country }})
     {% if g.ctx.weather %}— 🌦 {{ g.ctx.weather.summary }}{% endif %}</p>
@@ -30,8 +30,7 @@ nos jogos varridos. Baixe a chance mínima e tente de novo.</div>
 
   <table class="markets">
     <thead><tr>
-      <th></th><th>Mercado</th><th title="Probabilidade que o modelo calcula do evento acontecer.">Chance (modelo)</th>
-      <th>Odd</th><th title="p_model menos a chance do preço (1/odd). Positivo = o modelo vê valor.">Edge</th><th title="Valor esperado por unidade no longo prazo. Positivo = lucro médio se o modelo estiver certo.">EV</th>
+      <th></th><th>Aposta</th><th>Chance</th><th>Odd</th><th>Vale a pena?</th>
     </tr></thead>
     <tbody>
     {% for _crit, m in g.hits %}
@@ -52,17 +51,16 @@ nos jogos varridos. Baixe a chance mínima e tente de novo.</div>
         <td>{{ m.label }}</td>
         <td>
           <div class="pwrap"><strong>{{ "%.0f"|format(m.metrics.p_model * 100) }}%</strong>
-            <span class="pbar"><i style="width: {{ m.metrics.p_model * 100 }}%"></i>
-              {% if m.metrics.implied %}<b style="left: {{ m.metrics.implied * 100 }}%"></b>{% endif %}
-            </span>
+            <span class="pbar"><i style="width: {{ m.metrics.p_model * 100 }}%"></i></span>
           </div>
         </td>
         <td>{{ "%.2f"|format(m.metrics.odd) if m.metrics.odd else "—" }}</td>
-        <td>{{ "%+.3f"|format(m.metrics.edge) if m.metrics.edge is not none else "—" }}</td>
-        <td>{{ "%+.3f"|format(m.metrics.ev) if m.metrics.ev is not none else "—" }}</td>
+        <td>{% if not m.metrics.odd %}—
+            {% elif m.metrics.ev is not none and m.metrics.ev > 0 %}<span class="badge ok">✅ sim</span>
+            {% else %}<span class="badge">não</span>{% endif %}</td>
       </tr>
       {% if m.plain %}
-      <tr class="note-row"><td></td><td colspan="5" class="plain">{{ m.plain }}</td></tr>
+      <tr class="note-row"><td></td><td colspan="4" class="plain">{{ m.plain }}</td></tr>
       {% endif %}
     {% endfor %}
     </tbody>

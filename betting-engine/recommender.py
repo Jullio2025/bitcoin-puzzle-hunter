@@ -208,13 +208,16 @@ def _check_filters(metrics: scoring.MarketMetrics,
         failed.append("sem odd")
         return False, failed
     if metrics.odd < params.odd_min:
-        failed.append(f"odd {metrics.odd:.2f} < mín {params.odd_min:.2f}")
+        failed.append(f"odd {metrics.odd:.2f} abaixo da sua mín. "
+                      f"{params.odd_min:.2f}")
     if metrics.odd > params.odd_max:
-        failed.append(f"odd {metrics.odd:.2f} > máx {params.odd_max:.2f}")
+        failed.append(f"odd {metrics.odd:.2f} acima da sua máx. "
+                      f"{params.odd_max:.2f}")
     if metrics.p_model < params.p_min:
-        failed.append(f"p_model {metrics.p_model:.1%} < mín {params.p_min:.1%}")
+        failed.append(f"chance {metrics.p_model:.0%} abaixo da sua mín. "
+                      f"{params.p_min:.0%}")
     if metrics.ev is not None and metrics.ev < params.ev_min:
-        failed.append(f"EV {metrics.ev:+.3f} < mín {params.ev_min:+.3f}")
+        failed.append("não compensa pelo seu mínimo")
     return not failed, failed
 
 
