@@ -317,7 +317,7 @@ def _format_surebets(items: list, today: str) -> str:
         lines.append(f"   lucro travado +{sb.margin * 100:.2f}% "
                      f"(soma {sb.sum_implied * 100:.1f}%)")
         if sb.liquidity == "raso":
-            lines.append(f"   ⚠️ mercado raso ({sb.depth} casas) — limite "
+            lines.append(f"   ⚠️ mercado fraco ({sb.depth} casas) — limite "
                          "provavelmente baixo")
         for leg in sb.legs:
             lines.append(f"   • {leg.label}: {leg.odd:.2f} na {leg.book}")

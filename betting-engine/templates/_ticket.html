@@ -1,20 +1,20 @@
 <div class="card ticket" id="ticket">
-  <h2>Sua seleção <span class="badge" id="t-count">0 mercados</span></h2>
-  <p class="hint">Marque mercados nas tabelas acima. A múltipla mostra SEMPRE
-  os três números juntos — nunca a odd combinada sozinha.</p>
-  <div id="ticket-legs" class="hint">Nenhum mercado selecionado.</div>
+  <h2>Sua seleção <span class="badge" id="t-count">0 apostas</span></h2>
+  <p class="hint">Marque apostas nas tabelas acima. O bilhete mostra SEMPRE
+  os três números juntos — nunca só a odd combinada.</p>
+  <div id="ticket-legs" class="hint">Nenhuma aposta selecionada.</div>
   <div class="trio">
     <div><span>Odd combinada</span><strong id="t-odd">—</strong></div>
-    <div><span>Probabilidade combinada</span><strong id="t-prob">—</strong></div>
+    <div><span>Chance combinada</span><strong id="t-prob">—</strong></div>
     <div><span>Chance de PERDER o bilhete</span><strong id="t-lose">—</strong></div>
   </div>
-  <p class="hint">A probabilidade combinada assume <strong>independência</strong>
-  entre as pernas — é uma aproximação; pernas do mesmo jogo são correlacionadas.</p>
+  <p class="hint">A chance combinada é uma estimativa; apostas do mesmo jogo
+  andam juntas, então o número pode mudar um pouco.</p>
 
   <form method="post" action="/ticket/register" class="form-inline">
     <input type="hidden" name="legs_json" id="legs-json" value="[]">
     <button formaction="/ticket/share" class="primary card-btn">🎟️ Gerar meu cartão</button>
-    <label>Stake (unidades) <input type="number" step="any" name="stake" value="1.0"></label>
+    <label>Valor apostado <input type="number" step="any" name="stake" value="1.0"></label>
     <button name="mode" value="multipla">Registrar como múltipla</button>
     <button name="mode" value="simples">Registrar como simples (1 por linha)</button>
   </form>

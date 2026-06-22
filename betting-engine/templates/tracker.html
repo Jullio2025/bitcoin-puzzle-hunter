@@ -1,23 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Tracker — seus resultados reais</h1>
+<h1>Minhas apostas — seus resultados de verdade</h1>
 {% if msg %}<div class="success">{{ msg }}</div>{% endif %}
 
 <div class="card">
-  <h2>Relatório</h2>
+  <h2>Resumo</h2>
   <div class="trio">
-    <div><span>Hit rate real</span>
+    <div><span>Quanto você acertou</span>
       <strong>{{ "%.1f"|format(report.hit_rate * 100) ~ "%" if report.hit_rate is not none else "—" }}</strong></div>
-    <div><span>p_model médio (calibração)</span>
+    <div><span>Chance média que o ChapaFut deu</span>
       <strong>{{ "%.1f"|format(report.p_model_medio * 100) ~ "%" if report.p_model_medio is not none else "—" }}</strong></div>
-    <div><span>ROI</span>
+    <div><span>Lucro sobre o apostado</span>
       <strong>{{ "%+.1f"|format(report.roi * 100) ~ "%" if report.roi is not none else "—" }}</strong></div>
   </div>
-  <p>Registradas: {{ report.total_registradas }} (pendentes:
-    {{ report.pendentes }}) — liquidadas: {{ report.liquidadas }},
+  <p>Registradas: {{ report.total_registradas }} (em aberto:
+    {{ report.pendentes }}) — já conferidas: {{ report.liquidadas }},
     acertos: {{ report.acertos }}.
-    Apostado: {{ "%.2f"|format(report.total_apostado) }} u,
-    lucro: {{ "%+.2f"|format(report.lucro) }} u.</p>
+    Apostado: {{ "%.2f"|format(report.total_apostado) }},
+    lucro: {{ "%+.2f"|format(report.lucro) }}.</p>
   {% if report.warning %}<div class="error">{{ report.warning }}</div>{% endif %}
 </div>
 
@@ -30,15 +30,14 @@
 <div class="card">
   <h2>Apostas</h2>
   <form method="post" action="/tracker/autosettle">
-    <button type="submit" class="primary">🔄 Liquidar automaticamente
-      (confere os resultados na API)</button>
-    <span class="hint">Funciona para apostas registradas pelo painel;
-    registros manuais continuam manuais.</span>
+    <button type="submit" class="primary">🔄 Conferir resultados automaticamente</button>
+    <span class="hint">Funciona para as apostas geradas aqui no painel;
+    as que você digitou na mão continuam manuais.</span>
   </form>
   {% if not bets %}<p class="hint">Nenhuma aposta registrada ainda.</p>{% endif %}
   <table class="markets">
-    <thead><tr><th>#</th><th>Jogo</th><th>Mercado</th><th>Odd</th>
-      <th>Stake</th><th>p_model</th><th>Resultado</th><th></th></tr></thead>
+    <thead><tr><th>#</th><th>Jogo</th><th>Aposta</th><th>Odd</th>
+      <th>Valor</th><th>Chance</th><th>Resultado</th><th></th></tr></thead>
     <tbody>
     {% for b in bets %}
       <tr>
@@ -66,10 +65,10 @@
   <h2>Registrar aposta manualmente</h2>
   <form method="post" action="/tracker/add" class="form-grid">
     <label>Jogo <input name="fixture" required placeholder="Time A x Time B (2026-06-11)"></label>
-    <label>Mercado <input name="market" required placeholder="Cartões: Mais de 4.5"></label>
+    <label>Aposta <input name="market" required placeholder="Cartões: Mais de 4.5"></label>
     <label>Odd <input type="number" step="any" name="odd" required></label>
-    <label>Stake <input type="number" step="any" name="stake" value="1.0"></label>
-    <label>p_model (0–1) <input type="number" step="any" name="p_model" required></label>
+    <label>Valor apostado <input type="number" step="any" name="stake" value="1.0"></label>
+    <label>Chance (0 a 1, ex.: 0.7) <input type="number" step="any" name="p_model" required></label>
     <button type="submit" class="primary">Registrar</button>
   </form>
 </div>

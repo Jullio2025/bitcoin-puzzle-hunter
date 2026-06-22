@@ -7,11 +7,11 @@ diário vai usá-los e avisar no Telegram (se configurado).</div>
 {% endif %}
 
 {% if impossible %}
-<div class="error">⚠️ <strong>{{ impossible|length }} critério(s) pedem
-probabilidade ≥ 100%</strong> — isso é impossível no modelo (Poisson nunca dá
-100% de certeza), então esses mercados <strong>nunca vão bater</strong>. Volte
-ao <a href="/scanner">Scanner</a>, baixe a "probabilidade mínima" (ex.: 0.70 =
-70%) e salve de novo.</div>
+<div class="error">⚠️ <strong>{{ impossible|length }} pedido(s) com chance de
+100%</strong> — isso é impossível (nunca existe 100% de certeza), então essas
+apostas <strong>nunca vão aparecer</strong>. Volte ao
+<a href="/scanner">Scanner</a>, baixe a "chance mínima" (ex.: 0.70 = 70%) e
+salve de novo.</div>
 {% endif %}
 
 <p class="hint">Jogos do dia (não iniciados, com cobertura):
@@ -30,7 +30,7 @@ profundidade — aumente o limite se quiser ver todos.</span>{% endif %}</p>
 {% if not result.groups %}
 <div class="error">Nenhum jogo entregou as peças pedidas
 {% if match_all %} (todas juntas no mesmo jogo){% endif %} —
-afrouxe a faixa de odd ou a probabilidade mínima e garimpe de novo.</div>
+afrouxe a faixa de odd ou a chance mínima e garimpe de novo.</div>
 <a class="button" href="/scanner">← Ajustar critérios</a>
 {% else %}
 
@@ -47,10 +47,9 @@ afrouxe a faixa de odd ou a probabilidade mínima e garimpe de novo.</div>
   {% endif %}
 
   <details>
-    <summary>🧮 Como o modelo chegou nesses números</summary>
+    <summary>🧮 De onde saíram esses números</summary>
     <p class="hint">Cada média abaixo vem dos últimos jogos reais dos times
-    (separados por casa/fora) e alimenta a distribuição de Poisson — a conta
-    inteira está à mostra:</p>
+    (em casa e fora) e é a base do cálculo — está tudo à mostra:</p>
     <ul>
     {% for key, text in g.lambda_explanations.items() %}
       <li>{{ text }} → depois dos ajustes das regras:

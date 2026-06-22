@@ -52,30 +52,28 @@
       <div class="trio">
         <div><span>Odd combinada{% if ticket.partial %} (parcial*){% endif %}</span>
           <strong>{{ "%.2f"|format(ticket.combined_odd) if ticket.combined_odd else "—" }}</strong></div>
-        <div><span>Probabilidade combinada</span>
+        <div><span>Chance combinada</span>
           <strong>{{ "%.1f"|format(ticket.combined_prob * 100) }}%</strong></div>
         <div><span>Chance de PERDER o bilhete</span>
           <strong>{{ "%.1f"|format(ticket.lose_prob * 100) }}%</strong></div>
       </div>
       {% if ticket.partial %}
-      <p class="hint">* Algumas pernas não tinham odd na casa de referência —
+      <p class="hint">* Algumas apostas não tinham odd na casa de referência —
       a odd combinada considera só as que tinham. Confira as odds reais na
       sua casa de apostas.</p>
       {% endif %}
 
       {% if corr %}
-      <p class="hint">⚠️ <strong>Pernas do mesmo jogo</strong>
-        ({% for f, n in corr %}{{ f }}: {{ n }} pernas{{ "; " if not loop.last }}{% endfor %}).
-        Elas são <strong>correlacionadas</strong> — a probabilidade combinada
-        (que assume independência) fica imprecisa, geralmente subestimando a
-        chance real. Trate como estimativa.</p>
+      <p class="hint">⚠️ <strong>Apostas do mesmo jogo</strong>
+        ({% for f, n in corr %}{{ f }}: {{ n }} apostas{{ "; " if not loop.last }}{% endfor %}).
+        Elas andam juntas, então a chance combinada acima é só uma estimativa
+        (a chance real costuma ser um pouco maior).</p>
       {% endif %}
 
-      <p class="hint">A probabilidade combinada assume
-      <strong>independência</strong> entre as pernas (aproximação). Odds
-      capturadas em {{ ticket.created }} — <strong>confira na sua casa de
-      apostas, podem ter mudado</strong>. Cada pessoa aposta na própria
-      conta; o ChapaFut não registra apostas em casa nenhuma.</p>
+      <p class="hint">A chance combinada é uma estimativa. Odds pegas em
+      {{ ticket.created }} — <strong>confira na sua casa de apostas, podem
+      ter mudado</strong>. Cada pessoa aposta na própria conta; o ChapaFut
+      não registra apostas em casa nenhuma.</p>
 
       <button class="primary" id="copy-link">📋 Copiar link deste bilhete</button>
       <span class="hint" id="copied" hidden>copiado!</span>

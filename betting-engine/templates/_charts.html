@@ -2,7 +2,7 @@
    Espera as variáveis `charts` e `xctx` no contexto. #}
 <div class="xray">
   <div class="xray-head">📊 Raio-X do jogo
-    <span class="hint">— distribuição de probabilidade do modelo
+    <span class="hint">— a chance de cada placar pela conta do ChapaFut
     (passe o mouse nas barras)</span></div>
 
   <div class="formline">
@@ -48,7 +48,7 @@
 
   {% if charts.p1x2 %}
   <div class="stack-wrap">
-    <div class="chart-title">🏆 Quem vence? <span class="hint">probabilidade do modelo</span></div>
+    <div class="chart-title">🏆 Quem vence? <span class="hint">chance pela conta do ChapaFut</span></div>
     <div class="stack">
       <div class="seg home" style="width: {{ charts.p1x2.home * 100 }}%"
            title="{{ xctx.home.team_name }}: {{ '%.1f'|format(charts.p1x2.home * 100) }}%">
