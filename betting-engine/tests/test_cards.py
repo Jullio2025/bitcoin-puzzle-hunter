@@ -196,5 +196,16 @@ class TestImpossibleCriterion(unittest.TestCase):
         self.assertFalse(scanner.Criterion("goals", "over", 1.5, p_min=0.7).impossible)
 
 
+class TestRobustness(unittest.TestCase):
+    def test_handicap_without_line_is_unknown(self):
+        # cartão com handicap sem linha não pode liquidar (antes dava crash)
+        self.assertEqual(settle.decide("handicap", "home", None, 2, 0, None),
+                         "unknown")
+
+    def test_corrupted_store_does_not_crash(self):
+        share_store.SHARED_FILE.write_text("{ isto não é json válido")
+        self.assertEqual(share_store._load(), {})  # volta vazio, sem explodir
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -6,6 +6,7 @@ automática), status e flag de notificação no Telegram.
 from __future__ import annotations
 
 import json
+import os
 import secrets
 from datetime import date
 
@@ -16,13 +17,20 @@ SHARED_FILE = config.DATA_DIR / "shared_tickets.json"
 
 def _load() -> dict:
     if SHARED_FILE.exists():
-        return json.loads(SHARED_FILE.read_text())
+        try:
+            return json.loads(SHARED_FILE.read_text())
+        except (json.JSONDecodeError, OSError):
+            return {}  # arquivo corrompido: não derruba o sistema
     return {}
 
 
 def _save(data: dict) -> None:
     SHARED_FILE.parent.mkdir(parents=True, exist_ok=True)
-    SHARED_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+    # escrita atômica: grava num temporário e troca, pra nunca deixar o
+    # arquivo pela metade se o processo morrer no meio.
+    tmp = SHARED_FILE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+    os.replace(tmp, SHARED_FILE)
 
 
 def get(code: str) -> dict | None:

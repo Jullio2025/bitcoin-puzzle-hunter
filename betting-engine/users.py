@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import os
 import re
 import secrets
 import time
@@ -47,7 +48,9 @@ def _load() -> dict:
 
 def _save(data: dict) -> None:
     USERS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    USERS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+    tmp = USERS_FILE.with_suffix(".tmp")  # escrita atômica: nunca deixa o
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2))  # arquivo
+    os.replace(tmp, USERS_FILE)           # de usuários pela metade num crash
 
 
 def all_usernames() -> list[str]:

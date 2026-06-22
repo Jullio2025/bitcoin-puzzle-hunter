@@ -108,16 +108,16 @@ def _annotate_live(cards: list, live: dict) -> None:
 
 @app.exception_handler(Exception)
 async def unhandled_error(request: Request, exc: Exception) -> HTMLResponse:
-    """Nada de 'Internal Server Error' seco: mostra o que quebrou."""
+    """Nada de 'Internal Server Error' seco: página amigável, sem vazar o
+    detalhe técnico do erro (que vai só pro log do servidor)."""
     logging.exception("Erro não tratado em %s", request.url.path)
-    detail = f"{type(exc).__name__}: {exc}"
     html = (f"<html><body style='font-family:sans-serif;background:#0a0e1a;"
             f"color:#eef3fb;padding:40px'><h2>⚡ ChapaFut — algo quebrou</h2>"
-            f"<p>Erro em <code>{request.url.path}</code>:</p>"
-            f"<pre style='background:#131c33;padding:16px;border-radius:8px;"
-            f"white-space:pre-wrap'>{detail}</pre>"
-            f"<p>Detalhes completos: <code>journalctl -u chapafut -n 50</code>"
-            f"</p><a href='/' style='color:#3dff8b'>← Voltar</a></body></html>")
+            f"<p>Tivemos um erro ao processar <code>{request.url.path}</code>."
+            f" Tente de novo em instantes.</p>"
+            f"<p class='hint'>Se persistir, o dono do sistema vê o detalhe em "
+            f"<code>journalctl -u chapafut -n 50</code>.</p>"
+            f"<a href='/' style='color:#3dff8b'>← Voltar</a></body></html>")
     return HTMLResponse(html, status_code=500)
 
 
@@ -709,7 +709,11 @@ def _combine_tolerant(legs: list) -> dict:
 def ticket_share(request: Request, user: str = Depends(current_user),
                  legs_json: str = Form(...)):
     """Cria a página pública do bilhete e leva pro link curto."""
-    legs = json.loads(legs_json)
+    try:
+        legs = json.loads(legs_json)
+    except (json.JSONDecodeError, TypeError):
+        return RedirectResponse("/tracker?msg=Sele%C3%A7%C3%A3o+inv%C3%A1lida",
+                                status_code=303)
     if not legs:
         return RedirectResponse("/tracker?msg=Nenhuma+sele%C3%A7%C3%A3o",
                                 status_code=303)
@@ -843,7 +847,11 @@ def ticket_register(user: str = Depends(current_user), legs_json: str = Form(...
 
     A conta da múltipla é refeita AQUI no servidor com scoring.combine_legs
     (o JavaScript da página só dá a prévia)."""
-    legs = json.loads(legs_json)
+    try:
+        legs = json.loads(legs_json)
+    except (json.JSONDecodeError, TypeError):
+        return RedirectResponse("/tracker?msg=Sele%C3%A7%C3%A3o+inv%C3%A1lida",
+                                status_code=303)
     if not legs:
         return RedirectResponse("/tracker?msg=Nenhuma+sele%C3%A7%C3%A3o",
                                 status_code=303)

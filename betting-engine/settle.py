@@ -27,6 +27,8 @@ def decide(market: str, side: str, line: float | None,
         winner = "home" if gh > ga else ("away" if ga > gh else "draw")
         return "won" if side == winner else "lost"
     if market == "handicap":
+        if line is None:
+            return "unknown"  # handicap sem linha: não dá pra liquidar
         adj = (gh + line - ga) if side == "home" else (ga + line - gh)
         return "won" if adj > 1e-9 else ("push" if abs(adj) <= 1e-9
                                          else "lost")

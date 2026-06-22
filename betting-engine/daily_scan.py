@@ -281,13 +281,18 @@ SUREBET_SENT_FILE = config.DATA_DIR / "surebet_sent.json"
 
 def _load_sent() -> dict:
     if SUREBET_SENT_FILE.exists():
-        return json.loads(SUREBET_SENT_FILE.read_text())
+        try:
+            return json.loads(SUREBET_SENT_FILE.read_text())
+        except (json.JSONDecodeError, OSError):
+            return {}  # arquivo corrompido: começa limpo, não derruba o job
     return {}
 
 
 def _save_sent(data: dict) -> None:
     SUREBET_SENT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    SUREBET_SENT_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+    tmp = SUREBET_SENT_FILE.with_suffix(".tmp")  # escrita atômica
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+    os.replace(tmp, SUREBET_SENT_FILE)
 
 
 # reavisa a mesma oportunidade se a margem subir pelo menos isto (2 p.p.)

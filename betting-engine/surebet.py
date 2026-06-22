@@ -246,9 +246,12 @@ def _is_upcoming(fx: dict, now) -> bool:
     if not raw:
         return False
     try:
-        return datetime.fromisoformat(raw) > now
+        kickoff = datetime.fromisoformat(raw)
     except ValueError:
         return False
+    if kickoff.tzinfo is None:           # data sem fuso: assume UTC
+        kickoff = kickoff.replace(tzinfo=timezone.utc)
+    return kickoff > now
 
 
 def scan_day(client, date: str, markets: list[str] | None = None,
