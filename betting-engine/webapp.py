@@ -125,8 +125,27 @@ def render(request: Request, template: str, **ctx) -> HTMLResponse:
     ctx.setdefault("username",
                    users.read_token(request.cookies.get(SESSION_COOKIE)))
     ctx.update({"request": request, "defaults": config.USER_DEFAULTS,
-                "bookmaker_default": config.DEFAULT_BOOKMAKER_ID})
+                "bookmaker_default": config.DEFAULT_BOOKMAKER_ID,
+                "is_admin": users.is_admin(ctx.get("username"))})
     return templates.TemplateResponse(request, template, ctx)
+
+
+# Páginas liberadas mesmo para conta pendente/expirada (o resto é bloqueado).
+_OPEN_PATHS = {"/login", "/register", "/logout", "/pendente"}
+
+
+@app.middleware("http")
+async def gate_inactive_users(request: Request, call_next):
+    """Conta logada mas não liberada (pendente/expirada) só vê /pendente e
+    afins — o conteúdo pago fica bloqueado até a liberação manual."""
+    path = request.url.path
+    if (path.startswith("/static") or path.startswith("/b/")
+            or path in _OPEN_PATHS or path.startswith("/admin")):
+        return await call_next(request)
+    user = users.read_token(request.cookies.get(SESSION_COOKIE))
+    if user and not users.is_active(user):
+        return RedirectResponse("/pendente", status_code=303)
+    return await call_next(request)
 
 
 # ---------------------------------------------------------- contas/login
@@ -169,6 +188,57 @@ def logout():
     resp = RedirectResponse("/login", status_code=303)
     resp.delete_cookie(SESSION_COOKIE)
     return resp
+
+
+@app.get("/pendente", response_class=HTMLResponse)
+def pendente(request: Request, user: str = Depends(current_user)):
+    """Tela de conta aguardando liberação (com instruções de pagamento)."""
+    status = users.access_status(user)
+    if status == "ok":  # já liberado: manda pro app
+        return RedirectResponse("/", status_code=303)
+    return render(request, "pendente.html", conta_user=user, status=status,
+                  pix_key=config.PIX_KEY, pix_contato=config.PIX_CONTATO)
+
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page(request: Request, user: str = Depends(current_user),
+               msg: str = ""):
+    if not users.is_admin(user):
+        return RedirectResponse("/", status_code=303)
+    rows = []
+    for un in users.all_usernames():
+        if users.is_admin(un):
+            continue
+        u = users.get_user(un) or {}
+        rows.append({"username": un, "status": users.access_status(un),
+                     "expira": u.get("expira"),
+                     "telegram": u.get("telegram_chat_id", "")})
+    rows.sort(key=lambda r: (r["status"] != "pendente", r["username"]))
+    return render(request, "admin.html", rows=rows, msg=msg,
+                  active=users.count_active(), cap=config.MAX_ACTIVE_USERS)
+
+
+@app.post("/admin/access")
+def admin_access(request: Request, user: str = Depends(current_user),
+                 alvo: str = Form(...), acao: str = Form(...),
+                 dias: int = Form(30)):
+    if not users.is_admin(user):
+        return RedirectResponse("/", status_code=303)
+    from datetime import date, timedelta
+    if acao == "liberar":
+        # respeita o teto, a menos que o alvo já esteja ativo
+        if (users.access_status(alvo) != "ok"
+                and users.count_active() >= config.MAX_ACTIVE_USERS):
+            return RedirectResponse(
+                f"/admin?msg=Limite+de+{config.MAX_ACTIVE_USERS}+ativos+atingido",
+                status_code=303)
+        expira = (date.today() + timedelta(days=max(1, int(dias)))).isoformat()
+        users.set_access(alvo, True, expira)
+        msg = f"{alvo}+liberado+at%C3%A9+{expira}"
+    else:
+        users.set_access(alvo, False, None)
+        msg = f"{alvo}+bloqueado"
+    return RedirectResponse(f"/admin?msg={msg}", status_code=303)
 
 
 @app.get("/conta", response_class=HTMLResponse)

@@ -335,7 +335,8 @@ def surebet_alerts_run(client: ApiFootballClient, today: str) -> int:
     import surebet
     subs = [(u, users.get_user(u) or {}) for u in users.all_usernames()]
     subs = [(u, info) for (u, info) in subs
-            if info.get("surebet_alerts") and info.get("telegram_chat_id")]
+            if info.get("surebet_alerts") and info.get("telegram_chat_id")
+            and users.is_active(u)]  # só contas liberadas (pagas)
     if not subs or not bot_configured():
         return 0
 
@@ -412,9 +413,10 @@ def main(force: bool = False) -> None:
     except Exception as e:
         print(f"[erro nos alertas de surebet] {type(e).__name__}: {e}")
 
-    # 3) garimpo do dia: só usuários cuja hora escolhida bate com agora.
+    # 3) garimpo do dia: só usuários LIBERADOS cuja hora bate com agora.
     due = [u for u in usernames
-           if force or (users.get_user(u) or {}).get("send_hour", 9) == now_hour]
+           if users.is_active(u)
+           and (force or (users.get_user(u) or {}).get("send_hour", 9) == now_hour)]
     for username in due:
         try:
             run_for_user(client, username, today)

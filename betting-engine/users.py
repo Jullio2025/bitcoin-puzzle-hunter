@@ -19,6 +19,7 @@ import os
 import re
 import secrets
 import time
+from datetime import date
 from pathlib import Path
 
 import config
@@ -87,7 +88,7 @@ def create_user(username: str, password: str) -> tuple[bool, str]:
     salt = secrets.token_hex(16)
     data[username] = {"salt": salt, "hash": _hash(password, salt),
                       "created": time.time(), "telegram_chat_id": "",
-                      "send_hour": 9}
+                      "send_hour": 9, "ativo": False, "expira": None}
     _save(data)
     return True, "Conta criada."
 
@@ -125,6 +126,55 @@ def set_surebet_alerts(username: str, enabled: bool,
         u["surebet_alerts"] = bool(enabled)
         u["surebet_min_margin"] = max(0.0, float(min_margin))
         _save(data)
+
+
+# --------------------------------------------------- acesso pago (liberação)
+def is_admin(username: str) -> bool:
+    """Admin = a conta do .env (ADMIN_USER ou PANEL_USER, padrão 'admin')."""
+    if not username:
+        return False
+    admin = os.getenv("ADMIN_USER", os.getenv("PANEL_USER", "admin")).lower()
+    return username.lower() == admin
+
+
+def access_status(username: str) -> str:
+    """'ok' | 'pendente' | 'expirado' — situação de acesso do usuário.
+
+    Admin sempre 'ok'. Contas ANTIGAS (sem o campo 'ativo') também ficam 'ok'
+    (não trancamos quem já usava). Contas novas nascem 'pendente' até a
+    liberação manual; 'expirado' quando passa da data de validade."""
+    if is_admin(username):
+        return "ok"
+    u = get_user(username) or {}
+    if "ativo" not in u:
+        return "ok"
+    if not u.get("ativo"):
+        return "pendente"
+    exp = u.get("expira")
+    if exp and exp < date.today().isoformat():
+        return "expirado"
+    return "ok"
+
+
+def is_active(username: str) -> bool:
+    return access_status(username) == "ok"
+
+
+def set_access(username: str, ativo: bool, expira: str | None = None) -> None:
+    """Libera/bloqueia a conta. expira = 'AAAA-MM-DD' ou None (sem validade)."""
+    data = _load()
+    u = data.get((username or "").lower())
+    if not u:
+        return
+    u["ativo"] = bool(ativo)
+    u["expira"] = expira or None
+    _save(data)
+
+
+def count_active() -> int:
+    """Quantas contas pagantes (não-admin) estão ativas agora."""
+    return sum(1 for un in _load()
+               if not is_admin(un) and access_status(un) == "ok")
 
 
 def set_password(username: str, new_password: str) -> tuple[bool, str]:

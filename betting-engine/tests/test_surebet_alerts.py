@@ -55,6 +55,7 @@ class TestSurebetAlerts(unittest.TestCase):
 
     def test_sends_above_threshold_and_dedupes(self):
         users.create_user("zeca", "pw1234")
+        users.set_access("zeca", True)  # conta liberada (paga)
         users.set_telegram("zeca", "999")
         users.set_surebet_alerts("zeca", True, min_margin=2.0)  # 2%
         surebet.scan_day = lambda *a, **k: surebet.SureScan(
@@ -76,6 +77,7 @@ class TestSurebetAlerts(unittest.TestCase):
 
     def test_realerts_when_margin_improves(self):
         users.create_user("rita", "pw1234")
+        users.set_access("rita", True)  # conta liberada (paga)
         users.set_telegram("rita", "222")
         users.set_surebet_alerts("rita", True, min_margin=0.5)
         # 1ª rodada: margem 3% -> avisa

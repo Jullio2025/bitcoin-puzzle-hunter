@@ -22,6 +22,13 @@ load_dotenv(BASE_DIR / ".env")
 APISPORTS_KEY = os.getenv("APISPORTS_KEY", "")
 API_BASE_URL = "https://v3.football.api-sports.io"
 
+# --- Acesso pago (liberação manual) ---------------------------------------
+# Chave PIX mostrada na tela de "conta pendente" (fica no .env, nunca no git).
+PIX_KEY = os.getenv("PIX_KEY", "")
+PIX_CONTATO = os.getenv("PIX_CONTATO", "")   # ex.: @seu_telegram p/ enviar o comprovante
+# Teto de contas pagantes ativas ao mesmo tempo.
+MAX_ACTIVE_USERS = int(os.getenv("MAX_ACTIVE_USERS", "100"))
+
 # --- Rate limit / cache ----------------------------------------------------
 # Pausa (segundos) entre chamadas à API. Plano Pro aguenta bem 0.2s;
 # aumente se receber erro de rate limit.

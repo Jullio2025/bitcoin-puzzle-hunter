@@ -32,6 +32,7 @@
       <a href="/cartoes">🎫 Cartões</a>
       <a href="/tracker">📊 Minhas apostas</a>
       <a href="/conta">⚙️ Conta</a>
+      {% if is_admin %}<a href="/admin">🛠️ Admin</a>{% endif %}
     </nav>
     <div class="side-foot">
       <span class="nav-user">👤 {{ username }}</span>

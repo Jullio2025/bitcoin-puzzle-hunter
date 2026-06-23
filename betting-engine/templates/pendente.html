@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChapaFut ⚡ acesso</title>
+  <link rel="stylesheet" href="/static/style.css?v=26">
+</head>
+<body>
+  <div class="bg-scene">
+    <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
+  </div>
+  <header class="topbar">
+    <span class="brand">⚡ CHAPA<span>FUT</span></span>
+    <a href="/logout" class="nav-logout">sair</a>
+  </header>
+
+  <main>
+    <div class="card" style="max-width:560px;margin:24px auto">
+      {% if status == "expirado" %}
+      <h2>⌛ Seu acesso venceu</h2>
+      <p>Pra voltar a usar o ChapaFut, é só renovar — faça o pagamento abaixo
+      e me avise que eu libero.</p>
+      {% else %}
+      <h2>🔓 Falta liberar seu acesso</h2>
+      <p>Sua conta <strong>{{ conta_user }}</strong> foi criada! Pra entrar,
+      faça o pagamento abaixo e me avise — libero na hora.</p>
+      {% endif %}
+
+      {% if pix_key %}
+      <div class="trio">
+        <div><span>PIX (chave aleatória)</span>
+          <strong style="font-size:.85rem;word-break:break-all">{{ pix_key }}</strong></div>
+      </div>
+      <button class="primary" id="copy-pix">📋 Copiar chave PIX</button>
+      <span class="hint" id="copied" hidden>copiado!</span>
+      {% else %}
+      <p class="hint">Pra liberar, fale com o administrador.</p>
+      {% endif %}
+
+      {% if pix_contato %}
+      <p style="margin-top:14px">Depois de pagar, mande o comprovante para
+      <strong>{{ pix_contato }}</strong> dizendo o seu usuário
+      (<strong>{{ conta_user }}</strong>).</p>
+      {% endif %}
+
+      <p class="hint">O ChapaFut só <strong>mostra os números</strong> — não é
+      lucro garantido, e a decisão é sua. 18+</p>
+    </div>
+  </main>
+  <footer class="foot">ChapaFut — os números na mesa, a decisão é sua.</footer>
+
+  {% if pix_key %}
+  <script>
+    document.getElementById("copy-pix").addEventListener("click", () => {
+      navigator.clipboard.writeText({{ pix_key|tojson }}).then(() => {
+        document.getElementById("copied").hidden = false;
+      });
+    });
+  </script>
+  {% endif %}
+</body>
+</html>
