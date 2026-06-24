@@ -292,6 +292,49 @@ h2 { font-size: 1.08rem; margin-top: 0; font-weight: 700;
 .pl-tag.pl-neg { background: rgba(251,113,133,.14);
   border: 1px solid rgba(251,113,133,.35); }
 
+/* ------------------------------------------------- cards de surebet (TikTok) */
+.sb-card.sb-win {
+  border-color: rgba(52,211,153,.45);
+  box-shadow: 0 0 0 1px rgba(52,211,153,.12), 0 12px 44px rgba(52,211,153,.10);
+}
+.sb-card.sb-near { border-color: rgba(251,191,36,.40); }
+.sb-hero {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap; margin: 14px 0 10px; padding: 16px 18px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(52,211,153,.14), rgba(34,211,238,.07));
+  border: 1px solid rgba(52,211,153,.28);
+}
+.sb-card.sb-near .sb-hero {
+  background: linear-gradient(135deg, rgba(251,191,36,.14), rgba(251,113,133,.05));
+  border-color: rgba(251,191,36,.28);
+}
+.sb-hero-label {
+  display: block; font-size: .72rem; letter-spacing: .5px;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 2px;
+}
+.sb-hero-pct {
+  font-family: var(--display); font-weight: 800; font-size: 2.5rem;
+  line-height: 1;
+}
+.sb-hero-side { text-align: right; }
+.sb-hero-side span { display: block; font-size: .72rem; color: var(--muted); }
+.sb-hero-side strong { font-family: var(--display); font-size: 1.35rem; }
+.sb-liq {
+  display: inline-block; margin: 2px 0 6px; padding: 4px 12px;
+  border-radius: 999px; font-size: .76rem; font-weight: 700;
+}
+.sb-liq-raso { background: rgba(251,113,133,.14); color: var(--bad);
+  border: 1px solid rgba(251,113,133,.35); }
+.sb-liq-médio { background: rgba(251,191,36,.14); color: #fbbf24;
+  border: 1px solid rgba(251,191,36,.30); }
+.sb-liq-líquido { background: rgba(52,211,153,.14); color: var(--good);
+  border: 1px solid rgba(52,211,153,.35); }
+@media (max-width: 480px) {
+  .sb-hero-pct { font-size: 2rem; }
+  .sb-hero-side { text-align: left; }
+}
+
 /* escudos dos times e bandeira/logo das ligas */
 .team-logo {
   width: 20px; height: 20px; object-fit: contain; vertical-align: -5px;

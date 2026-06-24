@@ -27,17 +27,30 @@ apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
 {% endif %}
 
 {% for sb in scan.bets %}
-<div class="card">
+<div class="card sb-card {{ 'sb-win' if sb.is_arb else 'sb-near' }}">
   <div class="card-head">
     <h2>
       {% if sb.hl %}<img class="team-logo" src="{{ sb.hl }}" alt="" loading="lazy">{% endif %}{% if sb.al %}<img class="team-logo" src="{{ sb.al }}" alt="" loading="lazy">{% endif %}{{ sb.fixture }}
-      {% if sb.is_arb %}<span class="badge ok">✅ SUREBET +{{ "%.2f"|format(sb.margin * 100) }}%</span>
-      {% else %}<span class="badge warn">⚠️ quase — soma {{ "%.1f"|format(sb.sum_implied * 100) }}%</span>{% endif %}
+      {% if sb.is_arb %}<span class="badge ok">✅ SUREBET</span>
+      {% else %}<span class="badge warn">⚠️ quase</span>{% endif %}
     </h2>
   </div>
   <p class="meta">{{ sb.market_label }}{% if sb.line is not none %} (linha {{ "%g"|format(sb.line) }}){% endif %}
     {% if sb.when %} — {{ sb.when }}{% endif %}
     {% if sb.league %} — {{ sb.league }}{% if sb.country %} ({{ sb.country }}){% endif %}{% endif %}</p>
+
+  <div class="sb-hero">
+    <div>
+      <span class="sb-hero-label">{{ "Lucro garantido" if sb.is_arb else "Sem garantia ainda" }}</span>
+      <span class="sb-hero-pct {{ 'pl-pos' if sb.margin > 0 else 'pl-neg' }}">{{ "%+.1f"|format(sb.margin * 100) }}%</span>
+    </div>
+    <div class="sb-hero-side">
+      <span>com R$ {{ "%.0f"|format(bankroll) }} você {{ "ganha" if sb.margin > 0 else "perde" }}</span>
+      <strong class="{{ 'pl-pos' if sb.margin > 0 else 'pl-neg' }}">R$ {{ "%+.2f"|format(bankroll * sb.margin) }}</strong>
+    </div>
+  </div>
+
+  <span class="sb-liq sb-liq-{{ sb.liquidity }}">💧 mercado {{ sb.liquidity }} · {{ sb.depth }} casa(s)</span>
 
   <table class="markets">
     <thead><tr>
@@ -57,30 +70,15 @@ apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
     </tbody>
   </table>
 
-  <div class="trio">
-    <div><span>{{ "Lucro garantido" if sb.is_arb else "Resultado (sem garantia)" }}</span>
-      <strong class="{{ 'pl-pos' if sb.margin > 0 else 'pl-neg' }}">
-        {{ "%+.1f"|format(sb.margin * 100) }}%</strong></div>
-    <div><span>{{ "Lucro em reais" if sb.is_arb else "Diferença em reais" }}</span>
-      <strong class="{{ 'pl-pos' if sb.margin > 0 else 'pl-neg' }}">
-        R$ {{ "%+.2f"|format(bankroll * sb.margin) }}</strong></div>
-    <div><span>Casas usadas</span><strong>{{ sb.n_books }}</strong></div>
-  </div>
-  <p class="hint">💧 Liquidez:
-    {% if sb.liquidity == "raso" %}<strong class="pl-neg">mercado fraco</strong>
-    — só {{ sb.depth }} casa(s) oferecem o lado mais disputado. Limite de aposta
-    provavelmente <strong>baixo</strong> e maior chance de a odd estar velha —
-    confira o valor máximo aceito na casa.
-    {% elif sb.liquidity == "médio" %}média ({{ sb.depth }} casas oferecem o lado
-    mais fraco) — dá pra apostar valores moderados.
-    {% else %}<strong class="pl-pos">mercado líquido</strong>
-    ({{ sb.depth }} casas cotam) — aceita apostas maiores com mais segurança.
-    {% endif %}</p>
+  {% if sb.liquidity == "raso" %}
+  <p class="hint">⚠️ Mercado fraco — só {{ sb.depth }} casa(s) oferecem o lado
+  mais disputado. O limite de aposta costuma ser baixo; confira o máximo
+  aceito na casa.</p>
+  {% endif %}
   {% if not sb.is_arb %}
-  <p class="hint">⚠️ "Quase": a soma passou de 100%, então hoje isto
-  <strong>não trava lucro</strong> (perderia {{ "%.2f"|format(-bankroll * sb.margin) }}
-  reais se apostasse nos dois lados). Vira surebet se alguma dessas odds subir
-  um pouco — vale ficar de olho.</p>
+  <p class="hint">⚠️ "Quase": ainda <strong>não trava lucro</strong> (perderia
+  R$ {{ "%.2f"|format(-bankroll * sb.margin) }} apostando nos dois lados). Vira
+  surebet se alguma dessas odds subir um pouco — vale ficar de olho.</p>
   {% endif %}
 </div>
 {% endfor %}
