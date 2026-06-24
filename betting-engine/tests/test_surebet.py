@@ -132,6 +132,33 @@ class TestArbDetection(unittest.TestCase):
         by = surebet.parse_odds_by_book(resp)
         self.assertEqual(surebet.scan_fixture(by, ["goals"], near_max=1.5), [])
 
+    def test_derived_markets_in_all(self):
+        for m in ("odd_even", "clean_sheet_home", "clean_sheet_away"):
+            self.assertIn(m, surebet.ALL_MARKETS)
+
+    def test_odd_even_arb(self):
+        # Ímpar @2.05 (A) + Par @2.05 (B) -> arb ~ +2.5%
+        resp = _resp(
+            ("A", [("Odd/Even", [("Odd", 2.05), ("Even", 1.85)])]),
+            ("B", [("Odd/Even", [("Odd", 1.90), ("Even", 2.05)])]),
+        )
+        by = surebet.parse_odds_by_book(resp)
+        bets = surebet.scan_fixture(by, ["odd_even"], near_max=1.0)
+        self.assertEqual(len(bets), 1)
+        self.assertTrue(bets[0].is_arb)
+        self.assertEqual(bets[0].market, "odd_even")
+        self.assertEqual({l.side for l in bets[0].legs}, {"even", "odd"})
+
+    def test_clean_sheet_arb(self):
+        resp = _resp(
+            ("A", [("Clean Sheet - Home", [("Yes", 2.10), ("No", 1.80)])]),
+            ("B", [("Clean Sheet - Home", [("Yes", 1.90), ("No", 2.10)])]),
+        )
+        by = surebet.parse_odds_by_book(resp)
+        bets = surebet.scan_fixture(by, ["clean_sheet_home"], near_max=1.0)
+        self.assertEqual(len(bets), 1)
+        self.assertTrue(bets[0].is_arb)
+
     def test_team_goals_in_all_markets(self):
         self.assertIn("team_goals_home", surebet.ALL_MARKETS)
         self.assertIn("team_goals_away", surebet.ALL_MARKETS)

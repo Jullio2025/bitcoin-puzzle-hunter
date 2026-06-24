@@ -77,6 +77,9 @@ MARKET_BET_NAMES = {
     "handicap": ["Asian Handicap"],
     "btts": ["Both Teams Score", "Both Teams To Score"],
     "double_chance": ["Double Chance"],
+    "odd_even": ["Odd/Even", "Goals Odd/Even", "Total - Odd/Even"],
+    "clean_sheet_home": ["Clean Sheet - Home", "Home Team Clean Sheet"],
+    "clean_sheet_away": ["Clean Sheet - Away", "Away Team Clean Sheet"],
 }
 
 # --- Modelo ----------------------------------------------------------------

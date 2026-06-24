@@ -36,6 +36,15 @@ def decide(market: str, side: str, line: float | None,
         scored = gh > 0 and ga > 0
         won = scored if side == "yes" else not scored
         return "won" if won else "lost"
+    if market == "odd_even":
+        par = (gh + ga) % 2 == 0
+        won = par if side == "even" else not par
+        return "won" if won else "lost"
+    if market in ("clean_sheet_home", "clean_sheet_away"):
+        # casa "não sofre" = visitante faz 0; visitante "não sofre" = casa faz 0
+        clean = (ga == 0) if market.endswith("home") else (gh == 0)
+        won = clean if side == "yes" else not clean
+        return "won" if won else "lost"
     if market == "double_chance":
         winner = "home" if gh > ga else ("away" if ga > gh else "draw")
         ok = {"1X": winner in ("home", "draw"),

@@ -28,7 +28,16 @@ OVER_UNDER_MARKETS = ("goals", "corners", "cards",
                       "team_goals_home", "team_goals_away")
 DEFAULT_MARKETS = ("goals", "1x2", "btts")
 ALL_MARKETS = ("goals", "team_goals_home", "team_goals_away", "1x2", "btts",
+               "odd_even", "clean_sheet_home", "clean_sheet_away",
                "corners", "cards", "handicap")
+
+# mercados de 2 vias com linha None (partição limpa: os dois lados cobrem tudo)
+TWO_WAY_MARKETS = {
+    "btts": ("yes", "no"),
+    "odd_even": ("even", "odd"),
+    "clean_sheet_home": ("yes", "no"),
+    "clean_sheet_away": ("yes", "no"),
+}
 
 # soma das implícitas até este teto entra como "quase-surebet" (não garantido)
 NEAR_MAX_DEFAULT = 1.03
@@ -215,9 +224,9 @@ def scan_fixture(bybook: dict, markets: list[str],
             sb = _evaluate_group(bybook, "1x2", None, grp, min_margin, near_max)
             if sb:
                 found.append(sb)
-        elif market == "btts":
-            grp = [("btts", "yes", None), ("btts", "no", None)]
-            sb = _evaluate_group(bybook, "btts", None, grp, min_margin, near_max)
+        elif market in TWO_WAY_MARKETS:
+            grp = [(market, s, None) for s in TWO_WAY_MARKETS[market]]
+            sb = _evaluate_group(bybook, market, None, grp, min_margin, near_max)
             if sb:
                 found.append(sb)
         elif market in OVER_UNDER_MARKETS:

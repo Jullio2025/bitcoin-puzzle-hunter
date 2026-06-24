@@ -175,6 +175,31 @@ def both_teams_score_prob(lam_home: float, lam_away: float) -> float:
     return (1.0 - poisson_pmf(0, lam_home)) * (1.0 - poisson_pmf(0, lam_away))
 
 
+def odd_even_prob(lam_home: float, lam_away: float,
+                  max_goals: int = 10) -> tuple[float, float]:
+    """(P_par, P_ímpar) do TOTAL de gols, direto da matriz Dixon-Coles."""
+    m = score_matrix(lam_home, lam_away, max_goals)
+    par = impar = 0.0
+    for h in range(max_goals + 1):
+        for a in range(max_goals + 1):
+            if (h + a) % 2 == 0:
+                par += m[h][a]
+            else:
+                impar += m[h][a]
+    return par, impar
+
+
+def clean_sheet_prob(lam_home: float, lam_away: float, side: str,
+                     max_goals: int = 10) -> float:
+    """P do `side` ('home'/'away') NÃO sofrer gol (o adversário faz 0).
+
+    Usa a matriz Dixon-Coles, pra bater com o 1X2/BTTS."""
+    m = score_matrix(lam_home, lam_away, max_goals)
+    if side == "home":          # casa não sofre = visitante marca 0
+        return sum(m[h][0] for h in range(max_goals + 1))
+    return sum(m[0][a] for a in range(max_goals + 1))  # fora não sofre = casa faz 0
+
+
 def double_chance_prob(lam_home: float, lam_away: float, side: str,
                        max_goals: int = 10) -> float:
     """Dupla chance derivada do 1X2: '1X', '12' ou 'X2'."""

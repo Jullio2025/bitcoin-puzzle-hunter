@@ -45,6 +45,19 @@ class TestDecideNewMarkets(unittest.TestCase):
         self.assertEqual(settle.decide("double_chance", "X2", None, 1, 1, None),
                          "won")
 
+    def test_odd_even(self):  # total 3 = ímpar
+        self.assertEqual(settle.decide("odd_even", "odd", None, 2, 1, None), "won")
+        self.assertEqual(settle.decide("odd_even", "even", None, 2, 1, None), "lost")
+        self.assertEqual(settle.decide("odd_even", "even", None, 1, 1, None), "won")
+
+    def test_clean_sheet(self):
+        # mandante "não sofre" = visitante faz 0
+        self.assertEqual(settle.decide("clean_sheet_home", "yes", None, 1, 0, None), "won")
+        self.assertEqual(settle.decide("clean_sheet_home", "yes", None, 1, 2, None), "lost")
+        # visitante "não sofre" = casa faz 0
+        self.assertEqual(settle.decide("clean_sheet_away", "yes", None, 0, 3, None), "won")
+        self.assertEqual(settle.decide("clean_sheet_away", "no", None, 2, 1, None), "won")
+
 
 class TestSettleCard(unittest.TestCase):
     def _card(self, *legs):

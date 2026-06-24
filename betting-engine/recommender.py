@@ -23,13 +23,24 @@ MARKET_LABELS = {"goals": "Gols", "corners": "Escanteios", "cards": "Cartões",
                  "team_goals_home": "Gols do mandante",
                  "team_goals_away": "Gols do visitante",
                  "handicap": "Handicap", "btts": "Ambas marcam",
-                 "double_chance": "Dupla chance"}
+                 "double_chance": "Dupla chance",
+                 "odd_even": "Par/Ímpar (gols)",
+                 "clean_sheet_home": "Mandante não sofre gol",
+                 "clean_sheet_away": "Visitante não sofre gol"}
 SIDE_LABELS = {"over": "Mais de", "under": "Menos de",
                "home": "Vitória mandante", "draw": "Empate",
                "away": "Vitória visitante",
                "yes": "Sim", "no": "Não",
+               "even": "Par", "odd": "Ímpar",
                "1X": "Casa ou empate", "12": "Casa ou visitante",
                "X2": "Empate ou visitante"}
+
+# mercados derivados do Poisson de gols (line=None): lados por mercado
+DERIVED_SIDES = {"btts": ("yes", "no"),
+                 "double_chance": ("1X", "12", "X2"),
+                 "odd_even": ("even", "odd"),
+                 "clean_sheet_home": ("yes", "no"),
+                 "clean_sheet_away": ("yes", "no")}
 
 
 @dataclass
@@ -237,7 +248,7 @@ def analyze_fixture(ctx: MatchContext, odds_map: OddsMap,
         if market == "handicap":
             markets.extend(_analyze_handicap(lambdas, odds_map, params))
             continue
-        if market in ("btts", "double_chance"):
+        if market in DERIVED_SIDES:
             markets.extend(_analyze_derived(market, lambdas, odds_map, params))
             continue
         if market == "team_goals_home":
@@ -308,17 +319,27 @@ def _analyze_handicap(lambdas: dict[str, float], odds_map: OddsMap,
 
 def _derived_prob(market: str, side: str, lambdas: dict[str, float]) -> float:
     lh, la = lambdas["goals_home"], lambdas["goals_away"]
+    mg = config.MODEL["max_goals_grid"]
     if market == "btts":
         p_yes = scoring.both_teams_score_prob(lh, la)
         return p_yes if side == "yes" else 1.0 - p_yes
-    return scoring.double_chance_prob(lh, la, side,
-                                      max_goals=config.MODEL["max_goals_grid"])
+    if market == "double_chance":
+        return scoring.double_chance_prob(lh, la, side, max_goals=mg)
+    if market == "odd_even":
+        par, impar = scoring.odd_even_prob(lh, la, mg)
+        return par if side == "even" else impar
+    if market in ("clean_sheet_home", "clean_sheet_away"):
+        team = "home" if market.endswith("home") else "away"
+        p_yes = scoring.clean_sheet_prob(lh, la, team, mg)
+        return p_yes if side == "yes" else 1.0 - p_yes
+    return 0.0
 
 
 def _analyze_derived(market: str, lambdas: dict[str, float], odds_map: OddsMap,
                      params: UserParams) -> list[MarketAnalysis]:
-    """Ambas marcam / dupla chance: derivados do Poisson de gols."""
-    sides = (("yes", "no") if market == "btts" else ("1X", "12", "X2"))
+    """Mercados derivados do Poisson de gols (ambas marcam, dupla chance,
+    par/ímpar, não sofre gol) — sem custo extra de API."""
+    sides = DERIVED_SIDES[market]
     no_data = lambdas["goals_home"] + lambdas["goals_away"] <= 0.05
     out = []
     for side in sides:

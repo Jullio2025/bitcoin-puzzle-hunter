@@ -77,6 +77,16 @@ def _parse_value_label(market: str,
     if market == "btts":
         side = _BTTS_MAP.get(label.lower())
         return (market, side, None) if side else None
+    if market == "odd_even":
+        s = label.lower()
+        if s in ("even", "par"):
+            return (market, "even", None)
+        if s in ("odd", "ímpar", "impar"):
+            return (market, "odd", None)
+        return None
+    if market in ("clean_sheet_home", "clean_sheet_away"):
+        side = _BTTS_MAP.get(label.lower())  # reaproveita Yes/No -> yes/no
+        return (market, side, None) if side else None
     if market == "double_chance":
         side = _DC_MAP.get(label.lower().replace(" ", ""))
         return (market, side, None) if side else None
