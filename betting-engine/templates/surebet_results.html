@@ -64,8 +64,8 @@ apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
 
   <table class="markets sb-legs">
     <colgroup>
-      <col style="width:23%"><col style="width:21%"><col style="width:13%">
-      <col style="width:21%"><col style="width:22%">
+      <col style="width:22%"><col style="width:18%"><col style="width:12%">
+      <col style="width:24%"><col style="width:24%">
     </colgroup>
     <thead><tr>
       <th>Aposta</th><th>Casa</th><th>Odd</th><th>Apostar</th><th>Volta</th>
@@ -76,8 +76,8 @@ apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
         <td><strong>{{ leg.label }}</strong></td>
         <td>{{ leg.book }}</td>
         <td>{{ "%.2f"|format(leg.odd) }}</td>
-        <td class="sb-stake">{{ "%.2f"|format(stake) }}</td>
-        <td class="sb-ret">{{ "%.2f"|format(ret) }}</td>
+        <td class="sb-stake">R$ {{ "%.2f"|format(stake) }}</td>
+        <td class="sb-ret">R$ {{ "%.2f"|format(ret) }}</td>
       </tr>
     {% endfor %}
     </tbody>
@@ -145,7 +145,7 @@ apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
   (function () {
     const input = document.getElementById("sb-bankroll");
     if (!input) return;
-    const num = (v) => v.toFixed(2);   // células sem "R$" (cabe melhor)
+    const money = (v) => "R$ " + v.toFixed(2);
     const signed = (v) => "R$ " + (v >= 0 ? "+" : "") + v.toFixed(2);
     function recalc() {
       const total = parseFloat((input.value || "0").replace(",", ".")) || 0;
@@ -155,8 +155,8 @@ apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
           const stake = total * (parseFloat(tr.dataset.pct) || 0);
           const odd = parseFloat(tr.dataset.odd) || 0;
           const s = tr.querySelector(".sb-stake"), r = tr.querySelector(".sb-ret");
-          if (s) s.textContent = num(stake);
-          if (r) r.textContent = num(stake * odd);
+          if (s) s.textContent = money(stake);
+          if (r) r.textContent = money(stake * odd);
         });
         const lbl = card.querySelector(".sb-total");
         const prof = card.querySelector(".sb-profit");

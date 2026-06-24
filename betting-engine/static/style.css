@@ -301,9 +301,9 @@ h2 { font-size: 1.08rem; margin-top: 0; font-weight: 700;
 .sb-grid .card { margin: 0; }
 /* tabela das pernas: layout fixo + larguras por coluna + fonte menor, tudo
    em UMA linha (sem quebrar palavra nem rolar; se faltar espaço, "…"). */
-.sb-card .sb-legs { table-layout: fixed; width: 100%; font-size: .7rem; }
+.sb-card .sb-legs { table-layout: fixed; width: 100%; font-size: .64rem; }
 .sb-card .sb-legs th, .sb-card .sb-legs td {
-  padding: 5px 5px; white-space: nowrap;
+  padding: 5px 4px; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
 }
 .sb-bankroll { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
