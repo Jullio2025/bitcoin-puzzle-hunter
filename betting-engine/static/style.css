@@ -298,7 +298,12 @@ h2 { font-size: 1.08rem; margin-top: 0; font-weight: 700;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   align-items: start;
 }
-.sb-grid .card { margin: 0; }
+.sb-grid .card { margin: 0; overflow: hidden; }   /* nada vaza pro vizinho */
+/* tabela das pernas: compacta e rolável dentro do card (não estoura) */
+.sb-tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.sb-card .markets { font-size: .82rem; }
+.sb-card .markets th, .sb-card .markets td { padding: 6px 8px; }
+.sb-card .markets th { white-space: nowrap; }
 .sb-bankroll { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
 .sb-bankroll input { max-width: 160px; font-size: 1.1rem; font-weight: 700; }
 .sb-card.sb-win {

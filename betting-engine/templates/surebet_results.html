@@ -62,10 +62,10 @@ apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
 
   <span class="sb-liq sb-liq-{{ sb.liquidity }}">💧 mercado {{ sb.liquidity }} · {{ sb.depth }} casa(s)</span>
 
+  <div class="sb-tablewrap">
   <table class="markets">
     <thead><tr>
-      <th>Aposte em</th><th>Casa (paga melhor)</th><th>Odd</th>
-      <th>Quanto apostar</th><th>Volta se este sair</th>
+      <th>Aposta</th><th>Casa</th><th>Odd</th><th>Apostar</th><th>Volta</th>
     </tr></thead>
     <tbody>
     {% for leg, stake, ret in sb.split(bankroll) %}
@@ -79,6 +79,7 @@ apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
     {% endfor %}
     </tbody>
   </table>
+  </div>
 
   {% if sb.liquidity == "raso" %}
   <p class="hint">⚠️ Mercado fraco — só {{ sb.depth }} casa(s) oferecem o lado
