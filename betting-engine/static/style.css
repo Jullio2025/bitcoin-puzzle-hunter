@@ -219,22 +219,42 @@ h2 { font-size: 1.08rem; margin-top: 0; font-weight: 700;
 /* tela ao vivo */
 .aovivo-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .aovivo-head h1 { margin: 0; }
+/* ponto vermelho pulsante "ao vivo" */
+.live-dot {
+  display: inline-block; width: 13px; height: 13px; border-radius: 50%;
+  background: var(--bad); margin-right: 9px; vertical-align: 1px;
+  box-shadow: 0 0 0 0 rgba(251,113,133,.6); animation: livePulse 1.6s infinite;
+}
+@keyframes livePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(251,113,133,.55); }
+  70%  { box-shadow: 0 0 0 9px rgba(251,113,133,0); }
+  100% { box-shadow: 0 0 0 0 rgba(251,113,133,0); }
+}
+@keyframes liveBlink { 50% { opacity: .35; } }
 .live-row {
-  display: grid; grid-template-columns: 46px 1fr 40px; gap: 10px;
-  align-items: center; padding: 9px 6px; border-bottom: 1px solid var(--line-soft);
+  display: grid; grid-template-columns: 54px 1fr 50px; gap: 12px;
+  align-items: center; padding: 11px 8px;
+  border-bottom: 1px solid var(--line-soft); border-radius: 12px;
 }
 .live-min {
-  color: var(--good); font-weight: 800; font-size: .82rem; text-align: center;
+  color: var(--good); font-weight: 800; font-size: .8rem; text-align: center;
 }
-.live-teams { display: flex; flex-direction: column; gap: 3px; font-weight: 600;
+.live-min::before {
+  content: ""; display: inline-block; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--good); margin-right: 5px;
+  vertical-align: 1px; animation: liveBlink 1.4s infinite;
+}
+.live-teams { display: flex; flex-direction: column; gap: 4px; font-weight: 600;
   min-width: 0; }
 .live-teams .tm { display: flex; align-items: center; }
 .live-score {
   font-family: var(--display); font-weight: 800; text-align: center;
-  line-height: 1.25; color: var(--cyan);
+  line-height: 1.35; color: var(--cyan); font-size: 1.05rem;
+  background: var(--glass); border: 1px solid var(--line-soft);
+  border-radius: 10px; padding: 5px 0;
 }
-.live-row { cursor: pointer; transition: background .2s var(--ease); }
-.live-row:hover { background: rgba(255,255,255,.04); }
+.live-row { cursor: pointer; transition: all .2s var(--ease); }
+.live-row:hover { background: rgba(34,211,238,.07); transform: translateX(2px); }
 .live-detail { padding: 8px 8px 12px; }
 .live-detail .ev { padding: 3px 0 3px 44px; font-size: .88rem; }
 .live-detail .ev-min { color: var(--good); font-weight: 700; min-width: 34px;
