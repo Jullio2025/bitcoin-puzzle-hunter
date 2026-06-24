@@ -127,7 +127,11 @@ def render(request: Request, template: str, **ctx) -> HTMLResponse:
     ctx.update({"request": request, "defaults": config.USER_DEFAULTS,
                 "bookmaker_default": config.DEFAULT_BOOKMAKER_ID,
                 "is_admin": users.is_admin(ctx.get("username"))})
-    return templates.TemplateResponse(request, template, ctx)
+    resp = templates.TemplateResponse(request, template, ctx)
+    # página sempre revalidada: evita o navegador mostrar versão velha do
+    # site (o CSS já tem ?v=, mas a página em si podia ficar em cache).
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
 
 
 # Páginas liberadas mesmo para conta pendente/expirada (o resto é bloqueado).
