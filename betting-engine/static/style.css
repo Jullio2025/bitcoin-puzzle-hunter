@@ -293,6 +293,14 @@ h2 { font-size: 1.08rem; margin-top: 0; font-weight: 700;
   border: 1px solid rgba(251,113,133,.35); }
 
 /* ------------------------------------------------- cards de surebet (TikTok) */
+.sb-grid {
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  align-items: start;
+}
+.sb-grid .card { margin: 0; }
+.sb-bankroll { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.sb-bankroll input { max-width: 160px; font-size: 1.1rem; font-weight: 700; }
 .sb-card.sb-win {
   border-color: rgba(52,211,153,.45);
   box-shadow: 0 0 0 1px rgba(52,211,153,.12), 0 12px 44px rgba(52,211,153,.10);

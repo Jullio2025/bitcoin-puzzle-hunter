@@ -4,8 +4,7 @@
 
 <p class="hint">Jogos com odds comparadas: {{ scan.fixtures_scanned }}
 (só os que <strong>ainda não começaram</strong> — surebet é pré-jogo) —
-casas vistas no dia: {{ scan.books_seen }} — valor base da divisão:
-R$ {{ "%.2f"|format(bankroll) }}.</p>
+casas vistas no dia: {{ scan.books_seen }}.</p>
 
 <div class="disclaimer">
   Odds capturadas agora e podem ter mudado — <strong>confira na casa antes de
@@ -26,8 +25,19 @@ mais mercados, ou ligue os "quase-surebet".</div>
 apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
 {% endif %}
 
+{% if scan.bets %}
+<div class="card sb-bankroll">
+  <label>💰 Investimento total (R$)
+    <input type="number" id="sb-bankroll" value="{{ '%.0f'|format(bankroll) }}"
+           min="1" step="any"></label>
+  <span class="hint">Mude o valor e todos os cards recalculam quanto apostar
+  em cada casa, na hora.</span>
+</div>
+{% endif %}
+
+<div class="sb-grid">
 {% for sb in scan.bets %}
-<div class="card sb-card {{ 'sb-win' if sb.is_arb else 'sb-near' }}">
+<div class="card sb-card {{ 'sb-win' if sb.is_arb else 'sb-near' }}" data-margin="{{ sb.margin }}">
   <div class="card-head">
     <h2>
       {% if sb.hl %}<img class="team-logo" src="{{ sb.hl }}" alt="" loading="lazy">{% endif %}{% if sb.al %}<img class="team-logo" src="{{ sb.al }}" alt="" loading="lazy">{% endif %}{{ sb.fixture }}
@@ -45,8 +55,8 @@ apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
       <span class="sb-hero-pct {{ 'pl-pos' if sb.margin > 0 else 'pl-neg' }}">{{ "%+.1f"|format(sb.margin * 100) }}%</span>
     </div>
     <div class="sb-hero-side">
-      <span>com R$ {{ "%.0f"|format(bankroll) }} você {{ "ganha" if sb.margin > 0 else "perde" }}</span>
-      <strong class="{{ 'pl-pos' if sb.margin > 0 else 'pl-neg' }}">R$ {{ "%+.2f"|format(bankroll * sb.margin) }}</strong>
+      <span>com R$ <b class="sb-total">{{ "%.0f"|format(bankroll) }}</b> você {{ "ganha" if sb.margin > 0 else "perde" }}</span>
+      <strong class="sb-profit {{ 'pl-pos' if sb.margin > 0 else 'pl-neg' }}">R$ {{ "%+.2f"|format(bankroll * sb.margin) }}</strong>
     </div>
   </div>
 
@@ -59,12 +69,12 @@ apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
     </tr></thead>
     <tbody>
     {% for leg, stake, ret in sb.split(bankroll) %}
-      <tr class="pass">
+      <tr class="pass" data-pct="{{ leg.stake_pct }}" data-odd="{{ leg.odd }}">
         <td><strong>{{ leg.label }}</strong></td>
         <td>{{ leg.book }}</td>
         <td>{{ "%.2f"|format(leg.odd) }}</td>
-        <td>R$ {{ "%.2f"|format(stake) }}</td>
-        <td>R$ {{ "%.2f"|format(ret) }}</td>
+        <td class="sb-stake">R$ {{ "%.2f"|format(stake) }}</td>
+        <td class="sb-ret">R$ {{ "%.2f"|format(ret) }}</td>
       </tr>
     {% endfor %}
     </tbody>
@@ -82,6 +92,7 @@ apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
   {% endif %}
 </div>
 {% endfor %}
+</div>
 
 {% if scan.suspects %}
 <h2 style="margin-top:1.6rem">⚠️ Suspeitas — quase sempre erro de odd ({{ scan.suspects|length }})</h2>
@@ -124,4 +135,33 @@ apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
 
 <p class="hint">Chamadas reais à API nesta busca: {{ api_calls }}.</p>
 <a class="button" href="/surebet">← Procurar de novo</a>
+
+<script>
+  // "Investimento total": muda o valor e todos os cards recalculam na hora
+  // quanto apostar em cada casa (puro front, sem nova busca na API).
+  (function () {
+    const input = document.getElementById("sb-bankroll");
+    if (!input) return;
+    const money = (v) => "R$ " + v.toFixed(2);
+    const signed = (v) => "R$ " + (v >= 0 ? "+" : "") + v.toFixed(2);
+    function recalc() {
+      const total = parseFloat((input.value || "0").replace(",", ".")) || 0;
+      document.querySelectorAll(".sb-card").forEach((card) => {
+        const margin = parseFloat(card.dataset.margin) || 0;
+        card.querySelectorAll("tr[data-pct]").forEach((tr) => {
+          const stake = total * (parseFloat(tr.dataset.pct) || 0);
+          const odd = parseFloat(tr.dataset.odd) || 0;
+          const s = tr.querySelector(".sb-stake"), r = tr.querySelector(".sb-ret");
+          if (s) s.textContent = money(stake);
+          if (r) r.textContent = money(stake * odd);
+        });
+        const lbl = card.querySelector(".sb-total");
+        const prof = card.querySelector(".sb-profit");
+        if (lbl) lbl.textContent = total.toFixed(0);
+        if (prof) prof.textContent = signed(total * margin);
+      });
+    }
+    input.addEventListener("input", recalc);
+  })();
+</script>
 {% endblock %}
