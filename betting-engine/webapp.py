@@ -714,10 +714,16 @@ async def scan(request: Request, user: str = Depends(current_user)):
 @app.get("/surebet", response_class=HTMLResponse)
 def surebet_page(request: Request, user: str = Depends(current_user)):
     import surebet
+    books = []
+    try:
+        books = sorted({b.get("name") for b in ApiFootballClient().bookmakers()
+                        if b.get("name")}, key=str.lower)
+    except Exception:
+        logging.exception("falha ao listar casas em /surebet")
     return render(request, "surebet.html", today=date.today().isoformat(),
                   all_markets=surebet.ALL_MARKETS,
                   default_markets=surebet.DEFAULT_MARKETS,
-                  market_labels=surebet.MARKET_LABELS)
+                  market_labels=surebet.MARKET_LABELS, books=books)
 
 
 @app.post("/surebet/scan", response_class=HTMLResponse)
@@ -733,8 +739,11 @@ async def surebet_scan(request: Request, user: str = Depends(current_user)):
         min_margin = 0.0
     include_near = form.get("include_near") == "on"
     near_max = surebet.NEAR_MAX_DEFAULT if include_near else 1.0
+    # casas marcadas (checkboxes) + fallback do campo de texto livre
+    chosen = set(form.getlist("book"))
     books_raw = (form.get("books") or "").strip()
-    books = {b.strip() for b in books_raw.split(",") if b.strip()} or None
+    chosen |= {b.strip() for b in books_raw.split(",") if b.strip()}
+    books = chosen or None
     try:
         bankroll = float((form.get("bankroll") or "100").replace(",", "."))
     except ValueError:

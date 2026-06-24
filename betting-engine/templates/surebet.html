@@ -47,8 +47,23 @@
     <label class="inline"><input type="checkbox" name="include_near" checked>
       Incluir "quase-surebet" (soma até ~103%)
       <span class="hint">(não travam lucro ainda, mas viram surebet com pouco movimento)</span></label>
-    <label>Casas que você usa <span class="hint">(opcional, separadas por vírgula; vazio = todas)</span>
+  </div>
+
+  <div class="card">
+    <h2>Casas que você usa
+      <span class="hint">(marque só as suas; nenhuma marcada = todas)</span></h2>
+    {% if books %}
+    <div style="display:flex;flex-wrap:wrap;gap:6px 14px">
+      {% for b in books %}
+      <label class="inline"><input type="checkbox" name="book" value="{{ b }}"> {{ b }}</label>
+      {% endfor %}
+    </div>
+    <p class="hint">Dica: marcando só as casas em que você tem conta, só
+    aparecem surebets que você consegue realmente fazer.</p>
+    {% else %}
+    <label>Casas (separadas por vírgula; vazio = todas)
       <input type="text" name="books" placeholder="ex.: Bet365, Betano, Pinnacle"></label>
+    {% endif %}
   </div>
 
   <div class="card">
