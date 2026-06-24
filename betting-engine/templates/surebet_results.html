@@ -62,8 +62,11 @@ apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
 
   <span class="sb-liq sb-liq-{{ sb.liquidity }}">💧 mercado {{ sb.liquidity }} · {{ sb.depth }} casa(s)</span>
 
-  <div class="sb-tablewrap">
-  <table class="markets">
+  <table class="markets sb-legs">
+    <colgroup>
+      <col style="width:23%"><col style="width:21%"><col style="width:13%">
+      <col style="width:21%"><col style="width:22%">
+    </colgroup>
     <thead><tr>
       <th>Aposta</th><th>Casa</th><th>Odd</th><th>Apostar</th><th>Volta</th>
     </tr></thead>
@@ -73,13 +76,12 @@ apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
         <td><strong>{{ leg.label }}</strong></td>
         <td>{{ leg.book }}</td>
         <td>{{ "%.2f"|format(leg.odd) }}</td>
-        <td class="sb-stake">R$ {{ "%.2f"|format(stake) }}</td>
-        <td class="sb-ret">R$ {{ "%.2f"|format(ret) }}</td>
+        <td class="sb-stake">{{ "%.2f"|format(stake) }}</td>
+        <td class="sb-ret">{{ "%.2f"|format(ret) }}</td>
       </tr>
     {% endfor %}
     </tbody>
   </table>
-  </div>
 
   {% if sb.liquidity == "raso" %}
   <p class="hint">⚠️ Mercado fraco — só {{ sb.depth }} casa(s) oferecem o lado
@@ -143,7 +145,7 @@ apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
   (function () {
     const input = document.getElementById("sb-bankroll");
     if (!input) return;
-    const money = (v) => "R$ " + v.toFixed(2);
+    const num = (v) => v.toFixed(2);   // células sem "R$" (cabe melhor)
     const signed = (v) => "R$ " + (v >= 0 ? "+" : "") + v.toFixed(2);
     function recalc() {
       const total = parseFloat((input.value || "0").replace(",", ".")) || 0;
@@ -153,8 +155,8 @@ apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
           const stake = total * (parseFloat(tr.dataset.pct) || 0);
           const odd = parseFloat(tr.dataset.odd) || 0;
           const s = tr.querySelector(".sb-stake"), r = tr.querySelector(".sb-ret");
-          if (s) s.textContent = money(stake);
-          if (r) r.textContent = money(stake * odd);
+          if (s) s.textContent = num(stake);
+          if (r) r.textContent = num(stake * odd);
         });
         const lbl = card.querySelector(".sb-total");
         const prof = card.querySelector(".sb-profit");
