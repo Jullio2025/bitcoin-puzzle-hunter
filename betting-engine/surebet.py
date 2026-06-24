@@ -47,15 +47,14 @@ def _is_half_line(line: float | None) -> bool:
 
 
 def outcome_label(market: str, side: str, line: float | None) -> str:
-    """Texto curto do resultado, do jeito que a casa mostra."""
-    if market == "1x2":
-        return SIDE_LABELS.get(side, side)
+    """Só o LADO da aposta (o mercado e a linha já aparecem no topo do card,
+    então não repetimos aqui — deixa a coluna curta)."""
     if market == "btts":
-        return f"Ambas marcam: {'Sim' if side == 'yes' else 'Não'}"
-    if market == "handicap":
+        return "Sim" if side == "yes" else "Não"
+    if market == "handicap":     # a linha distingue os dois lados, mantém
         team = "Casa" if side == "home" else "Fora"
         return f"{team} {line:+g}"
-    return f"{SIDE_LABELS.get(side, side)} {line:g}"
+    return SIDE_LABELS.get(side, side)   # 1X2: Vitória.../Empate · O/U: Mais de/Menos de
 
 
 def parse_odds_by_book(odds_response: list,
