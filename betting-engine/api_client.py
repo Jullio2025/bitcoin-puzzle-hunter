@@ -202,6 +202,11 @@ class ApiFootballClient:
         return self._get("fixtures/lineups", {"fixture": fixture_id},
                          ttl=config.CACHE_TTL["lineups"])
 
+    def fixture_injuries(self, fixture_id: int) -> list:
+        """Desfalques (lesão/suspensão) das duas equipes para o jogo."""
+        return self._get("injuries", {"fixture": fixture_id},
+                         ttl=config.CACHE_TTL.get("injuries", 3 * 3600))
+
     def bookmakers(self) -> list:
         """Casas de apostas disponíveis na API (id + nome)."""
         return self._get("odds/bookmakers", ttl=config.CACHE_TTL["leagues"])

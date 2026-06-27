@@ -48,6 +48,7 @@ CACHE_TTL = {
     "odds": 30 * 60,
     "referee": 24 * 3600,
     "live": 60,                      # placar ao vivo: 1 chamada/min (cache)
+    "injuries": 3 * 3600,            # desfalques: atualizam até ~1h antes
 }
 
 # --- Defaults do usuário (SUGESTÕES, nunca travas) -------------------------

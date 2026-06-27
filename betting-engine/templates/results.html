@@ -13,6 +13,21 @@
     {{ fa.ctx.fixture.league.name }}{% if fa.ctx.weather %} —
     🌦 {{ fa.ctx.weather.summary }}{% endif %}</p>
 
+  {% set inj = injuries.get(fa.ctx.fixture.fixture.id) if injuries else none %}
+  {% if inj %}
+  <details class="card" style="margin:8px 0">
+    <summary>🚑 Desfalques ({{ inj|length }}) — pode mexer no jogo</summary>
+    <ul class="hint" style="margin:8px 0 0">
+      {% for d in inj %}
+      <li><strong>{{ d.player }}</strong>{% if d.team %} ({{ d.team }}){% endif %}{% if d.reason %} — {{ d.reason }}{% endif %}</li>
+      {% endfor %}
+    </ul>
+    <p class="hint">⚠️ Os números acima <strong>não</strong> descontam o
+    desfalque automaticamente — use como contexto: time sem peça importante
+    tende a render menos.</p>
+  </details>
+  {% endif %}
+
   {% set picks = fa.markets|selectattr("passes_filters")|list %}
   {% if picks %}
   <div class="top-picks">

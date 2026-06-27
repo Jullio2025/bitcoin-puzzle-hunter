@@ -446,7 +446,7 @@ async def analyze(request: Request, user: str = Depends(current_user)):
     bookmaker = int(form.get("bookmaker", config.DEFAULT_BOOKMAKER_ID))
     flags = {"final": form.get("final") == "on"}
 
-    analyses, errors = [], []
+    analyses, errors, injuries = [], [], {}
     client = ApiFootballClient()
     for fid in fixture_ids:
         try:
@@ -465,6 +465,7 @@ async def analyze(request: Request, user: str = Depends(current_user)):
                 not m.passes_filters,
                 -(m.metrics.ev if m.metrics.ev is not None else -999)))
             analyses.append(fa)
+            injuries[fid] = _injuries_for(client, fid)
         except ApiError as e:
             errors.append(f"Jogo {fid}: {e}")
         except Exception as e:  # um jogo com dado inesperado não derruba o resto
@@ -473,7 +474,21 @@ async def analyze(request: Request, user: str = Depends(current_user)):
                           f"({type(e).__name__}: {e})")
 
     return render(request, "results.html", analyses=analyses, errors=errors,
-                  params=params, api_calls=client.calls_made)
+                  params=params, injuries=injuries, api_calls=client.calls_made)
+
+
+def _injuries_for(client: ApiFootballClient, fid: int) -> list:
+    """Desfalques do jogo, em formato simples (não derruba a análise se falhar)."""
+    try:
+        raw = client.fixture_injuries(fid)
+    except Exception:
+        return []
+    out = []
+    for i in raw:
+        out.append({"player": (i.get("player") or {}).get("name", "?"),
+                    "team": (i.get("team") or {}).get("name", ""),
+                    "reason": i.get("reason") or i.get("type") or ""})
+    return out
 
 
 # ------------------------------------------------------------------ scanner
