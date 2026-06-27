@@ -282,12 +282,14 @@ def scan_day(client, date: str, markets: list[str] | None = None,
              min_margin: float = 0.0, near_max: float = NEAR_MAX_DEFAULT,
              books: set[str] | None = None,
              max_fixtures: int | None = None,
-             only_upcoming: bool = True) -> SureScan:
+             only_upcoming: bool = True, min_depth: int = 1) -> SureScan:
     """Varre um dia inteiro: odds de todas as casas + nomes dos jogos.
 
     Barato: 1 chamada de jogos do dia (cache) + odds paginadas por data
     (sem chamadas por time, pois surebet não usa o modelo).
-    only_upcoming: ignora jogos que já começaram (padrão — surebet é pré-jogo)."""
+    only_upcoming: ignora jogos que já começaram (padrão — surebet é pré-jogo).
+    min_depth: exige que a linha apareça em >= N casas (2+ = confirmável;
+    filtra as 'fantasmas' que só uma casa lista)."""
     markets = list(markets or DEFAULT_MARKETS)
     now = datetime.now(timezone.utc)
 
@@ -329,7 +331,8 @@ def scan_day(client, date: str, markets: list[str] | None = None,
             sb.when = (fx.get("fixture", {}).get("date", "") or "")[:16]
             sb.hl = home.get("logo", "") or ""
             sb.al = away.get("logo", "") or ""
-        bets.extend(s for s in found if not s.suspect)
+        bets.extend(s for s in found
+                    if not s.suspect and s.depth >= min_depth)
         suspects.extend(s for s in found if s.suspect)
         if max_fixtures and scanned >= max_fixtures:
             break

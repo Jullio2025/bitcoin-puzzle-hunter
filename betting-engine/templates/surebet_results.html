@@ -83,7 +83,12 @@ apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
     </tbody>
   </table>
 
-  {% if sb.liquidity == "raso" %}
+  {% if sb.depth <= 1 %}
+  <p class="error">🚩 <strong>Linha em só 1 casa</strong> nos nossos dados —
+  pode ser que a casa <strong>nem ofereça essa linha</strong> (ou esteja
+  velha). NÃO é confirmável: abra a casa e veja se a linha existe ANTES de
+  apostar. Margem alta aqui geralmente é isso.</p>
+  {% elif sb.liquidity == "raso" %}
   <p class="hint">⚠️ Mercado fraco — só {{ sb.depth }} casa(s) oferecem o lado
   mais disputado. O limite de aposta costuma ser baixo; confira o máximo
   aceito na casa.</p>

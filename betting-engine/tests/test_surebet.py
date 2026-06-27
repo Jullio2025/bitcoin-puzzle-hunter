@@ -239,6 +239,30 @@ class TestScanDay(unittest.TestCase):
         self.assertEqual(sb.hl, "h.png")
         self.assertTrue(sb.is_arb)
 
+    class DepthClient:
+        def fixtures_by_date(self, date):
+            return [{"fixture": {"id": 1, "date": "2099-01-01T00:00:00+00:00"},
+                     "league": {"name": "L", "country": "BR"},
+                     "teams": {"home": {"name": "A"}, "away": {"name": "B"}}}]
+        def odds_by_date_all(self, date, max_pages=30):
+            # Over só na A, Under só na B -> cada lado em 1 casa (depth 1)
+            return [{"fixture": {"id": 1}, "league": {"name": "L", "country": "BR"},
+                     "bookmakers": [
+                {"id": 0, "name": "A", "bets": [{"name": "Goals Over/Under",
+                 "values": [{"value": "Over 1.5", "odd": "2.10"}]}]},
+                {"id": 1, "name": "B", "bets": [{"name": "Goals Over/Under",
+                 "values": [{"value": "Under 1.5", "odd": "2.10"}]}]}]}]
+
+    def test_min_depth_filters_single_book_lines(self):
+        cli = self.DepthClient()
+        s1 = surebet.scan_day(cli, "2099-01-01", markets=["goals"],
+                              near_max=1.0, min_depth=1)
+        self.assertEqual(len(s1.bets), 1)
+        self.assertEqual(s1.bets[0].depth, 1)        # linha só em 1 casa
+        s2 = surebet.scan_day(cli, "2099-01-01", markets=["goals"],
+                              near_max=1.0, min_depth=2)
+        self.assertEqual(s2.bets, [])                # "só confirmável" tira ela
+
     class FutureAndPastClient:
         def fixtures_by_date(self, date):
             return [

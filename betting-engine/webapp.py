@@ -752,12 +752,14 @@ async def surebet_scan(request: Request, user: str = Depends(current_user)):
         bankroll = float((form.get("bankroll") or "100").replace(",", "."))
     except ValueError:
         bankroll = 100.0
+    # "só confirmável" = exige a linha em 2+ casas (some as fantasmas de 1 casa)
+    min_depth = 2 if form.get("liquid_only") == "on" else 1
 
     try:
         client = ApiFootballClient()
         scan = surebet.scan_day(client, match_date, markets=markets,
                                 min_margin=min_margin, near_max=near_max,
-                                books=books)
+                                books=books, min_depth=min_depth)
     except ApiError as e:
         return render(request, "surebet.html", today=match_date,
                       all_markets=surebet.ALL_MARKETS,
