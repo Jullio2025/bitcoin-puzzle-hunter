@@ -50,6 +50,12 @@ class TestDecideNewMarkets(unittest.TestCase):
         self.assertEqual(settle.decide("odd_even", "even", None, 2, 1, None), "lost")
         self.assertEqual(settle.decide("odd_even", "even", None, 1, 1, None), "won")
 
+    def test_draw_no_bet(self):
+        self.assertEqual(settle.decide("draw_no_bet", "home", None, 2, 0, None), "won")
+        self.assertEqual(settle.decide("draw_no_bet", "home", None, 0, 2, None), "lost")
+        self.assertEqual(settle.decide("draw_no_bet", "away", None, 0, 2, None), "won")
+        self.assertEqual(settle.decide("draw_no_bet", "home", None, 1, 1, None), "push")
+
     def test_clean_sheet(self):
         # mandante "não sofre" = visitante faz 0
         self.assertEqual(settle.decide("clean_sheet_home", "yes", None, 1, 0, None), "won")

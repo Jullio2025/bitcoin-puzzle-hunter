@@ -26,7 +26,8 @@ MARKET_LABELS = {"goals": "Gols", "corners": "Escanteios", "cards": "Cartões",
                  "double_chance": "Dupla chance",
                  "odd_even": "Par/Ímpar (gols)",
                  "clean_sheet_home": "Mandante não sofre gol",
-                 "clean_sheet_away": "Visitante não sofre gol"}
+                 "clean_sheet_away": "Visitante não sofre gol",
+                 "draw_no_bet": "Empate anula"}
 SIDE_LABELS = {"over": "Mais de", "under": "Menos de",
                "home": "Vitória mandante", "draw": "Empate",
                "away": "Vitória visitante",
@@ -248,6 +249,9 @@ def analyze_fixture(ctx: MatchContext, odds_map: OddsMap,
         if market == "handicap":
             markets.extend(_analyze_handicap(lambdas, odds_map, params))
             continue
+        if market == "draw_no_bet":
+            markets.extend(_analyze_dnb(lambdas, odds_map, params))
+            continue
         if market in DERIVED_SIDES:
             markets.extend(_analyze_derived(market, lambdas, odds_map, params))
             continue
@@ -354,6 +358,27 @@ def _analyze_derived(market: str, lambdas: dict[str, float], odds_map: OddsMap,
         else:
             ok, failed = _check_filters(metrics, params)
         out.append(MarketAnalysis(market=market, side=side, line=None,
+                                  lambda_used=None, metrics=metrics,
+                                  passes_filters=ok, failed_filters=failed))
+    return out
+
+
+def _analyze_dnb(lambdas: dict[str, float], odds_map: OddsMap,
+                 params: UserParams) -> list[MarketAnalysis]:
+    """Empate anula (DNB): vitória do time, com devolução no empate."""
+    out = []
+    for side in ("home", "away"):
+        p_win, p_push = scoring.draw_no_bet_prob(
+            lambdas["goals_home"], lambdas["goals_away"], side,
+            max_goals=config.MODEL["max_goals_grid"])
+        odd = odds_map.get(("draw_no_bet", side, None))
+        metrics = scoring.market_metrics(p_win, odd)
+        if p_push > 0:
+            metrics.notes.append(
+                f"Empate anula: no empate a aposta é devolvida "
+                f"(P = {p_push:.1%}).")
+        ok, failed = _check_filters(metrics, params)
+        out.append(MarketAnalysis(market="draw_no_bet", side=side, line=None,
                                   lambda_used=None, metrics=metrics,
                                   passes_filters=ok, failed_filters=failed))
     return out

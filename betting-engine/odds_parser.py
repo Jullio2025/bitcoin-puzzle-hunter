@@ -87,6 +87,9 @@ def _parse_value_label(market: str,
     if market in ("clean_sheet_home", "clean_sheet_away"):
         side = _BTTS_MAP.get(label.lower())  # reaproveita Yes/No -> yes/no
         return (market, side, None) if side else None
+    if market == "draw_no_bet":
+        side = _1X2_MAP.get(label.lower())   # Home/Away (1/2)
+        return (market, side, None) if side in ("home", "away") else None
     if market == "double_chance":
         side = _DC_MAP.get(label.lower().replace(" ", ""))
         return (market, side, None) if side else None

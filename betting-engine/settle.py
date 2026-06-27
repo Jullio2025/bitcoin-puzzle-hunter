@@ -36,6 +36,10 @@ def decide(market: str, side: str, line: float | None,
         scored = gh > 0 and ga > 0
         won = scored if side == "yes" else not scored
         return "won" if won else "lost"
+    if market == "draw_no_bet":
+        if gh == ga:
+            return "push"            # empate devolve a aposta
+        return "won" if side == ("home" if gh > ga else "away") else "lost"
     if market == "odd_even":
         par = (gh + ga) % 2 == 0
         won = par if side == "even" else not par

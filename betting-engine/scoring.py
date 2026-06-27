@@ -200,6 +200,16 @@ def clean_sheet_prob(lam_home: float, lam_away: float, side: str,
     return sum(m[0][a] for a in range(max_goals + 1))  # fora não sofre = casa faz 0
 
 
+def draw_no_bet_prob(lam_home: float, lam_away: float, side: str,
+                     max_goals: int = 10) -> tuple[float, float]:
+    """(P_ganhar, P_devolução) do 'empate anula' (DNB) para home/away.
+
+    No empate a aposta é devolvida (push). Deriva do 1X2."""
+    ph, pd, pa = match_outcome_probs(lam_home, lam_away, max_goals)
+    p_win = ph if side == "home" else pa
+    return p_win, pd
+
+
 def double_chance_prob(lam_home: float, lam_away: float, side: str,
                        max_goals: int = 10) -> float:
     """Dupla chance derivada do 1X2: '1X', '12' ou 'X2'."""

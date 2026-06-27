@@ -159,6 +159,18 @@ class TestArbDetection(unittest.TestCase):
         self.assertEqual(len(bets), 1)
         self.assertTrue(bets[0].is_arb)
 
+    def test_draw_no_bet_arb(self):
+        # Home DNB @2.10 (A) + Away DNB @2.10 (B) -> arb (empate devolve)
+        resp = _resp(
+            ("A", [("Draw No Bet", [("Home", 2.10), ("Away", 1.80)])]),
+            ("B", [("Draw No Bet", [("Home", 1.85), ("Away", 2.10)])]),
+        )
+        by = surebet.parse_odds_by_book(resp)
+        bets = surebet.scan_fixture(by, ["draw_no_bet"], near_max=1.0)
+        self.assertEqual(len(bets), 1)
+        self.assertTrue(bets[0].is_arb)
+        self.assertEqual({l.side for l in bets[0].legs}, {"home", "away"})
+
     def test_team_goals_in_all_markets(self):
         self.assertIn("team_goals_home", surebet.ALL_MARKETS)
         self.assertIn("team_goals_away", surebet.ALL_MARKETS)

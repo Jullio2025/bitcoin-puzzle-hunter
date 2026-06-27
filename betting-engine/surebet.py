@@ -29,14 +29,17 @@ OVER_UNDER_MARKETS = ("goals", "corners", "cards",
 DEFAULT_MARKETS = ("goals", "1x2", "btts")
 ALL_MARKETS = ("goals", "team_goals_home", "team_goals_away", "1x2", "btts",
                "odd_even", "clean_sheet_home", "clean_sheet_away",
-               "corners", "cards", "handicap")
+               "draw_no_bet", "corners", "cards", "handicap")
 
-# mercados de 2 vias com linha None (partição limpa: os dois lados cobrem tudo)
+# mercados de 2 vias com linha None (partição limpa: os dois lados cobrem tudo).
+# draw_no_bet entra aqui porque no empate AMBAS as pernas são devolvidas
+# (push) — então cobrir os dois lados é seguro (no pior caso, empata).
 TWO_WAY_MARKETS = {
     "btts": ("yes", "no"),
     "odd_even": ("even", "odd"),
     "clean_sheet_home": ("yes", "no"),
     "clean_sheet_away": ("yes", "no"),
+    "draw_no_bet": ("home", "away"),
 }
 
 # soma das implícitas até este teto entra como "quase-surebet" (não garantido)

@@ -80,6 +80,7 @@ MARKET_BET_NAMES = {
     "odd_even": ["Odd/Even", "Goals Odd/Even", "Total - Odd/Even"],
     "clean_sheet_home": ["Clean Sheet - Home", "Home Team Clean Sheet"],
     "clean_sheet_away": ["Clean Sheet - Away", "Away Team Clean Sheet"],
+    "draw_no_bet": ["Draw No Bet", "Home/Away"],
 }
 
 # --- Modelo ----------------------------------------------------------------
