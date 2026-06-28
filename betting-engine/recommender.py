@@ -373,6 +373,10 @@ def _analyze_dnb(lambdas: dict[str, float], odds_map: OddsMap,
             max_goals=config.MODEL["max_goals_grid"])
         odd = odds_map.get(("draw_no_bet", side, None))
         metrics = scoring.market_metrics(p_win, odd)
+        if odd and metrics.ev is not None:
+            # no empate a aposta é DEVOLVIDA (não é perda) -> corrige o EV,
+            # senão o "vale a pena?" subestima o DNB.
+            metrics.ev = p_win * (odd - 1.0) - (1.0 - p_win - p_push)
         if p_push > 0:
             metrics.notes.append(
                 f"Empate anula: no empate a aposta é devolvida "
