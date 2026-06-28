@@ -83,21 +83,7 @@ class ApiFootballClient:
             if cached is not None:
                 return cached
 
-        # respeita o rate limit: pausa mínima entre chamadas reais
-        wait = self.pause - (time.time() - self._last_call)
-        if wait > 0:
-            time.sleep(wait)
-
-        resp = self.session.get(f"{config.API_BASE_URL}/{path}",
-                                params=params, timeout=30)
-        self._last_call = time.time()
-        self.calls_made += 1
-
-        if resp.status_code == 429:
-            raise ApiError("Rate limit atingido (HTTP 429). "
-                           "Aumente REQUEST_PAUSE no .env.")
-        resp.raise_for_status()
-        body = resp.json()
+        body = self._fetch_with_retry(path, params)
         errors = body.get("errors")
         if errors and (not isinstance(errors, list) or len(errors) > 0):
             raise ApiError(f"Erro da API em /{path}: {errors}")
@@ -106,6 +92,37 @@ class ApiFootballClient:
         if ttl:
             self.cache.set(key, data)
         return data
+
+    def _fetch_with_retry(self, path: str, params: dict,
+                          attempts: int = 3) -> dict:
+        """GET com retry/backoff em falhas transitórias (429, 5xx, rede).
+        Erros não-transitórios (4xx) e da API sobem na hora."""
+        last = None
+        for i in range(attempts):
+            wait = self.pause - (time.time() - self._last_call)
+            if wait > 0:
+                time.sleep(wait)
+            try:
+                resp = self.session.get(f"{config.API_BASE_URL}/{path}",
+                                        params=params, timeout=30)
+                self._last_call = time.time()
+                self.calls_made += 1
+            except requests.RequestException as e:
+                last = e                       # rede caiu/timeout -> tenta de novo
+            else:
+                if resp.status_code == 429 or resp.status_code >= 500:
+                    last = ApiError(f"HTTP {resp.status_code} em /{path}")
+                elif not resp.ok:              # 4xx: não adianta repetir
+                    raise ApiError(f"Erro HTTP {resp.status_code} em /{path}")
+                else:
+                    return resp.json()
+            if i < attempts - 1:
+                time.sleep(2 ** i)             # espera 1s, depois 2s
+        if isinstance(last, ApiError):
+            raise ApiError(f"{last} (após {attempts} tentativas; se for 429, "
+                           "aumente REQUEST_PAUSE no .env)")
+        raise ApiError(f"Falha de rede em /{path} após {attempts} "
+                       f"tentativas: {last}")
 
     # ------------------------------------------------------------- endpoints
     def leagues(self) -> list:

@@ -39,3 +39,20 @@ def send_telegram(text: str, chat_id: str | None = None) -> bool:
             timeout=15)
         ok = ok and resp.ok
     return ok
+
+
+def send_document(path, chat_id: str | None = None, caption: str = "") -> bool:
+    """Envia um arquivo (ex.: backup) ao chat_id. True se chegou."""
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    chat_id = chat_id or os.getenv("TELEGRAM_CHAT_ID")
+    if not token or not chat_id:
+        return False
+    try:
+        with open(path, "rb") as f:
+            resp = requests.post(
+                f"https://api.telegram.org/bot{token}/sendDocument",
+                data={"chat_id": chat_id, "caption": caption[:1000]},
+                files={"document": f}, timeout=60)
+        return resp.ok
+    except (OSError, requests.RequestException):
+        return False

@@ -135,7 +135,7 @@ def render(request: Request, template: str, **ctx) -> HTMLResponse:
 
 
 # Páginas liberadas mesmo para conta pendente/expirada (o resto é bloqueado).
-_OPEN_PATHS = {"/login", "/register", "/logout", "/pendente"}
+_OPEN_PATHS = {"/login", "/register", "/logout", "/pendente", "/resultados"}
 
 
 @app.middleware("http")
@@ -878,6 +878,14 @@ def cartoes_conferir(user: str = Depends(current_user)):
     except ApiError as e:
         msg = f"Erro:+{e}"
     return RedirectResponse(f"/cartoes?msg={msg}", status_code=303)
+
+
+@app.get("/resultados", response_class=HTMLResponse)
+def resultados(request: Request):
+    """Página PÚBLICA de prova: histórico e calibração do modelo (agregado)."""
+    import share_store
+    return render(request, "resultados.html",
+                  summary=share_store.global_summary())
 
 
 @app.get("/b/{code}", response_class=HTMLResponse)

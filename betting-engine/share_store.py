@@ -142,13 +142,22 @@ def card_pl(card: dict) -> dict:
 
 
 def user_summary(username: str) -> dict:
-    """Resumo do histórico + calibração do modelo (por perna) do usuário.
+    """Resumo do histórico + calibração do modelo (por perna) do usuário."""
+    return _summary_from(list_for_user(username))
+
+
+def global_summary() -> dict:
+    """Resumo agregado de TODOS os cartões — a 'prova' pública do sistema."""
+    return _summary_from(list(_load().values()))
+
+
+def _summary_from(cards: list) -> dict:
+    """Histórico + calibração do modelo (por perna) de uma lista de cartões.
 
     Calibração: agrupa as pernas JÁ RESOLVIDAS por faixa de probabilidade
     e compara a chance que o modelo previu com o acerto real. Se as duas
     baterem, o modelo está calibrado. Abaixo de ~100 pernas, a variância
     ainda domina (não dá pra concluir)."""
-    cards = list_for_user(username)
     counts = {"pendente": 0, "ganhou": 0, "perdeu": 0,
               "devolvida": 0, "conferir": 0}
     # faixas de calibração: <50, 50-60, ..., 90-100

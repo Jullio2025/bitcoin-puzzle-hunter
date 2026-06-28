@@ -395,6 +395,14 @@ def main(force: bool = False) -> None:
         print("[aviso] TELEGRAM_BOT_TOKEN ausente no .env — rodando sem "
               "enviar mensagens.")
 
+    # 0) backup diário dos dados (idempotente: só gera 1 por dia).
+    try:
+        import backup
+        if backup.run_daily_backup():
+            print("[backup do dia gerado]")
+    except Exception as e:
+        print(f"[erro no backup] {type(e).__name__}: {e}")
+
     # 1) conferência de cartões: TODOS os usuários, toda hora — resultado
     #    chega assim que os jogos do cartão terminam.
     cards_notified = 0
