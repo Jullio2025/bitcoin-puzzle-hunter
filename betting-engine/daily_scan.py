@@ -403,6 +403,14 @@ def main(force: bool = False) -> None:
     except Exception as e:
         print(f"[erro no backup] {type(e).__name__}: {e}")
 
+    # 0.5) batimento diário no Telegram do admin ("estou vivo" + pendências).
+    try:
+        import heartbeat
+        if heartbeat.send_daily_heartbeat():
+            print("[batimento do dia enviado]")
+    except Exception as e:
+        print(f"[erro no batimento] {type(e).__name__}: {e}")
+
     # 1) conferência de cartões: TODOS os usuários, toda hora — resultado
     #    chega assim que os jogos do cartão terminam.
     cards_notified = 0
