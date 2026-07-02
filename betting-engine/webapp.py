@@ -153,6 +153,26 @@ async def gate_inactive_users(request: Request, call_next):
 
 
 # ---------------------------------------------------------- contas/login
+# Anti-martelação de senha: N erros seguidos -> espera. Em memória (1
+# processo), zera no restart — suficiente pra barrar força bruta básica.
+_LOGIN_FAILS: dict[str, list[float]] = {}
+_LOGIN_MAX_FAILS = 5
+_LOGIN_WINDOW = 10 * 60  # 10 minutos
+
+
+def _login_blocked(key: str) -> bool:
+    import time as _t
+    now = _t.time()
+    fails = [t for t in _LOGIN_FAILS.get(key, []) if now - t < _LOGIN_WINDOW]
+    _LOGIN_FAILS[key] = fails
+    return len(fails) >= _LOGIN_MAX_FAILS
+
+
+def _login_failed(key: str) -> None:
+    import time as _t
+    _LOGIN_FAILS.setdefault(key, []).append(_t.time())
+
+
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
     return render(request, "login.html", username=None)
@@ -161,9 +181,16 @@ def login_page(request: Request):
 @app.post("/login")
 def login(request: Request, username: str = Form(...),
           password: str = Form(...)):
+    key = (username or "").strip().lower()
+    if _login_blocked(key):
+        return render(request, "login.html", username=None,
+                      error="Muitas tentativas erradas. Espere 10 minutos "
+                            "e tente de novo.")
     if not users.verify_user(username, password):
+        _login_failed(key)
         return render(request, "login.html", username=None,
                       error="Usuário ou senha inválidos.")
+    _LOGIN_FAILS.pop(key, None)
     resp = RedirectResponse("/", status_code=303)
     resp.set_cookie(SESSION_COOKIE, users.make_token(username),
                     httponly=True, samesite="lax", max_age=30 * 24 * 3600)
@@ -228,7 +255,7 @@ def admin_access(request: Request, user: str = Depends(current_user),
                  dias: int = Form(30)):
     if not users.is_admin(user):
         return RedirectResponse("/", status_code=303)
-    from datetime import date, timedelta
+    from datetime import timedelta
     if acao == "liberar":
         # respeita o teto, a menos que o alvo já esteja ativo
         if (users.access_status(alvo) != "ok"
@@ -236,7 +263,8 @@ def admin_access(request: Request, user: str = Depends(current_user),
             return RedirectResponse(
                 f"/admin?msg=Limite+de+{config.MAX_ACTIVE_USERS}+ativos+atingido",
                 status_code=303)
-        expira = (date.today() + timedelta(days=max(1, int(dias)))).isoformat()
+        expira = (config.br_today_date()
+                  + timedelta(days=max(1, int(dias)))).isoformat()
         users.set_access(alvo, True, expira)
         msg = f"{alvo}+liberado+at%C3%A9+{expira}"
     else:
@@ -333,7 +361,7 @@ def _leagues_for_select() -> tuple[list, list, str | None]:
 def _home(request: Request, **extra) -> HTMLResponse:
     favorites, leagues, leagues_error = _leagues_for_select()
     return render(request, "index.html",
-                  today=extra.pop("today", date.today().isoformat()),
+                  today=extra.pop("today", config.br_today()),
                   rule_names=rules.all_rule_names(),
                   favorites=favorites, leagues=leagues,
                   leagues_error=leagues_error, **extra)
@@ -342,14 +370,14 @@ def _home(request: Request, **extra) -> HTMLResponse:
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, user: str = Depends(current_user)):
     """Porta de entrada: o Radar (simples e direto)."""
-    return render(request, "radar.html", today=date.today().isoformat(),
+    return render(request, "radar.html", today=config.br_today(),
                   bookmakers=_bookmakers())
 
 
 @app.get("/analisar", response_class=HTMLResponse)
 def analisar(request: Request, user: str = Depends(current_user)):
     # painel direto: todos os jogos do dia, sem precisar escolher liga antes
-    return _render_lobby(request, date.today().isoformat(), 0, None)
+    return _render_lobby(request, config.br_today(), 0, None)
 
 
 @app.post("/fixtures", response_class=HTMLResponse)
@@ -494,7 +522,7 @@ def _injuries_for(client: ApiFootballClient, fid: int) -> list:
 # ------------------------------------------------------------------ scanner
 @app.get("/scanner", response_class=HTMLResponse)
 def scanner_page(request: Request, user: str = Depends(current_user)):
-    return render(request, "scanner.html", today=date.today().isoformat(),
+    return render(request, "scanner.html", today=config.br_today(),
                   preset_on=["goals", "corners"], bookmakers=_bookmakers())
 
 
@@ -503,7 +531,7 @@ def scanner_page(request: Request, user: str = Depends(current_user)):
 def estrategias_page(request: Request, user: str = Depends(current_user)):
     import strategies
     cards = [{"key": k, **v} for k, v in strategies.STRATEGIES.items()]
-    return render(request, "estrategias.html", today=date.today().isoformat(),
+    return render(request, "estrategias.html", today=config.br_today(),
                   strategies=cards)
 
 
@@ -515,7 +543,7 @@ def estrategia_run(request: Request, user: str = Depends(current_user),
     strat = strategies.get(key)
     if not strat:
         return RedirectResponse("/estrategias", status_code=303)
-    match_date = match_date or date.today().isoformat()
+    match_date = match_date or config.br_today()
     try:
         client = ApiFootballClient()
         result = scanner.scan_day(
@@ -639,7 +667,7 @@ def aovivo_detalhe(fid: int, aba: str, user: str = Depends(current_user)):
 # -------------------------------------------------------------------- radar
 @app.get("/radar", response_class=HTMLResponse)
 def radar_page(request: Request, user: str = Depends(current_user)):
-    return render(request, "radar.html", today=date.today().isoformat(),
+    return render(request, "radar.html", today=config.br_today(),
                   bookmakers=_bookmakers())
 
 
@@ -651,7 +679,7 @@ async def radar(request: Request, user: str = Depends(current_user)):
     except ValueError:
         p_min = 0.85
     markets = form.getlist("markets") or None
-    match_date = form.get("match_date") or date.today().isoformat()
+    match_date = form.get("match_date") or config.br_today()
     try:
         client = ApiFootballClient()
         result = scanner.radar_day(
@@ -697,11 +725,11 @@ async def scan(request: Request, user: str = Depends(current_user)):
     criteria = _parse_criteria(form)
     if not criteria:
         return render(request, "scanner.html",
-                      today=form.get("match_date", date.today().isoformat()),
+                      today=form.get("match_date", config.br_today()),
                       preset_on=[],
                       error="Ative pelo menos um mercado para garimpar.")
     impossible = [c for c in criteria if c.impossible]
-    match_date = form.get("match_date") or date.today().isoformat()
+    match_date = form.get("match_date") or config.br_today()
     bookmaker = int(form.get("bookmaker") or config.DEFAULT_BOOKMAKER_ID)
     last_n = int(form.get("last_n") or config.USER_DEFAULTS["last_n"])
     match_all = form.get("match_all") == "on"
@@ -739,7 +767,7 @@ def surebet_page(request: Request, user: str = Depends(current_user)):
                         if b.get("name")}, key=str.lower)
     except Exception:
         logging.exception("falha ao listar casas em /surebet")
-    return render(request, "surebet.html", today=date.today().isoformat(),
+    return render(request, "surebet.html", today=config.br_today(),
                   all_markets=surebet.ALL_MARKETS,
                   default_markets=surebet.DEFAULT_MARKETS,
                   market_labels=surebet.MARKET_LABELS, books=books)
@@ -749,7 +777,7 @@ def surebet_page(request: Request, user: str = Depends(current_user)):
 async def surebet_scan(request: Request, user: str = Depends(current_user)):
     import surebet
     form = await request.form()
-    match_date = form.get("match_date") or date.today().isoformat()
+    match_date = form.get("match_date") or config.br_today()
     markets = [m for m in surebet.ALL_MARKETS if form.get(f"m_{m}") == "on"] \
         or list(surebet.DEFAULT_MARKETS)
     try:

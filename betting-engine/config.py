@@ -2,18 +2,29 @@
 Configuração central do motor.
 
 IMPORTANTE: tudo aqui é SUGESTÃO/default. Nenhum valor é trava.
-O usuário pode sobrescrever qualquer parâmetro na interface (main.py)
-ou via argumentos de linha de comando.
+O usuário pode sobrescrever qualquer parâmetro na interface web.
 """
 import os
-from datetime import timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 # Fuso de Brasília (UTC-3; Brasil não tem horário de verão desde 2019).
-# Usado nos horários de envio do garimpo, independente do fuso do VPS.
+# Usado em TODO "hoje" visível ao usuário: se o VPS roda em UTC, a partir
+# das ~21h de Brasília a data do servidor já virou "amanhã" e esconderia
+# os jogos da noite.
 BR_TZ = timezone(timedelta(hours=-3))
+
+
+def br_today_date() -> date:
+    """A data de HOJE no fuso de Brasília (não no fuso do servidor)."""
+    return datetime.now(BR_TZ).date()
+
+
+def br_today() -> str:
+    """'AAAA-MM-DD' de hoje em Brasília — padrão de todas as telas/jobs."""
+    return br_today_date().isoformat()
 
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")

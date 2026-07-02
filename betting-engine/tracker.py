@@ -9,6 +9,7 @@ concluir nada sobre edge.
 from __future__ import annotations
 
 import json
+import os
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -41,13 +42,19 @@ class Tracker:
     def _load(self) -> list[Bet]:
         if not self.path.exists():
             return []
-        raw = json.loads(self.path.read_text())
+        try:
+            raw = json.loads(self.path.read_text())
+        except (json.JSONDecodeError, OSError):
+            return []  # arquivo corrompido não derruba o painel
         return [Bet(**b) for b in raw]
 
     def _save(self) -> None:
-        self.path.write_text(
-            json.dumps([asdict(b) for b in self.bets],
-                       ensure_ascii=False, indent=2))
+        # escrita atômica (igual users/share_store): nunca deixa o arquivo
+        # pela metade se o processo morrer no meio.
+        tmp = self.path.with_suffix(".tmp")
+        tmp.write_text(json.dumps([asdict(b) for b in self.bets],
+                                  ensure_ascii=False, indent=2))
+        os.replace(tmp, self.path)
 
     def add(self, fixture: str, market: str, odd: float, stake: float,
             p_model: float, legs: list | None = None) -> Bet:

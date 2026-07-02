@@ -35,7 +35,7 @@ def run_daily_backup(send_to_admin: bool = True) -> Path | None:
     if not config.DATA_DIR.exists():
         return None
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-    dest = BACKUP_DIR / f"chapafut-{date.today().isoformat()}.tar.gz"
+    dest = BACKUP_DIR / f"chapafut-{config.br_today()}.tar.gz"
     if dest.exists():
         return None  # já fez hoje
 
@@ -63,7 +63,7 @@ def run_daily_backup(send_to_admin: bool = True) -> Path | None:
             if chat and notify.bot_configured():
                 notify.send_document(
                     dest, chat_id=chat,
-                    caption=f"💾 Backup ChapaFut {date.today().isoformat()} "
+                    caption=f"💾 Backup ChapaFut {config.br_today()} "
                             "(guarde — é a sua base de usuários/cartões).")
         except Exception:
             pass  # backup local já está salvo; off-site é bônus

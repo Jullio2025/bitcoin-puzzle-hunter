@@ -53,18 +53,10 @@ bash install-service.sh    # liga no boot e reinicia sozinho se cair
 journalctl -u chapafut -f  # logs ao vivo
 ```
 
-**Terminal:**
-
-```bash
-python main.py             # menu interativo amigável
-python main.py ligas       # teste de conexão + ligas com cobertura
-python main.py relatorio   # relatório do tracker
-```
-
-Fluxo típico: opção **2** do menu → escolha a data e os jogos → informe seus
-filtros (faixa de odd, probabilidade mínima, EV mínimo, simples/múltipla —
-qualquer valor é aceito) → o motor imprime, por jogo, os lambdas com a
-explicação de origem, o ajuste de cada regra e a tabela completa de mercados.
+Fluxo típico: no painel web, escolha a data e os jogos → informe seus
+filtros (faixa de odd, chance mínima — qualquer valor é aceito) → o motor
+mostra, por jogo, as médias com a explicação de origem, o ajuste de cada
+regra e a tabela completa de apostas.
 
 ## O que é exibido por mercado (o coração do produto)
 
@@ -118,7 +110,7 @@ ativadas/desativadas na interface.
   `v3.football.api-sports.io`, header `x-apisports-key`.
 - **Cobertura:** o motor usa apenas ligas com
   `coverage.fixtures.statistics_fixtures = true` (senão cartões/escanteios
-  vêm vazios). Teste com `python main.py ligas`.
+  vêm vazios). O setup.sh testa a conexão automaticamente.
 - **Árbitro:** a API não tem agregado por árbitro; o motor varre os jogos
   da liga/temporada, filtra pelo nome e calcula a média — tudo cacheado.
 - **Cache em disco** (`cache/`) com TTL por tipo de dado + pausa entre
@@ -155,7 +147,7 @@ odds_parser.py   # /odds -> {(mercado, lado, linha): odd}
 rules/           # um módulo por parâmetro + registrador central
 recommender.py   # lambdas + regras + métricas de transparência
 tracker.py       # hit rate e ROI reais
-main.py          # interface interativa
+webapp.py        # painel web (a interface do produto)
 tests/           # testes unitários
 ```
 

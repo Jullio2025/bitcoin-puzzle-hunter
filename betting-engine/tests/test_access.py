@@ -28,14 +28,15 @@ class TestAccess(unittest.TestCase):
 
     def test_release_activates(self):
         users.create_user("pagante", "pw1234")
-        amanha = (date.today() + timedelta(days=30)).isoformat()
+        # validade calculada no fuso de Brasília (o mesmo que o código usa)
+        amanha = (config.br_today_date() + timedelta(days=30)).isoformat()
         users.set_access("pagante", True, amanha)
         self.assertEqual(users.access_status("pagante"), "ok")
         self.assertTrue(users.is_active("pagante"))
 
     def test_expired_blocks(self):
         users.create_user("vencido", "pw1234")
-        ontem = (date.today() - timedelta(days=1)).isoformat()
+        ontem = (config.br_today_date() - timedelta(days=1)).isoformat()
         users.set_access("vencido", True, ontem)
         self.assertEqual(users.access_status("vencido"), "expirado")
         self.assertFalse(users.is_active("vencido"))
@@ -56,10 +57,31 @@ class TestAccess(unittest.TestCase):
     def test_admin_always_active(self):
         import os
         os.environ["ADMIN_USER"] = "chefe"
-        users.create_user("chefe", "pw1234")  # nasce pendente...
+        users.create_user("chefe", "pw1234", allow_admin=True)
         self.assertTrue(users.is_admin("chefe"))
-        self.assertTrue(users.is_active("chefe"))  # ...mas admin sempre entra
+        self.assertTrue(users.is_active("chefe"))  # admin sempre entra
         del os.environ["ADMIN_USER"]
+
+    def test_admin_name_is_reserved(self):
+        # cadastro PÚBLICO não pode registrar o nome do admin (viraria
+        # admin sem pagar); só a criação interna (allow_admin) pode.
+        import os
+        os.environ["ADMIN_USER"] = "dono2026"
+        ok, msg = users.create_user("dono2026", "hacker123")
+        self.assertFalse(ok)
+        self.assertIn("reservado", msg)
+        ok, _ = users.create_user("dono2026", "senha-real", allow_admin=True)
+        self.assertTrue(ok)
+        del os.environ["ADMIN_USER"]
+
+    def test_password_change_revokes_sessions(self):
+        users.create_user("sessao", "senha123")
+        token = users.make_token("sessao")
+        self.assertEqual(users.read_token(token), "sessao")
+        users.set_password("sessao", "outra-senha")
+        self.assertIsNone(users.read_token(token))       # cookie velho morre
+        self.assertEqual(users.read_token(users.make_token("sessao")),
+                         "sessao")                        # novo funciona
 
 
 if __name__ == "__main__":

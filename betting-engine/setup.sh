@@ -49,13 +49,8 @@ fi
 .venv/bin/pip install -q --upgrade pip
 .venv/bin/pip install -q -r requirements.txt
 
-# atalho para rodar depois: ~/bitcoin-puzzle-hunter/betting-engine/run.sh
-cat > run.sh <<'EOF'
-#!/usr/bin/env bash
-cd "$(dirname "$0")"
-exec .venv/bin/python main.py "$@"
-EOF
-chmod +x run.sh
+# o modo terminal (main.py/run.sh) foi aposentado — o painel web faz tudo
+rm -f run.sh
 [ -f run-web.sh ] && chmod +x run-web.sh
 [ -f install-service.sh ] && chmod +x install-service.sh
 [ -f install-alert.sh ] && chmod +x install-alert.sh
@@ -98,15 +93,18 @@ if systemctl is-active --quiet chapafut 2>/dev/null; then
 fi
 
 # 5. teste de conexão ----------------------------------------------------------
-echo "[5/5] Testando a conexão com a API (listando ligas com cobertura)..."
+echo "[5/5] Testando a conexão com a API..."
 echo
-.venv/bin/python main.py ligas
+.venv/bin/python -c "
+from api_client import ApiFootballClient
+ligas = ApiFootballClient().leagues_with_stats_coverage()
+print(f'Conexão OK — {len(ligas)} ligas com cobertura de estatísticas.')
+"
 
 echo
 echo "==============================================="
 echo " Instalação concluída!"
-echo " Modo terminal:  ~/bitcoin-puzzle-hunter/betting-engine/run.sh"
-echo " Painel web:     ~/bitcoin-puzzle-hunter/betting-engine/run-web.sh"
+echo " Painel web:  ~/bitcoin-puzzle-hunter/betting-engine/run-web.sh"
 echo "   depois acesse no navegador:  http://IP_DO_SEU_VPS:8000"
 echo "   (login: admin + a senha do painel que você criou)"
 echo "==============================================="

@@ -74,12 +74,19 @@ def _hash(password: str, salt: str) -> str:
                                bytes.fromhex(salt), _PBKDF2_ROUNDS).hex()
 
 
-def create_user(username: str, password: str) -> tuple[bool, str]:
-    """Cria usuário. Retorna (ok, mensagem)."""
+def create_user(username: str, password: str,
+                allow_admin: bool = False) -> tuple[bool, str]:
+    """Cria usuário. Retorna (ok, mensagem).
+
+    O nome do ADMIN é reservado: se o cadastro público pudesse registrá-lo
+    antes do dono, quem chegasse primeiro viraria admin (acesso total +
+    painel /admin). Só a criação interna (allow_admin=True) pode usá-lo."""
     username = (username or "").strip().lower()
     if not USERNAME_RE.match(username):
         return False, ("Usuário inválido: use 3–30 letras/números "
                        "(sem espaço, minúsculas).")
+    if is_admin(username) and not allow_admin:
+        return False, "Esse nome de usuário é reservado."
     if len(password or "") < 6:
         return False, "Senha muito curta (mínimo 6 caracteres)."
     data = _load()
@@ -151,7 +158,7 @@ def access_status(username: str) -> str:
     if not u.get("ativo"):
         return "pendente"
     exp = u.get("expira")
-    if exp and exp < date.today().isoformat():
+    if exp and exp < config.br_today():
         return "expirado"
     return "ok"
 
@@ -187,15 +194,25 @@ def set_password(username: str, new_password: str) -> tuple[bool, str]:
     salt = secrets.token_hex(16)
     u["salt"] = salt
     u["hash"] = _hash(new_password, salt)
+    # rotaciona o "sid" da sessão: cookies antigos param de valer na hora
+    # (senha vazada/dispositivo perdido -> trocar a senha derruba tudo).
+    u["sid"] = secrets.token_hex(8)
     _save(data)
     return True, "Senha alterada."
 
 
 # ------------------------------------------------------------- sessão
+def _session_sid(u: dict | None) -> str:
+    """Sal de sessão do usuário. Contas antigas (sem 'sid') usam '' — o que
+    mantém os cookies existentes válidos até a primeira troca de senha."""
+    return (u or {}).get("sid", "")
+
+
 def make_token(username: str) -> str:
-    sig = hmac.new(_secret(), username.lower().encode(),
-                   hashlib.sha256).hexdigest()
-    return f"{username.lower()}.{sig}"
+    username = username.lower()
+    msg = username + _session_sid(get_user(username))
+    sig = hmac.new(_secret(), msg.encode(), hashlib.sha256).hexdigest()
+    return f"{username}.{sig}"
 
 
 def read_token(token: str | None) -> str | None:
@@ -203,9 +220,12 @@ def read_token(token: str | None) -> str | None:
     if not token or "." not in token:
         return None
     username, _, sig = token.rpartition(".")
-    expected = hmac.new(_secret(), username.encode(),
-                        hashlib.sha256).hexdigest()
-    if hmac.compare_digest(expected, sig) and username in _load():
+    u = _load().get(username)
+    if not u:
+        return None
+    msg = username + _session_sid(u)
+    expected = hmac.new(_secret(), msg.encode(), hashlib.sha256).hexdigest()
+    if hmac.compare_digest(expected, sig):
         return username
     return None
 
@@ -222,7 +242,8 @@ def ensure_admin_from_env() -> None:
         return
     if not USERNAME_RE.match(user):
         user = "admin"
-    ok, _ = create_user(user, pw if len(pw) >= 6 else pw + "______")
+    ok, _ = create_user(user, pw if len(pw) >= 6 else pw + "______",
+                        allow_admin=True)
     # herda dados legados (tracker/preset únicos) para o admin
     if ok:
         d = user_dir(user)

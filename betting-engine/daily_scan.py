@@ -384,7 +384,7 @@ def main(force: bool = False) -> None:
     import sys
     from datetime import datetime
     force = force or any(a in ("force", "all", "--force") for a in sys.argv[1:])
-    today = date.today().isoformat()
+    today = config.br_today()
     now_hour = datetime.now(config.BR_TZ).hour
     client = ApiFootballClient()
     usernames = users.all_usernames()

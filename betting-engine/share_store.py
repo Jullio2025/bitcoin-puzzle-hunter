@@ -50,7 +50,7 @@ def create(legs: list[dict], combined_odd: float | None, combined_prob: float,
         code = secrets.token_urlsafe(4).replace("_", "a").replace("-", "b")[:6]
     shared[code] = {
         "code": code,
-        "created": date.today().isoformat(),
+        "created": config.br_today(),
         "owner": owner,
         "source": source,
         "legs": [{"fixture": l["fixture"], "market": l["market"],

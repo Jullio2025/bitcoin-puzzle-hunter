@@ -22,20 +22,27 @@ PANEL_HINT = os.getenv("PANEL_URL", "").rstrip("/") or "o site do ChapaFut"
 WELCOME = (
     "⚡ Bem-vindo ao ChapaFut!\n\n"
     "Seu chat_id é: {chat_id}\n\n"
-    "Para receber seu garimpo diário:\n"
+    "Para receber os alertas (garimpo, surebets e resultados):\n"
     "1) Crie sua conta em {panel}\n"
-    "2) Na aba Tracker, cole este chat_id em "
-    "'Receber meu garimpo no Telegram'\n"
-    "3) No Scanner, monte seus critérios e marque 'Salvar como padrão'\n\n"
+    "2) Depois da liberação do acesso, abra ⚙️ Conta e cole este "
+    "chat_id no campo do Telegram\n"
+    "3) No Scanner, monte o que você quer garimpar e marque "
+    "'Salvar como padrão'\n\n"
     "Pronto! Os números na mesa — a decisão é sua. (18+)"
 )
+
+
+GROUP_ID = ("⚡ ChapaFut\n\nO chat_id deste grupo é: {chat_id}\n\n"
+            "Cole-o em ⚙️ Conta pra os alertas caírem aqui. (18+)")
 
 
 def build_reply(update: dict) -> tuple[int, str] | None:
     """De um update do Telegram, devolve (chat_id, texto_resposta) ou None.
 
-    Sempre responde com o chat_id (qualquer mensagem serve), porque é
-    isso que a pessoa precisa copiar. Função pura, fácil de testar."""
+    - Conversa PRIVADA: responde qualquer mensagem com as boas-vindas
+      (a pessoa precisa do próprio chat_id).
+    - GRUPO: responde SÓ a /start ou /id com o id do grupo — responder
+      toda mensagem viraria spam. Função pura, fácil de testar."""
     msg = update.get("message") or update.get("edited_message")
     if not msg:
         return None
@@ -43,7 +50,12 @@ def build_reply(update: dict) -> tuple[int, str] | None:
     chat_id = chat.get("id")
     if chat_id is None:
         return None
-    return chat_id, WELCOME.format(chat_id=chat_id, panel=PANEL_HINT)
+    if chat.get("type") == "private":
+        return chat_id, WELCOME.format(chat_id=chat_id, panel=PANEL_HINT)
+    cmd = (msg.get("text") or "").strip().lower().split("@")[0]
+    if cmd in ("/start", "/id"):
+        return chat_id, GROUP_ID.format(chat_id=chat_id)
+    return None
 
 
 def _send(token: str, chat_id: int, text: str) -> None:
