@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChapaFut ⚡ resultados</title>
+  <link rel="stylesheet" href="/static/style.css?v=35">
+</head>
+<body>
+  <div class="bg-scene">
+    <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
+  </div>
+  <header class="topbar">
+    <a class="brand" href="/">⚡ CHAPA<span>FUT</span></a>
+    <a href="/register" class="nav-logout">criar conta</a>
+  </header>
+
+  <main>
+    <div class="card" style="max-width:680px;margin:18px auto">
+      <h1>📊 Nossos resultados</h1>
+      <p class="hint">Transparência total: estes são os números <strong>de
+      verdade</strong> de todos os cartões já conferidos. Sem foto montada,
+      sem print editado — a conta na mesa.</p>
+
+      {% if summary.legs_settled %}
+      <div class="trio">
+        <div><span>Cartões conferidos</span>
+          <strong>{{ summary.counts.ganhou + summary.counts.perdeu }}</strong></div>
+        <div><span>Acerto dos cartões</span>
+          <strong class="{{ 'pl-pos' if summary.card_hit_rate and summary.card_hit_rate >= 0.5 else '' }}">
+            {{ "%.0f"|format(summary.card_hit_rate * 100) ~ "%" if summary.card_hit_rate is not none else "—" }}</strong></div>
+        <div><span>Apostas analisadas</span>
+          <strong>{{ summary.legs_settled }}</strong></div>
+      </div>
+
+      <h2 style="margin-top:1.2rem">🎯 O modelo é calibrado?</h2>
+      <p class="hint">Quando o ChapaFut diz "X% de chance", acontece X% de
+      verdade? Quanto mais perto a barra do risquinho, mais honesto é o número.</p>
+      {% if summary.buckets %}
+      <table class="markets calib">
+        <thead><tr><th>A gente dizia</th><th>Aconteceu de verdade</th><th>Amostra</th></tr></thead>
+        <tbody>
+        {% for b in summary.buckets %}
+          <tr>
+            <td>{{ "%.0f"|format(b.previsto * 100) }}%</td>
+            <td><div class="pwrap"><strong>{{ "%.0f"|format(b.real * 100) }}%</strong>
+              <span class="pbar"><i style="width: {{ b.real * 100 }}%"></i>
+                <b style="left: {{ b.previsto * 100 }}%"></b></span></div></td>
+            <td>{{ b.n }} aposta(s)</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if not summary.enough %}
+      <div class="error">⚠️ Amostra ainda pequena ({{ summary.legs_settled }}
+      apostas conferidas, abaixo de 100). A sorte ainda pesa muito — ainda
+      <strong>não dá pra concluir</strong> se o modelo é bem calibrado.
+      Estamos registrando tudo, à vista.</div>
+      {% endif %}
+      {% else %}
+      <p class="hint">Ainda não há cartões conferidos pra mostrar. Volte em
+      breve — tudo que for resolvido aparece aqui, automaticamente.</p>
+      {% endif %}
+
+      <p class="hint" style="margin-top:1.2rem">O ChapaFut só mostra os
+      números — a decisão é sua. Não prometemos lucro; mostramos método e
+      histórico. 18+ • jogue com responsabilidade.</p>
+      <a class="primary button" href="/register">Criar minha conta</a>
+    </div>
+  </main>
+  <footer class="foot">ChapaFut — os números na mesa, a decisão é sua.</footer>
+</body>
+</html>

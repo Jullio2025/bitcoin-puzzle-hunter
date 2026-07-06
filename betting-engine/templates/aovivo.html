@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="aovivo-head">
+  <h1><span class="live-dot"></span>Ao vivo</h1>
+  <span class="hint" id="live-status">carregando…</span>
+</div>
+<p class="hint">Atualiza sozinho a cada 60 segundos. Lê de cache compartilhado
+— não gasta chamada extra da API a cada refresh.</p>
+
+<div id="live-list"><div class="card"><p class="hint">Buscando jogos ao
+vivo…</p></div></div>
+
+<script>
+const REFRESH = 60000;
+async function carregarAoVivo() {
+  const st = document.getElementById("live-status");
+  try {
+    const r = await fetch("/aovivo.json", {cache: "no-store"});
+    const data = await r.json();
+    render(data.jogos || []);
+    const agora = new Date().toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"});
+    st.textContent = (data.jogos && data.jogos.length
+        ? data.jogos.length + " jogo(s) ao vivo" : "nenhum jogo ao vivo agora")
+        + " · atualizado " + agora;
+  } catch (e) {
+    st.textContent = "falha ao atualizar — tentando de novo…";
+  }
+}
+function render(jogos) {
+  const box = document.getElementById("live-list");
+  if (!jogos.length) {
+    box.innerHTML = '<div class="card"><p class="hint">Nenhum jogo rolando '
+      + 'neste momento. Volte na hora dos jogos. ⚽</p></div>';
+    return;
+  }
+  // agrupa por país — liga
+  const grupos = {};
+  for (const j of jogos) {
+    const k = (j.country || "") + " — " + (j.league || "");
+    (grupos[k] = grupos[k] || {flag: j.flag, jogos: []}).jogos.push(j);
+  }
+  let html = "";
+  for (const [liga, g] of Object.entries(grupos)) {
+    html += '<div class="card league-block"><h2 class="league-title">'
+      + (g.flag ? '<img class="flag" src="'+g.flag+'" alt="">' : "🏆 ")
+      + esc(liga) + '</h2>';
+    for (const j of g.jogos) {
+      const minuto = j.status === "HT" ? "INT"
+        : (j.min != null ? j.min + "'" : (j.status || ""));
+      html += '<div class="live-row" data-fid="' + j.fid + '" role="button" tabindex="0">'
+        + '<span class="live-min">' + esc(minuto) + '</span>'
+        + '<span class="live-teams">'
+        + '<span class="tm">' + logo(j.hl) + esc(j.home) + '</span>'
+        + '<span class="tm">' + logo(j.al) + esc(j.away) + '</span></span>'
+        + '<span class="live-score">' + (j.gh ?? 0) + '<br>' + (j.ga ?? 0)
+        + '</span></div>'
+        + '<div class="live-detail" id="det-' + j.fid + '" hidden></div>';
+    }
+    html += '</div>';
+  }
+  box.innerHTML = html;
+}
+function logo(u){ return u ? '<img class="team-logo" src="'+u+'" alt="" loading="lazy">' : ""; }
+function esc(s){ const d=document.createElement("div"); d.textContent=s==null?"":s; return d.innerHTML; }
+
+// expandir/recolher detalhes de um jogo — abas carregadas sob demanda
+document.getElementById("live-list").addEventListener("click", (e) => {
+  const tab = e.target.closest(".det-tab");
+  if (tab) { trocarAba(tab.dataset.fid, tab.dataset.aba); return; }
+  const row = e.target.closest(".live-row");
+  if (row) abrirDetalhe(row.dataset.fid);
+});
+function abrirDetalhe(fid) {
+  const box = document.getElementById("det-" + fid);
+  if (!box) return;
+  if (!box.hidden) { box.hidden = true; return; }
+  box.hidden = false;
+  const abas = [["lances","⚽ Lances"],["estatisticas","📊 Estatísticas"],
+                ["escalacoes","👥 Escalações"]];
+  box.innerHTML = '<div class="det-tabs">' + abas.map(([a,l],i) =>
+      '<button class="det-tab'+(i===0?' on':'')+'" data-fid="'+fid+'" data-aba="'+a+'">'+l+'</button>'
+    ).join("") + '</div><div class="det-body" id="body-'+fid+'"></div>';
+  trocarAba(fid, "lances");
+}
+async function trocarAba(fid, aba) {
+  document.querySelectorAll('.det-tab[data-fid="'+fid+'"]').forEach(t =>
+    t.classList.toggle("on", t.dataset.aba === aba));
+  const body = document.getElementById("body-" + fid);
+  body.innerHTML = '<span class="hint">carregando…</span>';
+  try {
+    const r = await fetch("/aovivo/"+fid+"/"+aba+".json", {cache:"no-store"});
+    const d = await r.json();
+    body.innerHTML = aba === "lances" ? renderLances(d.lances)
+      : aba === "estatisticas" ? renderStats(d) : renderEscalacoes(d.escalacoes);
+  } catch (e) { body.innerHTML = '<span class="hint">falha ao carregar.</span>'; }
+}
+function renderLances(ev) {
+  if (!ev || !ev.length) return '<span class="hint">Sem lances ainda.</span>';
+  return ev.map(e => {
+    const min = (e.min != null ? e.min : "") + (e.extra ? "+"+e.extra : "");
+    return '<div class="ev"><span class="ev-min">'+esc(min)+"'</span> "+e.icon
+      +" <strong>"+esc(e.player||"")+"</strong> <span class='hint'>"+esc(e.team||"")
+      +(e.detail?" · "+esc(e.detail):"")+"</span></div>";
+  }).join("");
+}
+function renderStats(d) {
+  if (!d.stats || !d.stats.length) return '<span class="hint">Estatísticas ao vivo indisponíveis para esta competição (a API não cobre todas as ligas). Em ligas grandes aparecem normalmente.</span>';
+  let h = '<div class="stat-head"><span>'+esc(d.times[0]||"Casa")+'</span><span>'
+        + esc(d.times[1]||"Fora")+'</span></div>';
+  for (const s of d.stats) {
+    const hv = s.home==null?"-":s.home, av = s.away==null?"-":s.away;
+    const hn = parseFloat(String(hv))||0, an = parseFloat(String(av))||0, tot = hn+an;
+    const pct = tot>0 ? Math.round(hn/tot*100) : 50;
+    h += '<div class="stat-row"><span class="sv">'+esc(String(hv))+'</span>'
+      + '<span class="sl">'+esc(s.label)+'<span class="sbar"><i style="width:'+pct+'%"></i></span></span>'
+      + '<span class="sv">'+esc(String(av))+'</span></div>';
+  }
+  return h;
+}
+function renderEscalacoes(es) {
+  if (!es || !es.length) return '<span class="hint">Escalações indisponíveis (saem ~1h antes nas ligas grandes; competições menores podem não ter cobertura na API).</span>';
+  return es.map(t =>
+    '<div class="lineup"><strong>'+esc(t.team)+'</strong> <span class="hint">'
+    +esc(t.formation||"")+'</span><div class="hint">'
+    +(t.titulares||[]).map(esc).join(" · ")+'</div></div>'
+  ).join("");
+}
+
+carregarAoVivo();
+setInterval(carregarAoVivo, REFRESH);
+</script>
+{% endblock %}

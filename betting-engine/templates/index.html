@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="hero">
+  <h1>CHAPA<span>FUT</span></h1>
+  <p class="tagline">A chance de cada aposta e se ela vale a pena, sem enrolação.<br>
+  Os números na mesa — <strong>a decisão é sua</strong>.</p>
+  <div class="hero-ball">⚽</div>
+</div>
+
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+<form method="post" action="/fixtures" class="card form-grid" data-loading="🔎 Buscando os jogos do dia…">
+  <h2>Bora analisar</h2>
+  <label>Data dos jogos
+    <input type="date" name="match_date" value="{{ today }}" required>
+  </label>
+  <label>Campeonato
+    <select name="league_id">
+      <option value="0">🌍 Todos os campeonatos do dia (busca mais demorada)</option>
+      {% if favorites %}
+      <optgroup label="⭐ Populares">
+        {% for l in favorites %}
+        <option value="{{ l.league_id }}:{{ l.season }}">{{ l.name }} — {{ l.country }}</option>
+        {% endfor %}
+      </optgroup>
+      {% endif %}
+      {% if leagues %}
+      <optgroup label="Todos os campeonatos (por país)">
+        {% for l in leagues %}
+        <option value="{{ l.league_id }}:{{ l.season }}">{{ l.country }} — {{ l.name }}</option>
+        {% endfor %}
+      </optgroup>
+      {% endif %}
+    </select>
+  </label>
+  {% if leagues_error %}
+  <p class="hint">Não consegui carregar a lista de campeonatos ({{ leagues_error }}) —
+  dá pra buscar mesmo assim com "Todos os campeonatos do dia".</p>
+  {% endif %}
+  <button type="submit" class="primary">Buscar jogos do dia ⚡</button>
+  <p class="hint">A primeira busca do dia pode demorar um pouco (consulta a API
+  e guarda em cache). Buscar por uma liga específica gasta bem menos chamadas.</p>
+</form>
+{% endblock %}

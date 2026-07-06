@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="hero">
+  <h1>ESTRA<span>TÉGIAS</span></h1>
+  <p class="tagline">Sem configurar nada — escolha uma <strong>ideia</strong>
+  e o ChapaFut garimpa os jogos do dia pra você.</p>
+  <div class="hero-ball">🎯</div>
+</div>
+
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+<div class="card filter-bar">
+  <label>Data dos jogos
+    <input type="date" name="strat_date" id="strat_date" value="{{ today }}"></label>
+  <span class="hint">A data vale para qualquer estratégia abaixo.</span>
+</div>
+
+<div class="strat-grid">
+  {% for s in strategies %}
+  <form method="post" action="/estrategia" class="strat-card"
+        data-loading="{{ s.icon }} Garimpando: {{ s.nome }}…">
+    <input type="hidden" name="key" value="{{ s.key }}">
+    <input type="hidden" name="match_date" class="strat-date-field" value="{{ today }}">
+    <div class="strat-icon">{{ s.icon }}</div>
+    <div class="strat-name">{{ s.nome }}</div>
+    <div class="strat-desc">{{ s.desc }}</div>
+    <button type="submit" class="primary">Garimpar ⛏️</button>
+  </form>
+  {% endfor %}
+</div>
+
+<p class="hint" style="margin-top:18px">Quer controle total dos critérios?
+Use o <a href="/scanner">Scanner</a>. Quer ver tudo de um jogo específico?
+Use o <a href="/analisar">Analisar</a>.</p>
+
+<script>
+  // a data escolhida no topo vale para todos os cards
+  const d = document.getElementById("strat_date");
+  d.addEventListener("change", () => {
+    document.querySelectorAll(".strat-date-field").forEach(f => f.value = d.value);
+  });
+</script>
+{% endblock %}

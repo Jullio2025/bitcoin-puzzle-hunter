@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>⚖️ Surebets de {{ match_date }}</h1>
+
+<p class="hint">Jogos com odds comparadas: {{ scan.fixtures_scanned }}
+(só os que <strong>ainda não começaram</strong> — surebet é pré-jogo) —
+casas vistas no dia: {{ scan.books_seen }}.</p>
+
+<div class="disclaimer">
+  Odds capturadas agora e podem ter mudado — <strong>confira na casa antes de
+  apostar</strong>. A execução é sua, na sua conta. Casas costumam limitar
+  quem arbitra. 18+
+</div>
+
+{% if not scan.bets and not scan.suspects %}
+<div class="error">Nenhuma surebet
+{% if include_near %}(nem "quase"){% endif %} encontrada nesse dia com esses
+mercados/casas. Isso é normal — arbitragem pré-jogo é rara. Tente outra data,
+mais mercados, ou ligue os "quase-surebet".</div>
+<a class="button" href="/surebet">← Ajustar busca</a>
+{% else %}
+
+{% if not scan.bets %}
+<div class="error">Nenhuma surebet <strong>confiável</strong> hoje. Só
+apareceram casos suspeitos (abaixo) — que quase sempre são erro de odd.</div>
+{% endif %}
+
+{% if scan.bets %}
+<div class="card sb-bankroll">
+  <label>💰 Investimento total (R$)
+    <input type="number" id="sb-bankroll" value="{{ '%.0f'|format(bankroll) }}"
+           min="1" step="any"></label>
+  <span class="hint">Mude o valor e todos os cards recalculam quanto apostar
+  em cada casa, na hora.</span>
+</div>
+{% endif %}
+
+<div class="sb-grid">
+{% for sb in scan.bets %}
+<div class="card sb-card {{ 'sb-win' if sb.is_arb else 'sb-near' }}" data-margin="{{ sb.margin }}">
+  <div class="card-head">
+    <h2>
+      {% if sb.hl %}<img class="team-logo" src="{{ sb.hl }}" alt="" loading="lazy">{% endif %}{% if sb.al %}<img class="team-logo" src="{{ sb.al }}" alt="" loading="lazy">{% endif %}{{ sb.fixture }}
+      {% if sb.is_arb %}<span class="badge ok">✅ SUREBET</span>
+      {% else %}<span class="badge warn">⚠️ quase</span>{% endif %}
+    </h2>
+  </div>
+  <p class="meta">{{ sb.market_label }}{% if sb.line is not none %} (linha {{ "%g"|format(sb.line) }}){% endif %}
+    {% if sb.when %} — {{ sb.when }}{% endif %}
+    {% if sb.league %} — {{ sb.league }}{% if sb.country %} ({{ sb.country }}){% endif %}{% endif %}</p>
+
+  <div class="sb-hero">
+    <div>
+      <span class="sb-hero-label">{{ "Lucro garantido" if sb.is_arb else "Sem garantia ainda" }}</span>
+      <span class="sb-hero-pct {{ 'pl-pos' if sb.margin > 0 else 'pl-neg' }}">{{ "%+.1f"|format(sb.margin * 100) }}%</span>
+    </div>
+    <div class="sb-hero-side">
+      <span>com R$ <b class="sb-total">{{ "%.0f"|format(bankroll) }}</b> você {{ "ganha" if sb.margin > 0 else "perde" }}</span>
+      <strong class="sb-profit {{ 'pl-pos' if sb.margin > 0 else 'pl-neg' }}">R$ {{ "%+.2f"|format(bankroll * sb.margin) }}</strong>
+    </div>
+  </div>
+
+  <span class="sb-liq sb-liq-{{ sb.liquidity }}">💧 mercado {{ sb.liquidity }} · {{ sb.depth }} casa(s)</span>
+
+  <table class="markets sb-legs">
+    <colgroup>
+      <col style="width:22%"><col style="width:18%"><col style="width:12%">
+      <col style="width:24%"><col style="width:24%">
+    </colgroup>
+    <thead><tr>
+      <th>Aposta</th><th>Casa</th><th>Odd</th><th>Apostar</th><th>Volta</th>
+    </tr></thead>
+    <tbody>
+    {% for leg, stake, ret in sb.split(bankroll) %}
+      <tr class="pass" data-pct="{{ leg.stake_pct }}" data-odd="{{ leg.odd }}">
+        <td><strong>{{ leg.label }}</strong></td>
+        <td>{{ leg.book }}</td>
+        <td>{{ "%.2f"|format(leg.odd) }}</td>
+        <td class="sb-stake">R$ {{ "%.2f"|format(stake) }}</td>
+        <td class="sb-ret">R$ {{ "%.2f"|format(ret) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  {% if sb.depth <= 1 %}
+  <p class="error">🚩 <strong>Linha em só 1 casa</strong> nos nossos dados —
+  pode ser que a casa <strong>nem ofereça essa linha</strong> (ou esteja
+  velha). NÃO é confirmável: abra a casa e veja se a linha existe ANTES de
+  apostar. Margem alta aqui geralmente é isso.</p>
+  {% elif sb.liquidity == "raso" %}
+  <p class="hint">⚠️ Mercado fraco — só {{ sb.depth }} casa(s) oferecem o lado
+  mais disputado. O limite de aposta costuma ser baixo; confira o máximo
+  aceito na casa.</p>
+  {% endif %}
+  {% if not sb.is_arb %}
+  <p class="hint">⚠️ "Quase": ainda <strong>não trava lucro</strong> (perderia
+  R$ {{ "%.2f"|format(-bankroll * sb.margin) }} apostando nos dois lados). Vira
+  surebet se alguma dessas odds subir um pouco — vale ficar de olho.</p>
+  {% endif %}
+</div>
+{% endfor %}
+</div>
+
+{% if scan.suspects %}
+<h2 style="margin-top:1.6rem">⚠️ Suspeitas — quase sempre erro de odd ({{ scan.suspects|length }})</h2>
+<div class="disclaimer">
+  Estas <strong>parecem</strong> surebet boa demais, mas batem na nossa
+  trava de furada (margem absurda ou aposta numa casa só). Na prática quase
+  sempre é <strong>odd velha/ilíquida ou erro que a casa anula depois</strong>.
+  Não estão escondidas — mas <strong>não confie</strong>: se for tentar,
+  confirme a odd AO VIVO na casa, com valor real, antes de qualquer coisa.
+</div>
+{% for sb in scan.suspects %}
+<div class="card" style="border-color:rgba(251,113,133,.45)">
+  <div class="card-head">
+    <h2>
+      {% if sb.hl %}<img class="team-logo" src="{{ sb.hl }}" alt="" loading="lazy">{% endif %}{% if sb.al %}<img class="team-logo" src="{{ sb.al }}" alt="" loading="lazy">{% endif %}{{ sb.fixture }}
+      <span class="badge warn">⚠️ suspeita</span>
+    </h2>
+  </div>
+  <p class="meta">{{ sb.market_label }}{% if sb.line is not none %} (linha {{ "%g"|format(sb.line) }}){% endif %}
+    {% if sb.when %} — {{ sb.when }}{% endif %}
+    {% if sb.league %} — {{ sb.league }}{% if sb.country %} ({{ sb.country }}){% endif %}{% endif %}</p>
+  <p class="error">🚩 Por que é suspeita: {{ sb.suspect_reason }}.
+    "Lucro" aparente <strong>{{ "%+.0f"|format(sb.margin * 100) }}%</strong>
+    em {{ sb.n_books }} casa(s) — bom demais pra ser verdade.</p>
+  <table class="markets">
+    <thead><tr>
+      <th>Resultado</th><th>Casa</th><th>Odd</th>
+    </tr></thead>
+    <tbody>
+    {% for leg in sb.legs %}
+      <tr><td><strong>{{ leg.label }}</strong></td><td>{{ leg.book }}</td>
+        <td>{{ "%.2f"|format(leg.odd) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endfor %}
+{% endif %}
+{% endif %}
+
+<p class="hint">Chamadas reais à API nesta busca: {{ api_calls }}.</p>
+<a class="button" href="/surebet">← Procurar de novo</a>
+
+<script>
+  // "Investimento total": muda o valor e todos os cards recalculam na hora
+  // quanto apostar em cada casa (puro front, sem nova busca na API).
+  (function () {
+    const input = document.getElementById("sb-bankroll");
+    if (!input) return;
+    const money = (v) => "R$ " + v.toFixed(2);
+    const signed = (v) => "R$ " + (v >= 0 ? "+" : "") + v.toFixed(2);
+    function recalc() {
+      const total = parseFloat((input.value || "0").replace(",", ".")) || 0;
+      document.querySelectorAll(".sb-card").forEach((card) => {
+        const margin = parseFloat(card.dataset.margin) || 0;
+        card.querySelectorAll("tr[data-pct]").forEach((tr) => {
+          const stake = total * (parseFloat(tr.dataset.pct) || 0);
+          const odd = parseFloat(tr.dataset.odd) || 0;
+          const s = tr.querySelector(".sb-stake"), r = tr.querySelector(".sb-ret");
+          if (s) s.textContent = money(stake);
+          if (r) r.textContent = money(stake * odd);
+        });
+        const lbl = card.querySelector(".sb-total");
+        const prof = card.querySelector(".sb-profit");
+        if (lbl) lbl.textContent = total.toFixed(0);
+        if (prof) prof.textContent = signed(total * margin);
+      });
+    }
+    input.addEventListener("input", recalc);
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="hero">
+  <h1>CHAPA<span>FUT</span></h1>
+  <p class="tagline">Crie sua conta e tenha suas próprias análises.</p>
+</div>
+
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+<form method="post" action="/register" class="card form-grid auth-card">
+  <h2>Criar conta</h2>
+  <label>Usuário <span class="hint">(3–30 letras/números, minúsculas)</span>
+    <input name="username" autocomplete="username" required autofocus></label>
+  <label>Senha <span class="hint">(mínimo 6 caracteres)</span>
+    <input type="password" name="password" autocomplete="new-password" required></label>
+  <button type="submit" class="primary">Criar conta ⚡</button>
+  <p class="hint">Já tem conta? <a href="/login">Entrar</a>.</p>
+  <p class="hint">Seus critérios e seu histórico (tracker) ficam só na sua
+  conta. 18+. Aposta envolve risco real de perda.</p>
+</form>
+{% endblock %}

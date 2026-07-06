@@ -1,0 +1,254 @@
+"""
+Usuários do ChapaFut: cadastro, login e dados por usuário.
+
+- Senhas guardadas com hash pbkdf2 (nunca em texto puro).
+- Sessão via cookie assinado com HMAC (segredo gerado uma vez em disco).
+- Cada usuário tem sua pasta (tracker e presets individuais).
+- Stdlib apenas — nenhuma dependência nova.
+
+A camada de DADOS de jogos (cache da API) é compartilhada por todos:
+um único pré-aquecimento diário abastece o cache e todos leem dele, então
+o custo de API não cresce com o número de usuários.
+"""
+from __future__ import annotations
+
+import hashlib
+import hmac
+import json
+import os
+import re
+import secrets
+import time
+from datetime import date
+from pathlib import Path
+
+import config
+
+USERS_FILE = config.DATA_DIR / "users.json"
+USERS_DIR = config.DATA_DIR / "u"
+SECRET_FILE = config.DATA_DIR / ".session_secret"
+
+USERNAME_RE = re.compile(r"^[a-z0-9][a-z0-9_.-]{2,29}$")
+_PBKDF2_ROUNDS = 200_000
+
+
+# ------------------------------------------------------------- segredo
+def _secret() -> bytes:
+    SECRET_FILE.parent.mkdir(parents=True, exist_ok=True)
+    if not SECRET_FILE.exists():
+        SECRET_FILE.write_text(secrets.token_hex(32))
+    return SECRET_FILE.read_text().strip().encode()
+
+
+# ------------------------------------------------------------- storage
+def _load() -> dict:
+    if USERS_FILE.exists():
+        return json.loads(USERS_FILE.read_text())
+    return {}
+
+
+def _save(data: dict) -> None:
+    USERS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = USERS_FILE.with_suffix(".tmp")  # escrita atômica: nunca deixa o
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2))  # arquivo
+    os.replace(tmp, USERS_FILE)           # de usuários pela metade num crash
+
+
+def all_usernames() -> list[str]:
+    return sorted(_load())
+
+
+def get_user(username: str) -> dict | None:
+    return _load().get((username or "").lower())
+
+
+def user_dir(username: str) -> Path:
+    d = USERS_DIR / username.lower()
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+# ------------------------------------------------------------- senha
+def _hash(password: str, salt: str) -> str:
+    return hashlib.pbkdf2_hmac("sha256", password.encode(),
+                               bytes.fromhex(salt), _PBKDF2_ROUNDS).hex()
+
+
+def create_user(username: str, password: str,
+                allow_admin: bool = False) -> tuple[bool, str]:
+    """Cria usuário. Retorna (ok, mensagem).
+
+    O nome do ADMIN é reservado: se o cadastro público pudesse registrá-lo
+    antes do dono, quem chegasse primeiro viraria admin (acesso total +
+    painel /admin). Só a criação interna (allow_admin=True) pode usá-lo."""
+    username = (username or "").strip().lower()
+    if not USERNAME_RE.match(username):
+        return False, ("Usuário inválido: use 3–30 letras/números "
+                       "(sem espaço, minúsculas).")
+    if is_admin(username) and not allow_admin:
+        return False, "Esse nome de usuário é reservado."
+    if len(password or "") < 6:
+        return False, "Senha muito curta (mínimo 6 caracteres)."
+    data = _load()
+    if username in data:
+        return False, "Esse usuário já existe."
+    salt = secrets.token_hex(16)
+    data[username] = {"salt": salt, "hash": _hash(password, salt),
+                      "created": time.time(), "telegram_chat_id": "",
+                      "send_hour": 9, "ativo": False, "expira": None}
+    _save(data)
+    return True, "Conta criada."
+
+
+def verify_user(username: str, password: str) -> bool:
+    u = get_user(username)
+    if not u:
+        return False
+    expected = _hash(password, u["salt"])
+    return hmac.compare_digest(expected, u["hash"])
+
+
+def set_telegram(username: str, chat_id: str) -> None:
+    data = _load()
+    if username.lower() in data:
+        data[username.lower()]["telegram_chat_id"] = (chat_id or "").strip()
+        _save(data)
+
+
+def set_send_hour(username: str, hour: int) -> None:
+    """Hora (0–23, horário do servidor) em que o usuário quer o garimpo."""
+    data = _load()
+    if username.lower() in data:
+        data[username.lower()]["send_hour"] = max(0, min(23, int(hour)))
+        _save(data)
+
+
+def set_surebet_alerts(username: str, enabled: bool,
+                       min_margin: float = 0.5) -> None:
+    """Liga/desliga os alertas de surebet no Telegram e a margem mínima (%)
+    a partir da qual avisar. Roda de hora em hora, independente do send_hour."""
+    data = _load()
+    if username.lower() in data:
+        u = data[username.lower()]
+        u["surebet_alerts"] = bool(enabled)
+        u["surebet_min_margin"] = max(0.0, float(min_margin))
+        _save(data)
+
+
+# --------------------------------------------------- acesso pago (liberação)
+def is_admin(username: str) -> bool:
+    """Admin = a conta do .env (ADMIN_USER ou PANEL_USER, padrão 'admin')."""
+    if not username:
+        return False
+    admin = os.getenv("ADMIN_USER", os.getenv("PANEL_USER", "admin")).lower()
+    return username.lower() == admin
+
+
+def access_status(username: str) -> str:
+    """'ok' | 'pendente' | 'expirado' — situação de acesso do usuário.
+
+    Admin sempre 'ok'. Contas ANTIGAS (sem o campo 'ativo') também ficam 'ok'
+    (não trancamos quem já usava). Contas novas nascem 'pendente' até a
+    liberação manual; 'expirado' quando passa da data de validade."""
+    if is_admin(username):
+        return "ok"
+    u = get_user(username) or {}
+    if "ativo" not in u:
+        return "ok"
+    if not u.get("ativo"):
+        return "pendente"
+    exp = u.get("expira")
+    if exp and exp < config.br_today():
+        return "expirado"
+    return "ok"
+
+
+def is_active(username: str) -> bool:
+    return access_status(username) == "ok"
+
+
+def set_access(username: str, ativo: bool, expira: str | None = None) -> None:
+    """Libera/bloqueia a conta. expira = 'AAAA-MM-DD' ou None (sem validade)."""
+    data = _load()
+    u = data.get((username or "").lower())
+    if not u:
+        return
+    u["ativo"] = bool(ativo)
+    u["expira"] = expira or None
+    _save(data)
+
+
+def count_active() -> int:
+    """Quantas contas pagantes (não-admin) estão ativas agora."""
+    return sum(1 for un in _load()
+               if not is_admin(un) and access_status(un) == "ok")
+
+
+def set_password(username: str, new_password: str) -> tuple[bool, str]:
+    if len(new_password or "") < 6:
+        return False, "Senha muito curta (mínimo 6 caracteres)."
+    data = _load()
+    u = data.get(username.lower())
+    if not u:
+        return False, "Usuário não encontrado."
+    salt = secrets.token_hex(16)
+    u["salt"] = salt
+    u["hash"] = _hash(new_password, salt)
+    # rotaciona o "sid" da sessão: cookies antigos param de valer na hora
+    # (senha vazada/dispositivo perdido -> trocar a senha derruba tudo).
+    u["sid"] = secrets.token_hex(8)
+    _save(data)
+    return True, "Senha alterada."
+
+
+# ------------------------------------------------------------- sessão
+def _session_sid(u: dict | None) -> str:
+    """Sal de sessão do usuário. Contas antigas (sem 'sid') usam '' — o que
+    mantém os cookies existentes válidos até a primeira troca de senha."""
+    return (u or {}).get("sid", "")
+
+
+def make_token(username: str) -> str:
+    username = username.lower()
+    msg = username + _session_sid(get_user(username))
+    sig = hmac.new(_secret(), msg.encode(), hashlib.sha256).hexdigest()
+    return f"{username}.{sig}"
+
+
+def read_token(token: str | None) -> str | None:
+    """Valida o cookie e devolve o usuário, ou None."""
+    if not token or "." not in token:
+        return None
+    username, _, sig = token.rpartition(".")
+    u = _load().get(username)
+    if not u:
+        return None
+    msg = username + _session_sid(u)
+    expected = hmac.new(_secret(), msg.encode(), hashlib.sha256).hexdigest()
+    if hmac.compare_digest(expected, sig):
+        return username
+    return None
+
+
+def ensure_admin_from_env() -> None:
+    """Migração: se não há usuários e existe PANEL_PASSWORD no .env, cria a
+    conta admin com essas credenciais (para não trancar quem já usava)."""
+    import os
+    if _load():
+        return
+    user = os.getenv("PANEL_USER", "admin").lower()
+    pw = os.getenv("PANEL_PASSWORD", "")
+    if not pw:
+        return
+    if not USERNAME_RE.match(user):
+        user = "admin"
+    ok, _ = create_user(user, pw if len(pw) >= 6 else pw + "______",
+                        allow_admin=True)
+    # herda dados legados (tracker/preset únicos) para o admin
+    if ok:
+        d = user_dir(user)
+        for legacy, dest in ((config.DATA_DIR / "bets.json", d / "bets.json"),
+                             (config.DATA_DIR / "scan_preset.json",
+                              d / "scan_preset.json")):
+            if legacy.exists() and not dest.exists():
+                dest.write_text(legacy.read_text())

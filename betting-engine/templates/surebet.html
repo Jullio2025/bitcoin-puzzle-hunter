@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="hero">
+  <h1>SURE<span>BET</span></h1>
+  <p class="tagline">Compara o preço do mesmo jogo em <em>várias casas</em> e
+  acha onde dá pra ganhar <strong>dê no que der</strong> — lucro travado.<br>
+  Aqui não tem palpite: é só a diferença de preço entre as casas.</p>
+  <div class="hero-ball">⚖️</div>
+</div>
+
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+<div class="card explainer">
+  <h2>💡 Como funciona (e o que esperar)</h2>
+  <ul>
+    <li><strong>Surebet</strong> = apostar em TODOS os resultados de um
+      jogo, cada um na casa que paga melhor, de um jeito que você ganhe
+      aconteça o que acontecer. Ex.: <em>Mais de 1.5</em> a 2.00 numa casa e
+      <em>Menos de 1.5</em> a 2.10 noutra → dá <strong>+2,4%
+      garantido</strong>.</li>
+    <li><strong>A execução é sua, na mão.</strong> O ChapaFut só mostra os
+      números e em qual casa está cada odd. Confira a odd na casa antes de
+      apostar — ela pode ter mudado.</li>
+    <li><strong>Margens são pequenas</strong> (geralmente 1%–4%) e raras no
+      pré-jogo. Ligue os "quase-surebet" para ver os que faltou pouco.</li>
+    <li><strong>Filtro anti-furada (nada some):</strong> surebet só é real
+      entre <strong>casas diferentes</strong> e com margem pequena. Lucro de
+      50%, 500% etc. é quase sempre <strong>odd podre/erro de dado</strong>
+      (não dinheiro grátis). O ChapaFut separa esses numa lista
+      <strong>"⚠️ suspeitas"</strong>, marcada — não esconde, mas avisa pra
+      você não cair numa aposta que parece coberta e não está.</li>
+    <li><strong>Atenção real:</strong> as casas limitam quem arbitra, e a odd
+      da API pode estar atrasada. Trate como apoio, não como máquina de
+      dinheiro. 18+</li>
+  </ul>
+</div>
+
+<form method="post" action="/surebet/scan" data-loading="⚖️ Comparando as casas…">
+  <div class="card form-grid">
+    <h2>Onde procurar</h2>
+    <label>Data dos jogos
+      <input type="date" name="match_date" value="{{ today }}" required></label>
+    <label>Valor que pretende apostar (R$) <span class="hint">(só p/ mostrar a divisão)</span>
+      <input type="number" step="any" name="bankroll" value="100"></label>
+    <label>Margem mínima (%) <span class="hint">(0 = mostra toda arbitragem)</span>
+      <input type="number" step="any" name="min_margin" value="0"></label>
+    <label class="inline"><input type="checkbox" name="include_near" checked>
+      Incluir "quase-surebet" (soma até ~103%)
+      <span class="hint">(não travam lucro ainda, mas viram surebet com pouco movimento)</span></label>
+    <label class="inline"><input type="checkbox" name="liquid_only">
+      Só surebets confirmáveis (linha em 2+ casas)
+      <span class="hint">(esconde as "fantasmas" que só 1 casa lista — mais
+      seguro, mas aparecem menos)</span></label>
+  </div>
+
+  <div class="card">
+    <h2>Casas que você usa
+      <span class="hint">(marque só as suas; nenhuma marcada = todas)</span></h2>
+    {% if books %}
+    <div style="display:flex;flex-wrap:wrap;gap:6px 14px">
+      {% for b in books %}
+      <label class="inline"><input type="checkbox" name="book" value="{{ b }}"> {{ b }}</label>
+      {% endfor %}
+    </div>
+    <p class="hint">Dica: marcando só as casas em que você tem conta, só
+    aparecem surebets que você consegue realmente fazer.</p>
+    {% else %}
+    <label>Casas (separadas por vírgula; vazio = todas)
+      <input type="text" name="books" placeholder="ex.: Bet365, Betano, Pinnacle"></label>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>O que comparar
+      <span class="hint">(só apostas que cobrem todos os resultados)</span></h2>
+    {% for m in all_markets %}
+    <label class="inline"><input type="checkbox" name="m_{{ m }}"
+      {{ "checked" if m in default_markets }}> {{ market_labels.get(m, m) }}</label>
+    {% endfor %}
+    <p class="hint">Linhas de gols/escanteios/cartões e handicap usam só
+    linhas .5 (sem risco de empate/devolução). Dupla chance fica de fora
+    (os resultados se sobrepõem, não dá pra travar lucro).</p>
+    <br>
+    <button type="submit" class="primary">Procurar surebets ⚖️</button>
+    <p class="hint">É rápido: o ChapaFut só pega os jogos do dia e as odds
+    da data, sem precisar olhar time por time.</p>
+  </div>
+</form>
+{% endblock %}

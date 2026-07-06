@@ -1,0 +1,6 @@
+{# Confronto com escudos. Espera a variável `fxx` (o dict do fixture). #}
+<span class="matchup">
+  {% if fxx.teams.home.logo %}<img class="team-logo" src="{{ fxx.teams.home.logo }}" alt="" loading="lazy">{% endif %}{{ fxx.teams.home.name }}
+  <span class="vs">×</span>
+  {% if fxx.teams.away.logo %}<img class="team-logo" src="{{ fxx.teams.away.logo }}" alt="" loading="lazy">{% endif %}{{ fxx.teams.away.name }}
+</span>

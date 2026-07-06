@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>🛠️ Admin — liberar acessos</h1>
+{% if msg %}<div class="success">{{ msg }}</div>{% endif %}
+
+<div class="card">
+  <div class="trio">
+    <div><span>Ativos agora</span><strong>{{ active }}/{{ cap }}</strong></div>
+    <div><span>Cadastrados</span><strong>{{ rows|length }}</strong></div>
+  </div>
+  <p class="hint">Libere a conta depois de receber o PIX. Vale pelos dias que
+  você definir; depois disso ela volta a ficar bloqueada sozinha.</p>
+</div>
+
+{% if not rows %}
+<div class="card"><p class="hint">Ninguém cadastrado ainda (além de você).</p></div>
+{% endif %}
+
+{% for r in rows %}
+<div class="card">
+  <div class="card-head">
+    <h2>{{ r.username }}
+      {% if r.status == "ok" %}<span class="badge ok">✅ ativo{% if r.expira %} até {{ r.expira }}{% endif %}</span>
+      {% elif r.status == "pendente" %}<span class="badge warn">⏳ pendente</span>
+      {% else %}<span class="badge warn">⌛ expirado</span>{% endif %}
+    </h2>
+  </div>
+  {% if r.telegram %}<p class="hint">Telegram: {{ r.telegram }}</p>{% endif %}
+  <form method="post" action="/admin/access" class="form-inline">
+    <input type="hidden" name="alvo" value="{{ r.username }}">
+    <label>Dias <input type="number" name="dias" value="30" style="max-width:80px"></label>
+    <button name="acao" value="liberar" class="primary">Liberar</button>
+    <button name="acao" value="bloquear">Bloquear</button>
+  </form>
+</div>
+{% endfor %}
+{% endblock %}

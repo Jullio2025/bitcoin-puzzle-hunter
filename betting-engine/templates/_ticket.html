@@ -1,0 +1,86 @@
+<div class="card ticket" id="ticket">
+  <h2>Sua seleção <span class="badge" id="t-count">0 apostas</span></h2>
+  <p class="hint">Marque apostas nas tabelas acima. O bilhete mostra SEMPRE
+  os três números juntos — nunca só a odd combinada.</p>
+  <div id="ticket-legs" class="hint">Nenhuma aposta selecionada.</div>
+  <div class="trio">
+    <div><span>Odd combinada</span><strong id="t-odd">—</strong></div>
+    <div><span>Chance combinada</span><strong id="t-prob">—</strong></div>
+    <div><span>Chance de PERDER o bilhete</span><strong id="t-lose">—</strong></div>
+  </div>
+  <p class="hint">A chance combinada é uma estimativa; apostas do mesmo jogo
+  andam juntas, então o número pode mudar um pouco.</p>
+
+  <form method="post" action="/ticket/register" class="form-inline">
+    <input type="hidden" name="legs_json" id="legs-json" value="[]">
+    <button formaction="/ticket/share" class="primary card-btn">🎟️ Gerar meu cartão</button>
+    <label>Valor apostado <input type="number" step="any" name="stake" value="1.0"></label>
+    <button name="mode" value="multipla">Registrar como múltipla</button>
+    <button name="mode" value="simples">Registrar como simples (1 por linha)</button>
+  </form>
+  <p class="hint">🎟️ <strong>Gerar meu cartão</strong> monta uma página
+  bonita com suas seleções e um botão "achar na casa" por jogo — fácil de
+  conferir e de mandar pra galera. <strong>Registrar</strong> guarda no seu
+  tracker pra medir acerto/ROI depois.</p>
+</div>
+
+<button type="button" id="ticket-fab" hidden>🎫 <span id="fab-text"></span></button>
+
+<script>
+// O bilhete é um cartão normal no fim da página (não cobre nada).
+// Ao marcar mercados, um botão flutuante leva até ele.
+const fab = document.getElementById("ticket-fab");
+fab.addEventListener("click", () =>
+  document.getElementById("ticket").scrollIntoView({ behavior: "smooth" }));
+
+// Prévia do bilhete (a conta oficial é refeita no servidor ao registrar):
+// odd combinada = produto das odds; prob = produto dos p_model;
+// chance de perder = 1 - prob.
+function refreshTicket() {
+  const legs = [...document.querySelectorAll(".leg:checked")].map(cb => ({
+    fixture: cb.dataset.fixture, market: cb.dataset.market,
+    odd: cb.dataset.odd === "" ? null : parseFloat(cb.dataset.odd),
+    p: parseFloat(cb.dataset.p),
+    fid: parseInt(cb.dataset.fid), mkt: cb.dataset.mkt,
+    side: cb.dataset.side,
+    line: cb.dataset.line === "" ? null : parseFloat(cb.dataset.line),
+    hl: cb.dataset.hl || null, al: cb.dataset.al || null
+  }));
+  document.getElementById("legs-json").value = JSON.stringify(legs);
+  document.getElementById("t-count").textContent =
+    legs.length + (legs.length === 1 ? " mercado" : " mercados");
+  fab.hidden = legs.length === 0;
+
+  const box = document.getElementById("ticket-legs");
+  if (!legs.length) {
+    box.textContent = "Nenhum mercado selecionado.";
+    ["t-odd","t-prob","t-lose"].forEach(id =>
+      document.getElementById(id).textContent = "—");
+    return;
+  }
+  const withOdd = legs.filter(l => l.odd && l.odd > 1);
+  box.innerHTML = legs.map(l =>
+    `• ${l.fixture} — ${l.market} (`
+    + (l.odd ? `odd ${l.odd.toFixed(2)}, ` : `<em>sem odd ref. — confira na casa</em>, `)
+    + `p ${(l.p*100).toFixed(1)}%)`
+  ).join("<br>");
+  // probabilidade combinada usa TODAS as pernas (sempre temos p_model)
+  const prob = legs.reduce((a, l) => a * l.p, 1);
+  document.getElementById("t-prob").textContent = (prob*100).toFixed(1) + "%";
+  document.getElementById("t-lose").textContent = ((1-prob)*100).toFixed(1) + "%";
+  // odd combinada só sai completa se TODAS as pernas tiverem odd de referência
+  if (withOdd.length === legs.length) {
+    const odd = legs.reduce((a, l) => a * l.odd, 1);
+    document.getElementById("t-odd").textContent = odd.toFixed(2);
+  } else if (withOdd.length) {
+    const partial = withOdd.reduce((a, l) => a * l.odd, 1);
+    document.getElementById("t-odd").textContent = "~" + partial.toFixed(2) + "*";
+  } else {
+    document.getElementById("t-odd").textContent = "—";
+  }
+  document.getElementById("fab-text").textContent =
+    `${legs.length} ✓ — ver meu cartão`;
+}
+document.querySelectorAll(".leg").forEach(cb =>
+  cb.addEventListener("change", refreshTicket));
+</script>

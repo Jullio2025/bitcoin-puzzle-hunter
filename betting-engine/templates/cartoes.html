@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>🎫 Meus Cartões</h1>
+{% if msg %}<div class="success">{{ msg }}</div>{% endif %}
+
+{% if summary.total %}
+<div class="card">
+  <h2>📊 Seu histórico</h2>
+  <div class="trio">
+    <div><span>Cartões</span><strong>{{ summary.total }}</strong></div>
+    <div><span>Ganhos</span><strong>{{ summary.counts.ganhou }}</strong></div>
+    <div><span>Perdidos</span><strong>{{ summary.counts.perdeu }}</strong></div>
+    <div><span>Acerto dos cartões</span>
+      <strong>{{ "%.0f"|format(summary.card_hit_rate * 100) ~ "%" if summary.card_hit_rate is not none else "—" }}</strong></div>
+  </div>
+
+  {% if summary.staked or summary.pending_stake %}
+  <h2 style="margin-top:1.2rem">💰 Controle de banca (lucro/prejuízo)</h2>
+  <div class="trio">
+    <div><span>Apostado (resolvidos)</span>
+      <strong>R$ {{ "%.2f"|format(summary.staked) }}</strong></div>
+    <div><span>Retorno</span>
+      <strong>R$ {{ "%.2f"|format(summary.returned) }}</strong></div>
+    <div><span>Lucro / prejuízo</span>
+      <strong class="{{ 'pl-pos' if summary.profit > 0 else ('pl-neg' if summary.profit < 0 else '') }}">
+        R$ {{ "%+.2f"|format(summary.profit) }}</strong></div>
+    <div><span>ROI</span>
+      <strong class="{{ 'pl-pos' if summary.roi and summary.roi > 0 else ('pl-neg' if summary.roi and summary.roi < 0 else '') }}">
+        {{ "%+.0f"|format(summary.roi * 100) ~ "%" if summary.roi is not none else "—" }}</strong></div>
+  </div>
+  <p class="hint">Soma só os {{ summary.n_with_stake }} cartão(ões) já
+  resolvido(s) em que você informou o valor apostado.
+  {% if summary.pending_stake %} Ainda em jogo:
+  <strong>R$ {{ "%.2f"|format(summary.pending_stake) }}</strong>.{% endif %}
+  ROI = quanto você lucrou em cima do que apostou.</p>
+  {% endif %}
+
+  <p class="hint">O quanto o ChapaFut acerta: quando ele diz X%, acontece
+  X% de verdade? (conta aposta por aposta, nas {{ summary.legs_settled }} já
+  resolvidas)</p>
+  {% if summary.buckets %}
+  <table class="markets calib">
+    <thead><tr><th>ChapaFut dizia</th><th>Aconteceu de verdade</th><th>Amostra</th></tr></thead>
+    <tbody>
+    {% for b in summary.buckets %}
+      <tr>
+        <td>{{ "%.0f"|format(b.previsto * 100) }}%</td>
+        <td>
+          <div class="pwrap"><strong>{{ "%.0f"|format(b.real * 100) }}%</strong>
+            <span class="pbar"><i style="width: {{ b.real * 100 }}%"></i>
+              <b style="left: {{ b.previsto * 100 }}%"></b></span>
+          </div>
+        </td>
+        <td>{{ b.n }} aposta(s)</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="hint">Barra = o que aconteceu de verdade · risco branco = o que o
+  ChapaFut tinha dito. Quanto mais perto, melhor o ChapaFut está acertando.</p>
+  {% endif %}
+
+  {% if not summary.enough %}
+  <div class="error">⚠️ POUCAS APOSTAS: {{ summary.legs_settled }} já
+  resolvidas (menos de 100). Ainda é pouco pra dizer se o ChapaFut está
+  acertando bem. Siga registrando.</div>
+  {% endif %}
+</div>
+{% endif %}
+
+<form method="post" action="/cartoes/conferir">
+  <button type="submit" class="primary">🔄 Conferir resultados agora</button>
+  <span class="hint">A conferência também roda sozinha de hora em hora; o
+  resultado chega no seu Telegram assim que os jogos terminam.</span>
+</form>
+
+{% if not cards %}
+<div class="card"><p class="hint">Você ainda não tem cartões. Gere um pelo
+<a href="/estrategias">Estratégias</a>, <a href="/">Radar</a> ou
+<a href="/scanner">Scanner</a> (botão "🎟️ Gerar meu cartão"), ou eles
+aparecem aqui quando o bot monta o garimpo diário.</p></div>
+{% else %}
+
+{% set badge = {"pendente":"", "ganhou":"ok", "perdeu":"warn",
+                "devolvida":"", "conferir":"warn"} %}
+{% set label = {"pendente":"⏳ Pendente", "ganhou":"✅ Ganhou",
+                "perdeu":"❌ Perdeu", "devolvida":"↩️ Devolvido",
+                "conferir":"❔ Conferir"} %}
+{% for card in cards %}
+<div class="card">
+  <div class="card-head">
+    <h2>{{ card.created }}
+      <span class="badge {{ badge.get(card.status, '') }}">{{ label.get(card.status, card.status) }}</span>
+      <span class="badge">{{ "bot" if card.source == "bot" else "meu" }}</span>
+      {% if card.live_total %}<span class="badge ok">🔴 vencendo {{ card.live_winning }}/{{ card.live_total }} ao vivo</span>{% endif %}
+    </h2>
+    <a class="button" href="/b/{{ card.code }}" target="_blank">abrir 🔗</a>
+  </div>
+  <table class="markets">
+    <tbody>
+    {% for leg in card.legs %}
+    <tr>
+      <td style="width:28px">{{ card.detail[loop.index0].icon if card.detail and card.detail|length >= loop.index else "" }}</td>
+      <td>{% if leg.hl %}<img class="team-logo" src="{{ leg.hl }}" alt="" loading="lazy">{% endif %}{% if leg.al %}<img class="team-logo" src="{{ leg.al }}" alt="" loading="lazy">{% endif %}{{ leg.fixture }}
+        {% set lv = live.get(leg.fid) if live else none %}
+        {% if lv %}<span class="live-tag">🔴 {{ lv.gh if lv.gh is not none else 0 }}-{{ lv.ga if lv.ga is not none else 0 }} {{ "INT" if lv.status == "HT" else (lv.min ~ "'" if lv.min) }}</span>{% endif %}
+        {% set d = card.detail[loop.index0] if card.detail and card.detail|length > loop.index0 else none %}
+        {% if d and d.outcome == "won" %}<span class="win-tag">✅ bateu</span>
+        {% elif d and d.outcome == "lost" %}<span class="lose-tag">❌ não bateu</span>
+        {% elif d and d.outcome == "push" %}<span class="lose-tag">↩️ devolvida</span>
+        {% elif leg.live_status == "winning" %}<span class="win-tag">🟢 vencendo</span>
+        {% elif leg.live_status == "losing" %}<span class="lose-tag">🔴 perdendo</span>
+        {% elif leg.live_status == "push" %}<span class="lose-tag">↩️ devolveria</span>{% endif %}
+        <br><span class="hint">{{ leg.market }}</span></td>
+      <td style="text-align:right">{{ "%.2f"|format(leg.odd) if leg.odd else "—" }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <div class="trio">
+    <div><span>Odd combinada{% if card.partial %} (parcial){% endif %}</span>
+      <strong>{{ "%.2f"|format(card.combined_odd) if card.combined_odd else "—" }}</strong></div>
+    <div><span>Chance de ganhar</span>
+      <strong>{{ "%.0f"|format(card.combined_prob * 100) }}%</strong></div>
+    <div><span>Chance de perder</span>
+      <strong>{{ "%.0f"|format(card.lose_prob * 100) }}%</strong></div>
+  </div>
+  {% if card.corr %}
+  <p class="hint">⚠️ <strong>Apostas do mesmo jogo</strong>
+    ({% for f, n in card.corr %}{{ f }}: {{ n }} apostas{{ "; " if not loop.last }}{% endfor %}).
+    A chance acima faz de conta que cada aposta é separada — mas as do
+    mesmo jogo <strong>andam juntas</strong>, então o número real
+    costuma ser diferente (a chance de verdade costuma ser maior). Trate como
+    estimativa, não como valor exato.</p>
+  {% endif %}
+
+  <form method="post" action="/cartoes/aposta" class="stake-row">
+    <input type="hidden" name="code" value="{{ card.code }}">
+    <label>💵 Valor que apostei (R$)
+      <input type="number" step="any" min="0" name="stake"
+             value="{{ '%.2f'|format(card.stake) if card.stake else '' }}"
+             placeholder="ex.: 10"></label>
+    <button type="submit" class="button">salvar</button>
+    {% if card.pl.settled %}
+      <span class="pl-tag {{ 'pl-pos' if card.pl.pl > 0 else ('pl-neg' if card.pl.pl < 0 else '') }}">
+        {% if card.pl.pl > 0 %}lucro de R$ {{ "%.2f"|format(card.pl.pl) }}
+        {% elif card.pl.pl < 0 %}prejuízo de R$ {{ "%.2f"|format(-card.pl.pl) }}
+        {% else %}devolvido (R$ 0,00){% endif %}</span>
+    {% elif card.stake and card.pl.potential %}
+      <span class="hint">se ganhar: +R$ {{ "%.2f"|format(card.pl.potential) }}</span>
+    {% endif %}
+  </form>
+</div>
+{% endfor %}
+{% endif %}
+
+<script>
+  // Atualiza sozinho a cada 60s enquanto houver jogo ao vivo num cartão,
+  // para os indicadores "🟢 vencendo" se mexerem sem F5 — igual ao Ao Vivo.
+  // Não recarrega se você estiver digitando (ex.: no valor da aposta).
+  (function () {
+    if (!document.querySelector(".live-tag")) return;
+    setInterval(function () {
+      const tag = (document.activeElement || {}).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      location.reload();
+    }, 60000);
+  })();
+</script>
+{% endblock %}
